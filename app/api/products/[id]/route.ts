@@ -1,0 +1,50 @@
+import { NextResponse } from "next/server";
+import { storage } from "@/lib/storage";
+import { productFormSchema } from "@/lib/validators";
+import { slugify } from "@/lib/utils";
+
+function fromForm(data: FormData) {
+  return {
+    title: String(data.get("title") || ""),
+    subtitle: String(data.get("subtitle") || ""),
+    shortDescription: String(data.get("shortDescription") || ""),
+    longDescription: String(data.get("longDescription") || ""),
+    image: String(data.get("image") || ""),
+    offerType: String(data.get("offerType") || "product"),
+    pricingMode: String(data.get("pricingMode") || "fixed"),
+    fixedPrice: Number(data.get("fixedPrice") || 0),
+    minimumAmount: Number(data.get("minimumAmount") || 0),
+    suggestedAmount: Number(data.get("suggestedAmount") || 0),
+    isActive: data.get("isActive") === "on",
+    isPhysical: data.get("isPhysical") === "on",
+    requiresShipping: data.get("requiresShipping") === "on",
+    maxQuantity: Number(data.get("maxQuantity") || 0) || undefined,
+    stock: Number(data.get("stock") || 0) || undefined,
+    sku: String(data.get("sku") || ""),
+    weightGrams: Number(data.get("weightGrams") || 0) || undefined,
+    category: String(data.get("category") || "")
+  };
+}
+
+export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  const url = new URL(request.url);
+  if (url.searchParams.get('_method') === 'delete') {
+    await storage().deleteProduct(id);
+    return NextResponse.redirect(new URL('/admin/products', request.url));
+  }
+  const formData = await request.formData();
+  const current = await storage().getProductById(id);
+  if (!current) return NextResponse.redirect(new URL('/admin/products', request.url));
+  const parsed = productFormSchema.safeParse(fromForm(formData));
+  if (!parsed.success) return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
+  const updated = { ...current, ...parsed.data, slug: slugify(parsed.data.title), updatedAt: new Date().toISOString() };
+  await storage().updateProduct(id, updated);
+  return NextResponse.redirect(new URL('/admin/products', request.url));
+}
+
+export async function DELETE(_: Request, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  await storage().deleteProduct(id);
+  return NextResponse.json({ ok: true });
+}

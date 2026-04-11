@@ -1,0 +1,62 @@
+create table if not exists products (
+  id text primary key,
+  slug text unique not null,
+  title text not null,
+  subtitle text,
+  short_description text not null,
+  long_description text not null,
+  image text,
+  offer_type text not null,
+  pricing_mode text not null,
+  fixed_price integer,
+  minimum_amount integer,
+  suggested_amount integer,
+  is_active boolean not null default true,
+  is_physical boolean not null default false,
+  requires_shipping boolean not null default false,
+  max_quantity integer,
+  stock integer,
+  sku text,
+  weight_grams integer,
+  category text,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create table if not exists orders (
+  id text primary key,
+  reference text unique not null,
+  customer_first_name text not null,
+  customer_last_name text not null,
+  customer_email text not null,
+  customer_phone text not null,
+  shipping_country text,
+  shipping_address1 text,
+  shipping_address2 text,
+  shipping_postal_code text,
+  shipping_city text,
+  shipping_notes text,
+  subtotal_amount integer not null,
+  shipping_amount integer not null,
+  total_amount integer not null,
+  payment_status text not null,
+  logistics_status text not null,
+  stripe_session_id text,
+  stripe_payment_intent_id text,
+  currency text not null,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create table if not exists order_items (
+  id text primary key,
+  order_id text not null references orders(id) on delete cascade,
+  product_id text,
+  product_title text not null,
+  offer_type text not null,
+  pricing_mode text not null,
+  unit_amount integer not null,
+  quantity integer not null,
+  custom_amount integer,
+  created_at timestamptz not null default now()
+);
