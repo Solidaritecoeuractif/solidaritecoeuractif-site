@@ -7,14 +7,14 @@ export function storage(): StorageAdapter {
   if (adapter) return adapter;
 
   if (process.env.STORAGE_DRIVER === "postgres") {
-    // Chargement dynamique pour éviter que Vercel tente de builder Postgres
-    // quand on utilise simplement STORAGE_DRIVER=json
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     const { PostgresStorageAdapter } = require("./postgres");
-    adapter = new PostgresStorageAdapter();
-    return adapter;
+    const postgresAdapter: StorageAdapter = new PostgresStorageAdapter();
+    adapter = postgresAdapter;
+    return postgresAdapter;
   }
 
-  adapter = new JsonStorageAdapter();
-  return adapter;
+  const jsonAdapter: StorageAdapter = new JsonStorageAdapter();
+  adapter = jsonAdapter;
+  return jsonAdapter;
 }
