@@ -4,7 +4,7 @@ import type { StorageAdapter } from "./base";
 let adapter: StorageAdapter | null = null;
 
 export function storage(): StorageAdapter {
-  if (adapter) return adapter;
+  if (adapter !== null) return adapter;
 
   if (process.env.STORAGE_DRIVER === "postgres") {
     // eslint-disable-next-line @typescript-eslint/no-require-imports
