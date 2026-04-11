@@ -284,4 +284,20 @@ export class PostgresStorageAdapter implements StorageAdapter {
       client.release();
     }
   }
+  async markOrdersExported(references: string[], exportedAt: string) {
+    if (!references.length) return;
+
+    const client = await pool().connect();
+    try {
+      await client.query(
+        `update orders
+         set exported_at = $2,
+             updated_at = $3
+         where reference = any($1::text[])`,
+        [references, exportedAt, new Date().toISOString()]
+      );
+    } finally {
+      client.release();
+    }
+  }
 }
