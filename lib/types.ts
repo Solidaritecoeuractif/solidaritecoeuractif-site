@@ -1,8 +1,12 @@
-
 export type OfferType = "product" | "donation" | "campaign" | "participation";
 export type PricingMode = "fixed" | "flexible";
 export type PaymentStatus = "pending" | "paid" | "cancelled";
-export type LogisticsStatus = "to_process" | "prepared" | "shipped" | "delivered" | "cancelled";
+export type LogisticsStatus =
+  | "to_process"
+  | "prepared"
+  | "shipped"
+  | "delivered"
+  | "cancelled";
 
 export type Product = {
   id: string;
@@ -79,6 +83,8 @@ export type Order = {
   createdAt: string;
   updatedAt: string;
   exportedAt?: string;
+  emailSentAt?: string;
+  paymentReceiptSentAt?: string;
 };
 
 export type CatalogStats = {
