@@ -327,7 +327,9 @@ export function CheckoutClient({ products }: { products: Product[] }) {
   const resolved = useMemo(() => {
     return items
       .map((item) => {
-        const product = products.find((entry) => entry.id === item.productId && entry.isActive);
+        const product = products.find(
+          (entry) => entry.id === item.productId && entry.isActive
+        );
         if (!product) return null;
         const unit =
           product.pricingMode === "fixed"
@@ -400,7 +402,11 @@ export function CheckoutClient({ products }: { products: Product[] }) {
       });
       const data = await response.json();
       if (!response.ok) {
-        throw new Error(typeof data.error === "string" ? data.error : "Erreur de checkout.");
+        throw new Error(
+          typeof data.error === "string"
+            ? data.error
+            : "Erreur lors de la validation."
+        );
       }
       window.location.href = data.url;
     } catch (err) {
@@ -417,33 +423,58 @@ export function CheckoutClient({ products }: { products: Product[] }) {
   return (
     <div className="checkout-layout">
       <form onSubmit={submit} className="panel">
-        <h1>Finaliser la commande</h1>
+        <h1>Finaliser votre demande</h1>
+
         <div className="form-grid">
           <label>
             <span>Prénom</span>
-            <input required value={form.firstName} onChange={(e) => update("firstName", e.target.value)} />
+            <input
+              required
+              value={form.firstName}
+              onChange={(e) => update("firstName", e.target.value)}
+            />
           </label>
+
           <label>
             <span>Nom</span>
-            <input required value={form.lastName} onChange={(e) => update("lastName", e.target.value)} />
+            <input
+              required
+              value={form.lastName}
+              onChange={(e) => update("lastName", e.target.value)}
+            />
           </label>
+
           <label>
             <span>Email</span>
-            <input type="email" required value={form.email} onChange={(e) => update("email", e.target.value)} />
+            <input
+              type="email"
+              required
+              value={form.email}
+              onChange={(e) => update("email", e.target.value)}
+            />
           </label>
+
           <label>
             <span>Téléphone</span>
-            <input required value={form.phone} onChange={(e) => update("phone", e.target.value)} />
+            <input
+              required
+              value={form.phone}
+              onChange={(e) => update("phone", e.target.value)}
+            />
           </label>
         </div>
 
         {requiresShipping ? (
           <>
             <h2>Adresse de livraison</h2>
+
             <div className="form-grid">
               <label>
                 <span>Pays</span>
-                <select value={form.country} onChange={(e) => update("country", e.target.value)}>
+                <select
+                  value={form.country}
+                  onChange={(e) => update("country", e.target.value)}
+                >
                   {COUNTRY_OPTIONS.map((country) => (
                     <option key={country.code} value={country.code}>
                       {country.label}
@@ -454,12 +485,19 @@ export function CheckoutClient({ products }: { products: Product[] }) {
 
               <label>
                 <span>Adresse</span>
-                <input required value={form.address1} onChange={(e) => update("address1", e.target.value)} />
+                <input
+                  required
+                  value={form.address1}
+                  onChange={(e) => update("address1", e.target.value)}
+                />
               </label>
 
               <label>
                 <span>Complément</span>
-                <input value={form.address2} onChange={(e) => update("address2", e.target.value)} />
+                <input
+                  value={form.address2}
+                  onChange={(e) => update("address2", e.target.value)}
+                />
               </label>
 
               <label>
@@ -474,26 +512,40 @@ export function CheckoutClient({ products }: { products: Product[] }) {
                       ? {
                           background: "#f1f5f9",
                           color: "#64748b",
-                          cursor: "not-allowed"
+                          cursor: "not-allowed",
                         }
                       : undefined
                   }
                 />
                 {isPostalCodeForced ? (
-                  <p style={{ marginTop: "8px", fontSize: "14px", color: "#64748b" }}>
-                    Code postal rempli automatiquement pour ce pays : {forcedPostalCode}
+                  <p
+                    style={{
+                      marginTop: "8px",
+                      fontSize: "14px",
+                      color: "#64748b",
+                    }}
+                  >
+                    Code postal rempli automatiquement pour ce pays :{" "}
+                    {forcedPostalCode}
                   </p>
                 ) : null}
               </label>
 
               <label>
                 <span>Ville</span>
-                <input required value={form.city} onChange={(e) => update("city", e.target.value)} />
+                <input
+                  required
+                  value={form.city}
+                  onChange={(e) => update("city", e.target.value)}
+                />
               </label>
 
               <label className="full">
-                <span>Notes de livraison</span>
-                <textarea value={form.notes} onChange={(e) => update("notes", e.target.value)} />
+                <span>Informations complémentaires pour la livraison</span>
+                <textarea
+                  value={form.notes}
+                  onChange={(e) => update("notes", e.target.value)}
+                />
               </label>
             </div>
           </>
@@ -501,13 +553,18 @@ export function CheckoutClient({ products }: { products: Product[] }) {
 
         {error ? <p className="error-note">{error}</p> : null}
 
-        <button className="button primary" type="submit" disabled={loading || resolved.length === 0}>
-          {loading ? "Redirection..." : "Payer avec Stripe"}
+        <button
+          className="button primary"
+          type="submit"
+          disabled={loading || resolved.length === 0}
+        >
+          {loading ? "Redirection..." : "Continuer vers la participation sécurisée"}
         </button>
       </form>
 
       <div className="panel summary-panel">
-        <h2>Votre commande</h2>
+        <h2>Votre récapitulatif</h2>
+
         {resolved.map((item: any, index: number) => (
           <div key={index} className="summary-row">
             <span>
@@ -516,21 +573,26 @@ export function CheckoutClient({ products }: { products: Product[] }) {
             <strong>{euros(item.total)}</strong>
           </div>
         ))}
+
         <div className="summary-row">
           <span>Sous-total</span>
           <strong>{euros(quote?.subtotalAmount || 0)}</strong>
         </div>
+
         <div className="summary-row">
           <span>Livraison</span>
           <strong>{quoting ? "Calcul..." : euros(quote?.shippingAmount || 0)}</strong>
         </div>
+
         <div className="summary-row total">
           <span>Total</span>
           <strong>{euros(quote?.totalAmount || 0)}</strong>
         </div>
+
         <p>
-          Les données client et livraison sont enregistrées d’abord dans la commande interne du site,
-          puis Stripe sert à confirmer le paiement.
+          Vos informations sont enregistrées afin de traiter votre demande et,
+          lorsque cela s’applique, d’organiser l’envoi. La participation
+          sécurisée permet ensuite de confirmer la démarche.
         </p>
       </div>
     </div>

@@ -148,4 +148,16 @@ label span { display: block; margin-bottom: 8px; font-weight: 700; font-size: .9
     transform: scale(1);
     box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
   }
+.brand-logo {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 0.75rem;
+  flex-shrink: 0;
+}
+
+.brand-logo img {
+  object-fit: contain;
+  border-radius: 999px;
+}
 }

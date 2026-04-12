@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import CartBadgeLink from "@/components/CartBadgeLink";
 
@@ -16,10 +17,19 @@ export function BrandHeader() {
     <header className="site-header">
       <div className="container header-inner">
         <Link href="/" className="brand-mark">
-          <span className="brand-badge">SCA</span>
+          <span className="brand-logo">
+            <Image
+              src="/logo-association.png"
+              alt="Logo Solidarité Cœur Actif"
+              width={52}
+              height={52}
+              priority
+            />
+          </span>
+
           <span>
             <strong>{brand}</strong>
-            <small>Boutique, soutien et collecte</small>
+            <small>Association solidaire et actions de soutien</small>
           </span>
         </Link>
 

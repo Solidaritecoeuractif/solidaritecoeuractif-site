@@ -1,26 +1,38 @@
-
 import Link from "next/link";
 import type { Product } from "@/lib/types";
 import { euros } from "@/lib/utils";
 
-function priceText(product: Product) {
+function amountText(product: Product) {
   if (product.pricingMode === "fixed") {
     return euros(product.fixedPrice || 0);
   }
-  return `À partir de ${euros(product.minimumAmount || 0)}`;
+  return `Participation à partir de ${euros(product.minimumAmount || 0)}`;
 }
 
 export function ProductCard({ product }: { product: Product }) {
   return (
     <article className="product-card">
-      {product.image ? <img src={product.image} alt={product.title} className="product-image" /> : null}
+      {product.image ? (
+        <img
+          src={product.image}
+          alt={product.title}
+          className="product-image"
+        />
+      ) : null}
+
       <div className="product-body">
         <span className="product-type">{label(product.offerType)}</span>
         <h3>{product.title}</h3>
         <p>{product.shortDescription}</p>
+
         <div className="product-footer">
-          <strong>{priceText(product)}</strong>
-          <Link href={`/produit/${product.slug}`} className="button secondary small">Voir</Link>
+          <strong>{amountText(product)}</strong>
+          <Link
+            href={`/produit/${product.slug}`}
+            className="button secondary small"
+          >
+            Découvrir
+          </Link>
         </div>
       </div>
     </article>
@@ -30,12 +42,12 @@ export function ProductCard({ product }: { product: Product }) {
 function label(type: Product["offerType"]) {
   switch (type) {
     case "product":
-      return "Produit";
+      return "Support solidaire";
     case "donation":
-      return "Don libre";
+      return "Soutien libre";
     case "campaign":
       return "Collecte";
     case "participation":
-      return "Participation libre";
+      return "Participation";
   }
 }
