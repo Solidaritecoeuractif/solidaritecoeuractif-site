@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 import { storage } from "@/lib/storage";
 import { productFormSchema } from "@/lib/validators";
 import { slugify } from "@/lib/utils";
@@ -26,25 +27,59 @@ function fromForm(data: FormData) {
   };
 }
 
-export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
+export async function POST(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
   const { id } = await params;
   const url = new URL(request.url);
-  if (url.searchParams.get('_method') === 'delete') {
+
+  if (url.searchParams.get("_method") === "delete") {
     await storage().deleteProduct(id);
-    return NextResponse.redirect(new URL('/admin/products', request.url));
+    revalidatePath("/");
+    revalidatePath("/admin/products");
+    return NextResponse.redirect(new URL("/admin/products", request.url));
   }
+
   const formData = await request.formData();
   const current = await storage().getProductById(id);
-  if (!current) return NextResponse.redirect(new URL('/admin/products', request.url));
+
+  if (!current) {
+    return NextResponse.redirect(new URL("/admin/products", request.url));
+  }
+
   const parsed = productFormSchema.safeParse(fromForm(formData));
-  if (!parsed.success) return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
-  const updated = { ...current, ...parsed.data, slug: slugify(parsed.data.title), updatedAt: new Date().toISOString() };
+
+  if (!parsed.success) {
+    return NextResponse.json(
+      { error: parsed.error.flatten() },
+      { status: 400 }
+    );
+  }
+
+  const updated = {
+    ...current,
+    ...parsed.data,
+    slug: slugify(parsed.data.title),
+    updatedAt: new Date().toISOString(),
+  };
+
   await storage().updateProduct(id, updated);
-  return NextResponse.redirect(new URL('/admin/products', request.url));
+
+  revalidatePath("/");
+  revalidatePath("/admin/products");
+  revalidatePath(`/produit/${updated.slug}`);
+
+  return NextResponse.redirect(new URL("/admin/products", request.url));
 }
 
-export async function DELETE(_: Request, { params }: { params: Promise<{ id: string }> }) {
+export async function DELETE(
+  _: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
   const { id } = await params;
   await storage().deleteProduct(id);
+  revalidatePath("/");
+  revalidatePath("/admin/products");
   return NextResponse.json({ ok: true });
 }

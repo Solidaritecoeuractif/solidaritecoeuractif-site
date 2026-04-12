@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { Hero } from "@/components/Hero";
 import { ProductCard } from "@/components/ProductCard";
 import { storage } from "@/lib/storage";

@@ -1,5 +1,5 @@
-
 import { NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 import { storage } from "@/lib/storage";
 import { productFormSchema } from "@/lib/validators";
 import { slugify, uniqueId } from "@/lib/utils";
@@ -35,9 +35,11 @@ function fromForm(data: FormData) {
 export async function POST(request: Request) {
   const formData = await request.formData();
   const parsed = productFormSchema.safeParse(fromForm(formData));
+
   if (!parsed.success) {
     return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
   }
+
   const now = new Date().toISOString();
   const product = {
     id: uniqueId("prod"),
@@ -46,6 +48,11 @@ export async function POST(request: Request) {
     createdAt: now,
     updatedAt: now
   };
+
   await storage().saveProduct(product);
+  revalidatePath("/");
+  revalidatePath("/admin/products");
+  revalidatePath(`/produit/${product.slug}`);
+
   return NextResponse.redirect(new URL("/admin/products", request.url));
 }
