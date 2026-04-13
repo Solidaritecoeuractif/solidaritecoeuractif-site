@@ -34,6 +34,8 @@ export function CheckoutClient({ products }: { products: Product[] }) {
   const [error, setError] = useState("");
   const [supportEnabled, setSupportEnabled] = useState(true);
   const [supportAmount, setSupportAmount] = useState(0);
+  const [touchedShippingInputs, setTouchedShippingInputs] = useState<number[]>([]);
+  const [shippingInputs, setShippingInputs] = useState<Record<number, string>>({});
   const [form, setForm] = useState({
     firstName: "",
     lastName: "",
@@ -88,13 +90,15 @@ export function CheckoutClient({ products }: { products: Product[] }) {
               )
             : 0;
 
+        const minimumUnitAmount = lineAmountToUnitAmount(
+          minimumLineAmount,
+          item.quantity
+        );
+
         const unit =
           product.pricingMode === "fixed"
             ? product.fixedPrice || 0
-            : Math.max(
-                item.customAmount || 0,
-                lineAmountToUnitAmount(minimumLineAmount, item.quantity)
-              );
+            : Math.max(item.customAmount || 0, minimumUnitAmount);
 
         return {
           ...item,
@@ -103,6 +107,7 @@ export function CheckoutClient({ products }: { products: Product[] }) {
           unit,
           total: unit * item.quantity,
           minimumLineAmount,
+          minimumUnitAmount,
         };
       })
       .filter(Boolean) as Array<
@@ -112,6 +117,7 @@ export function CheckoutClient({ products }: { products: Product[] }) {
         unit: number;
         total: number;
         minimumLineAmount: number;
+        minimumUnitAmount: number;
       }
     >;
   }, [items, products, form.country]);
@@ -137,7 +143,10 @@ export function CheckoutClient({ products }: { products: Product[] }) {
 
         return {
           ...item,
-          customAmount: Math.max(item.customAmount || 0, minimumUnitAmount),
+          customAmount:
+            typeof item.customAmount === "number"
+              ? Math.max(item.customAmount, minimumUnitAmount)
+              : minimumUnitAmount,
         };
       })
     );
@@ -255,11 +264,12 @@ export function CheckoutClient({ products }: { products: Product[] }) {
   }
 
   function updateFlexibleLineAmount(index: number, amountInEuros: string) {
+    setShippingInputs((prev) => ({ ...prev, [index]: amountInEuros }));
+
     const numeric = Number(amountInEuros.replace(",", "."));
-    const requestedLineAmount = Math.max(
-      0,
-      Math.round((Number.isFinite(numeric) ? numeric : 0) * 100)
-    );
+    if (!Number.isFinite(numeric)) return;
+
+    const requestedLineAmount = Math.max(0, Math.round(numeric * 100));
 
     setItems((prev) =>
       prev.map((item, idx) => {
@@ -288,6 +298,73 @@ export function CheckoutClient({ products }: { products: Product[] }) {
         };
       })
     );
+  }
+
+  function handleShippingBlur(index: number) {
+    setTouchedShippingInputs((prev) =>
+      prev.includes(index) ? prev : [...prev, index]
+    );
+
+    const value = shippingInputs[index];
+    const numeric = Number(String(value || "").replace(",", "."));
+
+    const item = resolvedPreview.find((entry) => entry.index === index);
+    if (!item) return;
+
+    if (!Number.isFinite(numeric) || numeric <= 0) {
+      setItems((prev) =>
+        prev.map((entry, idx) =>
+          idx === index
+            ? {
+                ...entry,
+                customAmount: item.minimumUnitAmount,
+              }
+            : entry
+        )
+      );
+      setShippingInputs((prev) => ({
+        ...prev,
+        [index]: (item.minimumLineAmount / 100).toFixed(2).replace(".", ","),
+      }));
+      return;
+    }
+
+    const requestedLineAmount = Math.round(numeric * 100);
+    const finalLineAmount = Math.max(requestedLineAmount, item.minimumLineAmount);
+
+    setItems((prev) =>
+      prev.map((entry, idx) =>
+        idx === index
+          ? {
+              ...entry,
+              customAmount: lineAmountToUnitAmount(
+                finalLineAmount,
+                entry.quantity
+              ),
+            }
+          : entry
+      )
+    );
+
+    setShippingInputs((prev) => ({
+      ...prev,
+      [index]: (finalLineAmount / 100).toFixed(2).replace(".", ","),
+    }));
+  }
+
+  function displayShippingInput(itemIndex: number) {
+    if (shippingInputs[itemIndex] !== undefined) {
+      return shippingInputs[itemIndex];
+    }
+
+    if (!touchedShippingInputs.includes(itemIndex)) {
+      return "";
+    }
+
+    const item = resolvedPreview.find((entry) => entry.index === itemIndex);
+    if (!item) return "";
+
+    return (item.total / 100).toFixed(2).replace(".", ",");
   }
 
   return (
@@ -470,10 +547,12 @@ export function CheckoutClient({ products }: { products: Product[] }) {
                     type="number"
                     min={(item.minimumLineAmount / 100).toFixed(2)}
                     step="0.01"
-                    value={(item.total / 100).toFixed(2)}
+                    value={displayShippingInput(item.index)}
                     onChange={(e) =>
                       updateFlexibleLineAmount(item.index, e.target.value)
                     }
+                    onBlur={() => handleShippingBlur(item.index)}
+                    placeholder=""
                   />
                   <small style={{ display: "block", marginTop: 8 }}>
                     Minimum autorisé pour cette destination :{" "}
@@ -522,7 +601,7 @@ export function CheckoutClient({ products }: { products: Product[] }) {
                 style={{ marginTop: 4 }}
               />
               <span>
-                <strong>Participation libre à Solidarité Cœur Actif</strong>
+                <strong>Participation libre à l’Association</strong>
                 <br />
                 <small>
                   Cette participation complémentaire aide l’association à
@@ -540,7 +619,7 @@ export function CheckoutClient({ products }: { products: Product[] }) {
                     fontWeight: 600,
                   }}
                 >
-                  Montant de la participation complémentaire
+                  Montant de la participation libre
                 </span>
                 <input
                   type="number"
@@ -560,11 +639,6 @@ export function CheckoutClient({ products }: { products: Product[] }) {
             ) : null}
           </div>
         ) : null}
-
-        <div className="summary-row">
-          <span>Participation complémentaire</span>
-          <strong>{euros(quote?.supportAmount || 0)}</strong>
-        </div>
 
         <div className="summary-row total">
           <span>Total</span>
