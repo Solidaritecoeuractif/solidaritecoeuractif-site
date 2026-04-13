@@ -64,7 +64,9 @@ export function AddToCartForm({ product }: { product: Product }) {
     const current: CartLine[] = raw ? JSON.parse(raw) : [];
 
     const index = current.findIndex(
-      (line) => line.productId === product.id && !line.customAmount
+      (line) =>
+        line.productId === product.id &&
+        typeof line.customAmount === "undefined"
     );
 
     if (index >= 0) {
@@ -79,8 +81,7 @@ export function AddToCartForm({ product }: { product: Product }) {
       current.push({
         productId: product.id,
         quantity: sanitizedQuantity,
-        customAmount:
-          product.pricingMode === "flexible" ? minimumUnitAmount : undefined,
+        customAmount: undefined,
       });
     }
 
@@ -132,7 +133,6 @@ export function AddToCartForm({ product }: { product: Product }) {
       {message ? (
         <div className="success-note" style={{ marginTop: 12 }}>
           <p style={{ margin: 0 }}>{message}</p>
-
           <div
             style={{
               marginTop: 10,

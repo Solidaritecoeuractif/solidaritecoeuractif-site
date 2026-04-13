@@ -40,9 +40,6 @@ export function CheckoutClient({ products }: { products: Product[] }) {
   const [error, setError] = useState("");
   const [supportEnabled, setSupportEnabled] = useState(true);
   const [supportAmount, setSupportAmount] = useState(0);
-  const [touchedShippingInputs, setTouchedShippingInputs] = useState<number[]>(
-    []
-  );
   const [shippingInputs, setShippingInputs] = useState<Record<number, string>>(
     {}
   );
@@ -105,13 +102,15 @@ export function CheckoutClient({ products }: { products: Product[] }) {
           item.quantity
         );
 
-        const hasCustomAmount =
-          typeof item.customAmount === "number" && item.customAmount > 0;
+        const hasTypedAmount =
+          String(shippingInputs[index] ?? "").trim() !== "" &&
+          typeof item.customAmount === "number" &&
+          item.customAmount > 0;
 
         const unit =
           product.pricingMode === "fixed"
             ? product.fixedPrice || 0
-            : hasCustomAmount
+            : hasTypedAmount
               ? Math.max(item.customAmount || 0, minimumUnitAmount)
               : 0;
 
@@ -123,8 +122,7 @@ export function CheckoutClient({ products }: { products: Product[] }) {
           total: unit * item.quantity,
           minimumLineAmount,
           minimumUnitAmount,
-          isFlexibleReady:
-            product.pricingMode === "fixed" ? true : hasCustomAmount,
+          hasTypedAmount,
         };
       })
       .filter(Boolean) as Array<
@@ -135,10 +133,10 @@ export function CheckoutClient({ products }: { products: Product[] }) {
         total: number;
         minimumLineAmount: number;
         minimumUnitAmount: number;
-        isFlexibleReady: boolean;
+        hasTypedAmount: boolean;
       }
     >;
-  }, [items, products, form.country]);
+  }, [items, products, form.country, shippingInputs]);
 
   const requiresShipping = resolvedPreview.some(
     (item) => item.product.requiresShipping && item.product.isPhysical
@@ -149,10 +147,7 @@ export function CheckoutClient({ products }: { products: Product[] }) {
   );
 
   const allFlexibleAmountsEntered = flexibleItems.every(
-    (item) =>
-      typeof item.customAmount === "number" &&
-      item.customAmount > 0 &&
-      String(shippingInputs[item.index] ?? "").trim() !== ""
+    (item) => item.hasTypedAmount
   );
 
   const localSubtotal = useMemo(
@@ -279,6 +274,7 @@ export function CheckoutClient({ products }: { products: Product[] }) {
     setShippingInputs((prev) => ({ ...prev, [index]: amountInEuros }));
 
     const parsed = parseEuroInput(amountInEuros);
+
     if (parsed === null || parsed <= 0) {
       setItems((prev) =>
         prev.map((item, idx) =>
@@ -318,10 +314,6 @@ export function CheckoutClient({ products }: { products: Product[] }) {
   }
 
   function handleShippingBlur(index: number) {
-    setTouchedShippingInputs((prev) =>
-      prev.includes(index) ? prev : [...prev, index]
-    );
-
     const value = shippingInputs[index];
     const parsed = parseEuroInput(value);
 
@@ -507,7 +499,7 @@ export function CheckoutClient({ products }: { products: Product[] }) {
               </span>
               <strong>
                 {item.product.pricingMode === "flexible"
-                  ? item.isFlexibleReady
+                  ? item.hasTypedAmount
                     ? `Frais de livraison ${euros(item.total)}`
                     : "Frais de livraison à renseigner"
                   : euros(item.total)}

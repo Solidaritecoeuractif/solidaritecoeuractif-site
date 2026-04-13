@@ -36,14 +36,12 @@ type Order = {
 
 function badgeClass(status: string) {
   if (status === "paid" || status === "delivered") return `badge ${status}`;
-  if (status === "pending" || status === "to_process") return `badge ${status}`;
+  if (status === "to_process") return `badge ${status}`;
   return "badge cancelled";
 }
 
-function paymentLabel(status: string) {
-  if (status === "paid") return "Payé";
-  if (status === "pending") return "En attente";
-  return status;
+function paymentLabel() {
+  return "Payé";
 }
 
 function logisticsLabel(status: string) {
@@ -87,7 +85,6 @@ function isInternationalCustomsEligible(countryCode?: string) {
 
 export default function OrdersTableClient({ orders }: { orders: Order[] }) {
   const [selected, setSelected] = useState<string[]>([]);
-  const [paymentFilter, setPaymentFilter] = useState("all");
   const [logisticsFilter, setLogisticsFilter] = useState("all");
   const [exportFilter, setExportFilter] = useState("all");
   const [zoneFilter, setZoneFilter] = useState("all");
@@ -97,9 +94,6 @@ export default function OrdersTableClient({ orders }: { orders: Order[] }) {
 
   const filteredOrders = useMemo(() => {
     return orders.filter((order) => {
-      const paymentOk =
-        paymentFilter === "all" ? true : order.paymentStatus === paymentFilter;
-
       const logisticsOk =
         logisticsFilter === "all"
           ? true
@@ -132,9 +126,9 @@ export default function OrdersTableClient({ orders }: { orders: Order[] }) {
                   ? zone === "france_metropolitaine"
                   : true;
 
-      return paymentOk && logisticsOk && exportOk && fromOk && toOk && zoneOk;
+      return logisticsOk && exportOk && fromOk && toOk && zoneOk;
     });
-  }, [orders, paymentFilter, logisticsFilter, exportFilter, zoneFilter, dateFrom, dateTo]);
+  }, [orders, logisticsFilter, exportFilter, zoneFilter, dateFrom, dateTo]);
 
   const allVisibleSelected = useMemo(() => {
     return (
@@ -200,7 +194,6 @@ export default function OrdersTableClient({ orders }: { orders: Order[] }) {
   }
 
   function resetFilters() {
-    setPaymentFilter("all");
     setLogisticsFilter("all");
     setExportFilter("all");
     setZoneFilter("all");
@@ -215,10 +208,6 @@ export default function OrdersTableClient({ orders }: { orders: Order[] }) {
 
     for (const reference of selected) {
       params.append("refs", reference);
-    }
-
-    if (paymentFilter !== "all") {
-      params.set("paymentStatus", paymentFilter);
     }
 
     if (logisticsFilter !== "all") {
@@ -296,19 +285,6 @@ export default function OrdersTableClient({ orders }: { orders: Order[] }) {
           flexWrap: "wrap",
         }}
       >
-        <label style={{ display: "grid", gap: "6px" }}>
-          <span style={{ fontSize: "14px", fontWeight: 600 }}>Paiement</span>
-          <select
-            className="input"
-            value={paymentFilter}
-            onChange={(e) => setPaymentFilter(e.target.value)}
-          >
-            <option value="all">Tous</option>
-            <option value="paid">Payé</option>
-            <option value="pending">En attente</option>
-          </select>
-        </label>
-
         <label style={{ display: "grid", gap: "6px" }}>
           <span style={{ fontSize: "14px", fontWeight: 600 }}>Logistique</span>
           <select
@@ -527,7 +503,7 @@ export default function OrdersTableClient({ orders }: { orders: Order[] }) {
               <td>{euros(order.totalAmount)}</td>
               <td>
                 <span className={badgeClass(order.paymentStatus)}>
-                  {paymentLabel(order.paymentStatus)}
+                  {paymentLabel()}
                 </span>
               </td>
               <td>
