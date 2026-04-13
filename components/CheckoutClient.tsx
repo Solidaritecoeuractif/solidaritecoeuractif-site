@@ -22,36 +22,8 @@ type Quote = {
   totalAmount: number;
 };
 
-function buildAdjustedItems(
-  items: ClientItem[],
-  products: Product[],
-  destinationCode: string
-) {
-  return items.map((item) => {
-    const product = products.find((entry) => entry.id === item.productId);
-
-    if (!product) {
-      return item;
-    }
-
-    if (product.pricingMode !== "flexible") {
-      return item;
-    }
-
-    const baseMinimum = product.minimumAmount || 0;
-    const adjustedLineMinimum = calculateZoneAdjustedLineMinimum(
-      baseMinimum,
-      item.quantity,
-      destinationCode
-    );
-
-    const adjustedUnitAmount = Math.ceil(adjustedLineMinimum / item.quantity);
-
-    return {
-      ...item,
-      customAmount: adjustedUnitAmount,
-    };
-  });
+function lineAmountToUnitAmount(lineAmount: number, quantity: number) {
+  return Math.ceil(lineAmount / Math.max(1, quantity));
 }
 
 export function CheckoutClient({ products }: { products: Product[] }) {
@@ -98,35 +70,78 @@ export function CheckoutClient({ products }: { products: Product[] }) {
     setItems(raw ? JSON.parse(raw) : []);
   }, []);
 
-  const adjustedItems = useMemo(
-    () => buildAdjustedItems(items, products, form.country),
-    [items, products, form.country]
-  );
-
   const resolvedPreview = useMemo(() => {
-    return adjustedItems
-      .map((item) => {
+    return items
+      .map((item, index) => {
         const product = products.find(
           (entry) => entry.id === item.productId && entry.isActive
         );
         if (!product) return null;
 
+        const baseMinimum = product.minimumAmount || 0;
+        const minimumLineAmount =
+          product.pricingMode === "flexible"
+            ? calculateZoneAdjustedLineMinimum(
+                baseMinimum,
+                item.quantity,
+                form.country
+              )
+            : 0;
+
         const unit =
           product.pricingMode === "fixed"
             ? product.fixedPrice || 0
-            : Math.max(item.customAmount || 0, product.minimumAmount || 0);
+            : Math.max(
+                item.customAmount || 0,
+                lineAmountToUnitAmount(minimumLineAmount, item.quantity)
+              );
 
         return {
           ...item,
+          index,
           product,
           unit,
           total: unit * item.quantity,
+          minimumLineAmount,
         };
       })
       .filter(Boolean) as Array<
-      ClientItem & { product: Product; unit: number; total: number }
+      ClientItem & {
+        index: number;
+        product: Product;
+        unit: number;
+        total: number;
+        minimumLineAmount: number;
+      }
     >;
-  }, [adjustedItems, products]);
+  }, [items, products, form.country]);
+
+  useEffect(() => {
+    setItems((prev) =>
+      prev.map((item) => {
+        const product = products.find(
+          (entry) => entry.id === item.productId && entry.isActive
+        );
+        if (!product || product.pricingMode !== "flexible") return item;
+
+        const minimumLineAmount = calculateZoneAdjustedLineMinimum(
+          product.minimumAmount || 0,
+          item.quantity,
+          form.country
+        );
+
+        const minimumUnitAmount = lineAmountToUnitAmount(
+          minimumLineAmount,
+          item.quantity
+        );
+
+        return {
+          ...item,
+          customAmount: Math.max(item.customAmount || 0, minimumUnitAmount),
+        };
+      })
+    );
+  }, [form.country, products]);
 
   const requiresShipping = resolvedPreview.some(
     (item) => item.product.requiresShipping && item.product.isPhysical
@@ -148,7 +163,7 @@ export function CheckoutClient({ products }: { products: Product[] }) {
 
   useEffect(() => {
     async function refreshQuote() {
-      if (!adjustedItems.length) {
+      if (!items.length) {
         setQuote(null);
         return;
       }
@@ -161,7 +176,7 @@ export function CheckoutClient({ products }: { products: Product[] }) {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            items: adjustedItems,
+            items,
             country: requiresShipping ? form.country : undefined,
             supportEnabled,
             supportAmount: supportEnabled ? supportAmount : 0,
@@ -173,7 +188,9 @@ export function CheckoutClient({ products }: { products: Product[] }) {
         if (response.ok) {
           setQuote(data);
         } else {
-          setError(typeof data.error === "string" ? data.error : "Erreur de calcul.");
+          setError(
+            typeof data.error === "string" ? data.error : "Erreur de calcul."
+          );
         }
       } finally {
         setQuoting(false);
@@ -181,7 +198,7 @@ export function CheckoutClient({ products }: { products: Product[] }) {
     }
 
     refreshQuote();
-  }, [adjustedItems, form.country, requiresShipping, supportEnabled, supportAmount]);
+  }, [items, form.country, requiresShipping, supportEnabled, supportAmount]);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -193,7 +210,7 @@ export function CheckoutClient({ products }: { products: Product[] }) {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          items: adjustedItems,
+          items,
           supportEnabled,
           supportAmount: supportEnabled ? supportAmount : 0,
           customer: {
@@ -235,6 +252,42 @@ export function CheckoutClient({ products }: { products: Product[] }) {
 
   function update(key: string, value: string) {
     setForm((prev) => ({ ...prev, [key]: value }));
+  }
+
+  function updateFlexibleLineAmount(index: number, amountInEuros: string) {
+    const numeric = Number(amountInEuros.replace(",", "."));
+    const requestedLineAmount = Math.max(
+      0,
+      Math.round((Number.isFinite(numeric) ? numeric : 0) * 100)
+    );
+
+    setItems((prev) =>
+      prev.map((item, idx) => {
+        if (idx !== index) return item;
+
+        const product = products.find(
+          (entry) => entry.id === item.productId && entry.isActive
+        );
+        if (!product || product.pricingMode !== "flexible") return item;
+
+        const minimumLineAmount = calculateZoneAdjustedLineMinimum(
+          product.minimumAmount || 0,
+          item.quantity,
+          form.country
+        );
+
+        const finalLineAmount = Math.max(requestedLineAmount, minimumLineAmount);
+        const finalUnitAmount = lineAmountToUnitAmount(
+          finalLineAmount,
+          item.quantity
+        );
+
+        return {
+          ...item,
+          customAmount: finalUnitAmount,
+        };
+      })
+    );
   }
 
   return (
@@ -346,7 +399,8 @@ export function CheckoutClient({ products }: { products: Product[] }) {
                       color: "#64748b",
                     }}
                   >
-                    Code postal rempli automatiquement pour ce pays : {forcedPostalCode}
+                    Code postal rempli automatiquement pour ce pays :{" "}
+                    {forcedPostalCode}
                   </p>
                 ) : null}
               </label>
@@ -387,23 +441,65 @@ export function CheckoutClient({ products }: { products: Product[] }) {
       <div className="panel summary-panel">
         <h2>Votre récapitulatif</h2>
 
-        {resolvedPreview.map((item, index) => (
-          <div key={index} className="summary-row">
-            <span>
-              {item.product.title} x{item.quantity}
-            </span>
-            <strong>
-              {item.product.pricingMode === "flexible"
-                ? `Frais de livraison ${euros(item.total)}`
-                : euros(item.total)}
-            </strong>
+        {resolvedPreview.map((item) => (
+          <div key={item.index} style={{ marginBottom: 16 }}>
+            <div className="summary-row">
+              <span>
+                {item.product.title} x{item.quantity}
+              </span>
+              <strong>
+                {item.product.pricingMode === "flexible"
+                  ? `Frais de livraison ${euros(item.total)}`
+                  : euros(item.total)}
+              </strong>
+            </div>
+
+            {item.product.pricingMode === "flexible" ? (
+              <div style={{ marginTop: 8 }}>
+                <label style={{ display: "block" }}>
+                  <span
+                    style={{
+                      display: "block",
+                      marginBottom: 6,
+                      fontWeight: 600,
+                    }}
+                  >
+                    Frais de livraison
+                  </span>
+                  <input
+                    type="number"
+                    min={(item.minimumLineAmount / 100).toFixed(2)}
+                    step="0.01"
+                    value={(item.total / 100).toFixed(2)}
+                    onChange={(e) =>
+                      updateFlexibleLineAmount(item.index, e.target.value)
+                    }
+                  />
+                  <small style={{ display: "block", marginTop: 8 }}>
+                    Minimum autorisé pour cette destination :{" "}
+                    <strong>{euros(item.minimumLineAmount)}</strong>
+                  </small>
+                </label>
+              </div>
+            ) : null}
           </div>
         ))}
+
+        <div className="summary-row" style={{ marginTop: 16 }}>
+          <span>Sous-total</span>
+          <strong>{euros(quote?.subtotalAmount || 0)}</strong>
+        </div>
+
+        <div className="summary-row">
+          <span>Livraison</span>
+          <strong>{quoting ? "Calcul..." : euros(quote?.shippingAmount || 0)}</strong>
+        </div>
 
         {resolvedPreview.length > 0 ? (
           <div
             style={{
               marginTop: 16,
+              marginBottom: 16,
               padding: 16,
               border: "1px solid #e2e8f0",
               borderRadius: 16,
@@ -426,13 +522,11 @@ export function CheckoutClient({ products }: { products: Product[] }) {
                 style={{ marginTop: 4 }}
               />
               <span>
-                <strong>Participation libre à l’association</strong>
+                <strong>Participation libre à Solidarité Cœur Actif</strong>
                 <br />
                 <small>
                   Cette participation complémentaire aide l’association à
-                  poursuivre ses actions solidaires. Elle est proposée
-                  automatiquement à hauteur de 20 % du montant choisi, mais vous
-                  pouvez la modifier ou la retirer.
+                  poursuivre ses actions solidaires.
                 </small>
               </span>
             </label>
@@ -466,16 +560,6 @@ export function CheckoutClient({ products }: { products: Product[] }) {
             ) : null}
           </div>
         ) : null}
-
-        <div className="summary-row" style={{ marginTop: 16 }}>
-          <span>Sous-total</span>
-          <strong>{euros(quote?.subtotalAmount || 0)}</strong>
-        </div>
-
-        <div className="summary-row">
-          <span>Livraison</span>
-          <strong>{quoting ? "Calcul..." : euros(quote?.shippingAmount || 0)}</strong>
-        </div>
 
         <div className="summary-row">
           <span>Participation complémentaire</span>
