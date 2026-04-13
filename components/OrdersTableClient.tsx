@@ -2,6 +2,11 @@
 
 import { useMemo, useState } from "react";
 import { euros } from "@/lib/utils";
+import {
+  getDestinationZone,
+  isAfricaDestination,
+  isOverseasDestination,
+} from "@/lib/destinations";
 
 type OrderItem = {
   productTitle: string;
@@ -20,6 +25,11 @@ type Order = {
     firstName: string;
     lastName: string;
     email: string;
+  };
+  shippingAddress?: {
+    country?: string;
+    city?: string;
+    postalCode?: string;
   };
   items: OrderItem[];
 };
@@ -59,11 +69,28 @@ function toDateTimeLocalValue(iso: string) {
   return local.toISOString().slice(0, 16);
 }
 
+function zoneLabel(countryCode?: string) {
+  if (!countryCode) return "Sans adresse";
+
+  const zone = getDestinationZone(countryCode);
+
+  if (zone === "france_metropolitaine") return "France métropolitaine";
+  if (zone === "outre_mer") return "Outre-Mer";
+  if (zone === "afrique") return "Afrique";
+  return "International";
+}
+
+function isInternationalCustomsEligible(countryCode?: string) {
+  const zone = getDestinationZone(countryCode || "");
+  return zone === "afrique" || zone === "international";
+}
+
 export default function OrdersTableClient({ orders }: { orders: Order[] }) {
   const [selected, setSelected] = useState<string[]>([]);
   const [paymentFilter, setPaymentFilter] = useState("all");
   const [logisticsFilter, setLogisticsFilter] = useState("all");
   const [exportFilter, setExportFilter] = useState("all");
+  const [zoneFilter, setZoneFilter] = useState("all");
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
   const [busy, setBusy] = useState(false);
@@ -74,22 +101,40 @@ export default function OrdersTableClient({ orders }: { orders: Order[] }) {
         paymentFilter === "all" ? true : order.paymentStatus === paymentFilter;
 
       const logisticsOk =
-        logisticsFilter === "all" ? true : order.logisticsStatus === logisticsFilter;
+        logisticsFilter === "all"
+          ? true
+          : order.logisticsStatus === logisticsFilter;
 
       const exportOk =
         exportFilter === "all"
           ? true
           : exportFilter === "exported"
-          ? Boolean(order.exportedAt)
-          : !order.exportedAt;
+            ? Boolean(order.exportedAt)
+            : !order.exportedAt;
 
       const orderDate = new Date(order.createdAt).getTime();
       const fromOk = dateFrom ? orderDate >= new Date(dateFrom).getTime() : true;
       const toOk = dateTo ? orderDate <= new Date(dateTo).getTime() : true;
 
-      return paymentOk && logisticsOk && exportOk && fromOk && toOk;
+      const countryCode = order.shippingAddress?.country || "";
+      const zone = getDestinationZone(countryCode);
+
+      const zoneOk =
+        zoneFilter === "all"
+          ? true
+          : zoneFilter === "overseas"
+            ? zone === "outre_mer"
+            : zoneFilter === "africa"
+              ? zone === "afrique"
+              : zoneFilter === "international"
+                ? zone === "international"
+                : zoneFilter === "france"
+                  ? zone === "france_metropolitaine"
+                  : true;
+
+      return paymentOk && logisticsOk && exportOk && fromOk && toOk && zoneOk;
     });
-  }, [orders, paymentFilter, logisticsFilter, exportFilter, dateFrom, dateTo]);
+  }, [orders, paymentFilter, logisticsFilter, exportFilter, zoneFilter, dateFrom, dateTo]);
 
   const allVisibleSelected = useMemo(() => {
     return (
@@ -121,15 +166,49 @@ export default function OrdersTableClient({ orders }: { orders: Order[] }) {
     setSelected((prev) => Array.from(new Set([...prev, ...visibleRefs])));
   }
 
+  function selectByPredicate(predicate: (order: Order) => boolean) {
+    const refs = filteredOrders.filter(predicate).map((order) => order.reference);
+    setSelected(refs);
+  }
+
+  function selectAllVisible() {
+    setSelected(filteredOrders.map((order) => order.reference));
+  }
+
+  function selectWithoutOverseas() {
+    selectByPredicate(
+      (order) => !isOverseasDestination(order.shippingAddress?.country || "")
+    );
+  }
+
+  function selectWithoutAfrica() {
+    selectByPredicate(
+      (order) => !isAfricaDestination(order.shippingAddress?.country || "")
+    );
+  }
+
+  function selectOverseas() {
+    selectByPredicate((order) =>
+      isOverseasDestination(order.shippingAddress?.country || "")
+    );
+  }
+
+  function selectAfrica() {
+    selectByPredicate((order) =>
+      isAfricaDestination(order.shippingAddress?.country || "")
+    );
+  }
+
   function resetFilters() {
     setPaymentFilter("all");
     setLogisticsFilter("all");
     setExportFilter("all");
+    setZoneFilter("all");
     setDateFrom("");
     setDateTo("");
   }
 
-  function exportSelection(format: "csv" | "xlsx" | "chronopost") {
+  function exportSelection(format: "csv" | "xlsx" | "chronopost" | "customs-pdf") {
     if (selected.length === 0) return;
 
     const params = new URLSearchParams();
@@ -154,7 +233,12 @@ export default function OrdersTableClient({ orders }: { orders: Order[] }) {
       params.set("dateTo", new Date(dateTo).toISOString());
     }
 
-    window.location.href = `/api/orders/export/${format}?${params.toString()}`;
+    const base =
+      format === "customs-pdf"
+        ? "/api/orders/export/customs-pdf"
+        : `/api/orders/export/${format}`;
+
+    window.location.href = `${base}?${params.toString()}`;
   }
 
   async function markSelectedAsExported() {
@@ -178,6 +262,12 @@ export default function OrdersTableClient({ orders }: { orders: Order[] }) {
       setBusy(false);
     }
   }
+
+  const customsEligibleSelectedCount = orders.filter(
+    (order) =>
+      selected.includes(order.reference) &&
+      isInternationalCustomsEligible(order.shippingAddress?.country)
+  ).length;
 
   return (
     <section className="panel table-wrap">
@@ -208,7 +298,11 @@ export default function OrdersTableClient({ orders }: { orders: Order[] }) {
       >
         <label style={{ display: "grid", gap: "6px" }}>
           <span style={{ fontSize: "14px", fontWeight: 600 }}>Paiement</span>
-          <select className="input" value={paymentFilter} onChange={(e) => setPaymentFilter(e.target.value)}>
+          <select
+            className="input"
+            value={paymentFilter}
+            onChange={(e) => setPaymentFilter(e.target.value)}
+          >
             <option value="all">Tous</option>
             <option value="paid">Payé</option>
             <option value="pending">En attente</option>
@@ -217,7 +311,11 @@ export default function OrdersTableClient({ orders }: { orders: Order[] }) {
 
         <label style={{ display: "grid", gap: "6px" }}>
           <span style={{ fontSize: "14px", fontWeight: 600 }}>Logistique</span>
-          <select className="input" value={logisticsFilter} onChange={(e) => setLogisticsFilter(e.target.value)}>
+          <select
+            className="input"
+            value={logisticsFilter}
+            onChange={(e) => setLogisticsFilter(e.target.value)}
+          >
             <option value="all">Tous</option>
             <option value="to_process">À traiter</option>
             <option value="prepared">Préparé</option>
@@ -228,7 +326,11 @@ export default function OrdersTableClient({ orders }: { orders: Order[] }) {
 
         <label style={{ display: "grid", gap: "6px" }}>
           <span style={{ fontSize: "14px", fontWeight: 600 }}>Export</span>
-          <select className="input" value={exportFilter} onChange={(e) => setExportFilter(e.target.value)}>
+          <select
+            className="input"
+            value={exportFilter}
+            onChange={(e) => setExportFilter(e.target.value)}
+          >
             <option value="all">Toutes</option>
             <option value="not_exported">Non exportées</option>
             <option value="exported">Exportées</option>
@@ -236,13 +338,38 @@ export default function OrdersTableClient({ orders }: { orders: Order[] }) {
         </label>
 
         <label style={{ display: "grid", gap: "6px" }}>
+          <span style={{ fontSize: "14px", fontWeight: 600 }}>Zone</span>
+          <select
+            className="input"
+            value={zoneFilter}
+            onChange={(e) => setZoneFilter(e.target.value)}
+          >
+            <option value="all">Toutes</option>
+            <option value="france">France métropolitaine</option>
+            <option value="overseas">Outre-Mer</option>
+            <option value="africa">Afrique</option>
+            <option value="international">International</option>
+          </select>
+        </label>
+
+        <label style={{ display: "grid", gap: "6px" }}>
           <span style={{ fontSize: "14px", fontWeight: 600 }}>Date/heure début</span>
-          <input className="input" type="datetime-local" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} />
+          <input
+            className="input"
+            type="datetime-local"
+            value={dateFrom}
+            onChange={(e) => setDateFrom(e.target.value)}
+          />
         </label>
 
         <label style={{ display: "grid", gap: "6px" }}>
           <span style={{ fontSize: "14px", fontWeight: 600 }}>Date/heure fin</span>
-          <input className="input" type="datetime-local" value={dateTo} onChange={(e) => setDateTo(e.target.value)} />
+          <input
+            className="input"
+            type="datetime-local"
+            value={dateTo}
+            onChange={(e) => setDateTo(e.target.value)}
+          />
         </label>
 
         <button type="button" className="button secondary" onClick={resetFilters}>
@@ -263,19 +390,78 @@ export default function OrdersTableClient({ orders }: { orders: Order[] }) {
           {allVisibleSelected ? "Tout désélectionner" : "Tout sélectionner"}
         </button>
 
-        <button type="button" className="button secondary" disabled={selected.length === 0} onClick={() => exportSelection("csv")}>
+        <button type="button" className="button secondary" onClick={selectAllVisible}>
+          Sélectionner tout le filtre courant
+        </button>
+
+        <button type="button" className="button secondary" onClick={selectWithoutOverseas}>
+          Tout sans Outre-Mer
+        </button>
+
+        <button type="button" className="button secondary" onClick={selectWithoutAfrica}>
+          Tout sans l’Afrique
+        </button>
+
+        <button type="button" className="button secondary" onClick={selectOverseas}>
+          Sélectionner Outre-Mer
+        </button>
+
+        <button type="button" className="button secondary" onClick={selectAfrica}>
+          Sélectionner Afrique
+        </button>
+      </div>
+
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: "12px",
+          marginBottom: "16px",
+          flexWrap: "wrap",
+        }}
+      >
+        <button
+          type="button"
+          className="button secondary"
+          disabled={selected.length === 0}
+          onClick={() => exportSelection("csv")}
+        >
           Exporter la sélection en CSV
         </button>
 
-        <button type="button" className="button secondary" disabled={selected.length === 0} onClick={() => exportSelection("xlsx")}>
+        <button
+          type="button"
+          className="button secondary"
+          disabled={selected.length === 0}
+          onClick={() => exportSelection("xlsx")}
+        >
           Exporter la sélection en Excel
         </button>
 
-	<button type="button" className="button secondary" disabled={selected.length === 0} onClick={() => exportSelection("chronopost")}>
-  Exporter la sélection Chronopost
-</button>
+        <button
+          type="button"
+          className="button secondary"
+          disabled={selected.length === 0}
+          onClick={() => exportSelection("chronopost")}
+        >
+          Exporter la sélection Chronopost
+        </button>
 
-        <button type="button" className="button secondary" disabled={selected.length === 0 || busy} onClick={markSelectedAsExported}>
+        <button
+          type="button"
+          className="button secondary"
+          disabled={customsEligibleSelectedCount === 0}
+          onClick={() => exportSelection("customs-pdf")}
+        >
+          Exporter fiches douanières PDF
+        </button>
+
+        <button
+          type="button"
+          className="button secondary"
+          disabled={selected.length === 0 || busy}
+          onClick={markSelectedAsExported}
+        >
           Marquer la sélection comme exportée
         </button>
 
@@ -288,10 +474,15 @@ export default function OrdersTableClient({ orders }: { orders: Order[] }) {
         <thead>
           <tr>
             <th style={{ width: "48px" }}>
-              <input type="checkbox" checked={allVisibleSelected} onChange={toggleAll} />
+              <input
+                type="checkbox"
+                checked={allVisibleSelected}
+                onChange={toggleAll}
+              />
             </th>
             <th>Référence</th>
             <th>Client</th>
+            <th>Zone</th>
             <th>Produits</th>
             <th>Montant</th>
             <th>Paiement</th>
@@ -320,7 +511,18 @@ export default function OrdersTableClient({ orders }: { orders: Order[] }) {
                 <small>{order.customer.email}</small>
               </td>
               <td>
-                {order.items.map((item) => `${item.productTitle} x${item.quantity}`).join(" | ")}
+                <strong>{zoneLabel(order.shippingAddress?.country)}</strong>
+                {order.shippingAddress?.city ? (
+                  <>
+                    <br />
+                    <small>{order.shippingAddress.city}</small>
+                  </>
+                ) : null}
+              </td>
+              <td>
+                {order.items
+                  .map((item) => `${item.productTitle} x${item.quantity}`)
+                  .join(" | ")}
               </td>
               <td>{euros(order.totalAmount)}</td>
               <td>
