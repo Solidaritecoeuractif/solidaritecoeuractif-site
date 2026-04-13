@@ -35,30 +35,26 @@ export function CartClient({ products }: { products: Product[] }) {
         );
         if (!product) return null;
 
-        const minimum = product.minimumAmount || 0;
-        const unit =
-          product.pricingMode === "fixed"
-            ? product.fixedPrice || 0
-            : Math.max(item.customAmount || 0, minimum);
-
         return {
           ...item,
           product,
-          unit,
-          total: unit * item.quantity,
         };
       })
-      .filter(Boolean) as Array<
-      ClientItem & { product: Product; unit: number; total: number }
-    >;
+      .filter(Boolean) as Array<ClientItem & { product: Product }>;
   }, [items, products]);
-
-  const subtotal = resolved.reduce((sum, item) => sum + item.total, 0);
 
   function updateQuantity(index: number, quantity: number) {
     setItems((prev) =>
       prev.map((item, idx) =>
-        idx === index ? { ...item, quantity: Math.max(1, quantity) } : item
+        idx === index
+          ? {
+              ...item,
+              quantity: Math.max(
+                1,
+                Math.min(quantity || 1, resolved[idx]?.product.maxQuantity || 50)
+              ),
+            }
+          : item
       )
     );
   }
@@ -66,6 +62,10 @@ export function CartClient({ products }: { products: Product[] }) {
   function remove(index: number) {
     setItems((prev) => prev.filter((_, idx) => idx !== index));
   }
+
+  const hasFlexibleItem = resolved.some(
+    (item) => item.product.pricingMode === "flexible"
+  );
 
   return (
     <div className="cart-layout">
@@ -79,10 +79,11 @@ export function CartClient({ products }: { products: Product[] }) {
             <div>
               <strong>{item.product.title}</strong>
               <p>{item.product.subtitle}</p>
-              <small>{euros(item.unit)} / unité</small>
               {item.product.pricingMode === "flexible" ? (
-                <small> · participation personnalisée</small>
-              ) : null}
+                <small>Frais de livraison calculés à l’étape suivante selon la destination</small>
+              ) : (
+                <small>{euros(item.product.fixedPrice || 0)} / unité</small>
+              )}
             </div>
 
             <div className="cart-actions-inline">
@@ -95,7 +96,6 @@ export function CartClient({ products }: { products: Product[] }) {
                   updateQuantity(index, Number(e.target.value || 1))
                 }
               />
-              <strong>{euros(item.total)}</strong>
               <button
                 type="button"
                 className="button ghost small"
@@ -110,14 +110,26 @@ export function CartClient({ products }: { products: Product[] }) {
 
       <div className="panel summary-panel">
         <h2>Récapitulatif</h2>
-        <div className="summary-row">
-          <span>Sous-total</span>
-          <strong>{euros(subtotal)}</strong>
-        </div>
-        <p>
-          Les éventuels frais de livraison ou de participation complémentaire
-          seront précisés selon la destination et la nature du support concerné.
-        </p>
+
+        {hasFlexibleItem ? (
+          <>
+            <p>
+              Le montant définitif sera calculé à l’étape suivante selon la
+              destination choisie, la quantité et les règles applicables à la
+              France métropolitaine, à l’Outre-mer ou à l’international.
+            </p>
+            <p>
+              La participation libre à l’association sera également proposée à
+              l’étape suivante.
+            </p>
+          </>
+        ) : (
+          <p>
+            Vous pouvez continuer pour renseigner la destination et finaliser
+            votre demande.
+          </p>
+        )}
+
         <Link
           href="/commande"
           className={`button primary full ${resolved.length === 0 ? "disabled" : ""}`}

@@ -24,6 +24,7 @@ export type Product = {
   isActive: boolean;
   isPhysical: boolean;
   requiresShipping: boolean;
+  shippingFeeAmount?: number;
   maxQuantity?: number;
   stock?: number;
   sku?: string;

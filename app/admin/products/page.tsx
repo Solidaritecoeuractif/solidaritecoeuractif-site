@@ -1,4 +1,3 @@
-
 import { storage } from "@/lib/storage";
 
 export default async function ProductsAdminPage() {
@@ -24,12 +23,14 @@ export default async function ProductsAdminPage() {
           <label><span>Stock</span><input name="stock" type="number" /></label>
           <label><span>Poids (g)</span><input name="weightGrams" type="number" /></label>
           <label><span>Quantité max</span><input name="maxQuantity" type="number" /></label>
+          <label><span>Montant livraison (centimes)</span><input name="shippingFeeAmount" type="number" /></label>
           <label><span><input name="isActive" type="checkbox" defaultChecked /> Active</span></label>
           <label><span><input name="isPhysical" type="checkbox" /> Produit physique</span></label>
           <label><span><input name="requiresShipping" type="checkbox" /> Livraison requise</span></label>
           <button className="button primary" type="submit">Créer l’offre</button>
         </form>
       </section>
+
       <section className="panel table-wrap">
         <h2>Offres existantes</h2>
         <table className="table">
@@ -38,7 +39,9 @@ export default async function ProductsAdminPage() {
               <th>Titre</th>
               <th>Type</th>
               <th>Prix</th>
-              <th>Statut</th><th>Action</th>
+              <th>Livraison</th>
+              <th>Statut</th>
+              <th>Action</th>
             </tr>
           </thead>
           <tbody>
@@ -46,7 +49,16 @@ export default async function ProductsAdminPage() {
               <tr key={product.id}>
                 <td>{product.title}</td>
                 <td>{product.offerType}</td>
-                <td>{product.pricingMode === "fixed" ? `${product.fixedPrice} cts` : `min ${product.minimumAmount} cts`}</td>
+                <td>
+                  {product.pricingMode === "fixed"
+                    ? `${product.fixedPrice} cts`
+                    : `min ${product.minimumAmount} cts`}
+                </td>
+                <td>
+                  {product.requiresShipping
+                    ? `${product.shippingFeeAmount || 0} cts`
+                    : "-"}
+                </td>
                 <td>{product.isActive ? "Actif" : "Inactif"}</td>
                 <td><a className="button ghost small" href={`/admin/products/${product.id}`}>Modifier</a></td>
               </tr>

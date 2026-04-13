@@ -19,6 +19,7 @@ function fromForm(data: FormData) {
     isActive: data.get("isActive") === "on",
     isPhysical: data.get("isPhysical") === "on",
     requiresShipping: data.get("requiresShipping") === "on",
+    shippingFeeAmount: Number(data.get("shippingFeeAmount") || 0) || undefined,
     maxQuantity: Number(data.get("maxQuantity") || 0) || undefined,
     stock: Number(data.get("stock") || 0) || undefined,
     sku: String(data.get("sku") || ""),

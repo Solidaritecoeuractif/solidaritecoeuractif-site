@@ -1,4 +1,3 @@
-
 import { z } from "zod";
 
 export const cartItemSchema = z.object({
@@ -25,6 +24,8 @@ export const checkoutSchema = z.object({
       notes: z.string().optional().default("")
     })
     .optional(),
+  supportEnabled: z.boolean().optional().default(true),
+  supportAmount: z.number().int().nonnegative().optional().default(0),
   successUrl: z.string().url().optional(),
   cancelUrl: z.string().url().optional()
 });
@@ -43,6 +44,7 @@ export const productFormSchema = z.object({
   isActive: z.boolean().default(true),
   isPhysical: z.boolean().default(false),
   requiresShipping: z.boolean().default(false),
+  shippingFeeAmount: z.number().int().nonnegative().optional(),
   maxQuantity: z.number().int().positive().optional(),
   stock: z.number().int().nonnegative().optional(),
   sku: z.string().optional().default(""),
