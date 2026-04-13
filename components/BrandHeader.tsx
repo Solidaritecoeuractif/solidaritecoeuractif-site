@@ -13,6 +13,9 @@ export function BrandHeader() {
   const brand = process.env.NEXT_PUBLIC_BRAND_NAME || "Solidarité Cœur Actif";
   const pathname = usePathname();
 
+  const showAdminLink =
+    pathname === "/admin-login" || pathname.startsWith("/admin");
+
   return (
     <header className="site-header">
       <div className="container header-inner">
@@ -47,14 +50,16 @@ export function BrandHeader() {
             Contact
           </Link>
 
-          <Link
-            href="/admin-login"
-            className={navLinkClass(
-              pathname === "/admin-login" || pathname.startsWith("/admin")
-            )}
-          >
-            Admin
-          </Link>
+          {showAdminLink ? (
+            <Link
+              href="/admin-login"
+              className={navLinkClass(
+                pathname === "/admin-login" || pathname.startsWith("/admin")
+              )}
+            >
+              Admin
+            </Link>
+          ) : null}
         </nav>
       </div>
     </header>

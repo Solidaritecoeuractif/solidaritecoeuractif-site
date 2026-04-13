@@ -1,11 +1,9 @@
 "use client";
 
-import Link from "next/link";
 import { useMemo, useState } from "react";
 import type { Product } from "@/lib/types";
-import {
-  calculateZoneAdjustedLineMinimum,
-} from "@/lib/destinations";
+import { calculateZoneAdjustedLineMinimum } from "@/lib/destinations";
+import CartBadgeLink from "@/components/CartBadgeLink";
 
 type CartLine = {
   productId: string;
@@ -28,7 +26,10 @@ export function AddToCartForm({ product }: { product: Product }) {
   const quantity = useMemo(() => {
     const numeric = Number(quantityInput);
     if (!Number.isFinite(numeric) || numeric <= 0) return 1;
-    return Math.max(1, Math.min(Math.floor(numeric), product.maxQuantity || 50));
+    return Math.max(
+      1,
+      Math.min(Math.floor(numeric), product.maxQuantity || 50)
+    );
   }, [quantityInput, product.maxQuantity]);
 
   const franceMinimum = useMemo(
@@ -48,6 +49,7 @@ export function AddToCartForm({ product }: { product: Product }) {
 
   function addToCart() {
     const parsed = Number(quantityInput);
+
     if (!Number.isFinite(parsed) || parsed <= 0) {
       setMessage("Merci d’indiquer une quantité valide.");
       return;
@@ -85,7 +87,6 @@ export function AddToCartForm({ product }: { product: Product }) {
     localStorage.setItem("sca_cart", JSON.stringify(current));
     window.dispatchEvent(new Event("sca-cart-updated"));
     setMessage("Panier mis à jour.");
-    setQuantityInput("");
   }
 
   return (
@@ -117,7 +118,9 @@ export function AddToCartForm({ product }: { product: Product }) {
           </small>
           <small style={{ display: "block" }}>
             Hors France :{" "}
-            <strong>À partir de {formatEuroFromCents(internationalMinimum)}</strong>
+            <strong>
+              À partir de {formatEuroFromCents(internationalMinimum)}
+            </strong>
           </small>
         </div>
       ) : null}
@@ -129,11 +132,30 @@ export function AddToCartForm({ product }: { product: Product }) {
       {message ? (
         <div className="success-note" style={{ marginTop: 12 }}>
           <p style={{ margin: 0 }}>{message}</p>
-          <p style={{ margin: "8px 0 0" }}>
-            <Link href="/panier" style={{ fontWeight: 700 }}>
-              Panier
-            </Link>
-          </p>
+
+          <div
+            style={{
+              marginTop: 10,
+              display: "inline-block",
+              animation: "cartPulse 1.1s ease-in-out infinite",
+            }}
+          >
+            <CartBadgeLink />
+          </div>
+
+          <style jsx>{`
+            @keyframes cartPulse {
+              0% {
+                transform: scale(1);
+              }
+              50% {
+                transform: scale(1.08);
+              }
+              100% {
+                transform: scale(1);
+              }
+            }
+          `}</style>
         </div>
       ) : null}
     </div>
