@@ -22,8 +22,14 @@ function formatEuroFromCents(amount: number) {
 
 export function AddToCartForm({ product }: { product: Product }) {
   const minimumUnitAmount = product.minimumAmount || 0;
-  const [quantity, setQuantity] = useState(1);
+  const [quantityInput, setQuantityInput] = useState("");
   const [message, setMessage] = useState("");
+
+  const quantity = useMemo(() => {
+    const numeric = Number(quantityInput);
+    if (!Number.isFinite(numeric) || numeric <= 0) return 1;
+    return Math.max(1, Math.min(Math.floor(numeric), product.maxQuantity || 50));
+  }, [quantityInput, product.maxQuantity]);
 
   const franceMinimum = useMemo(
     () => calculateZoneAdjustedLineMinimum(minimumUnitAmount, quantity, "FR"),
@@ -41,9 +47,15 @@ export function AddToCartForm({ product }: { product: Product }) {
   );
 
   function addToCart() {
+    const parsed = Number(quantityInput);
+    if (!Number.isFinite(parsed) || parsed <= 0) {
+      setMessage("Merci d’indiquer une quantité valide.");
+      return;
+    }
+
     const sanitizedQuantity = Math.max(
       1,
-      Math.min(quantity || 1, product.maxQuantity || 50)
+      Math.min(Math.floor(parsed), product.maxQuantity || 50)
     );
 
     const raw = localStorage.getItem("sca_cart");
@@ -65,13 +77,15 @@ export function AddToCartForm({ product }: { product: Product }) {
       current.push({
         productId: product.id,
         quantity: sanitizedQuantity,
-        customAmount: product.pricingMode === "flexible" ? minimumUnitAmount : undefined,
+        customAmount:
+          product.pricingMode === "flexible" ? minimumUnitAmount : undefined,
       });
     }
 
     localStorage.setItem("sca_cart", JSON.stringify(current));
     window.dispatchEvent(new Event("sca-cart-updated"));
     setMessage("Panier mis à jour.");
+    setQuantityInput("");
   }
 
   return (
@@ -83,18 +97,9 @@ export function AddToCartForm({ product }: { product: Product }) {
             type="number"
             min={1}
             max={product.maxQuantity || 50}
-            value={quantity}
-            onChange={(e) =>
-              setQuantity(
-                Math.max(
-                  1,
-                  Math.min(
-                    Number(e.target.value || 1),
-                    product.maxQuantity || 50
-                  )
-                )
-              )
-            }
+            value={quantityInput}
+            onChange={(e) => setQuantityInput(e.target.value)}
+            placeholder=""
           />
         </label>
       </div>
@@ -103,13 +108,16 @@ export function AddToCartForm({ product }: { product: Product }) {
         <div style={{ marginTop: 12 }}>
           <p style={{ marginBottom: 8, fontWeight: 700 }}>Frais de livraison</p>
           <small style={{ display: "block", marginBottom: 6 }}>
-            France métropolitaine : <strong>À partir de {formatEuroFromCents(franceMinimum)}</strong>
+            France métropolitaine :{" "}
+            <strong>À partir de {formatEuroFromCents(franceMinimum)}</strong>
           </small>
           <small style={{ display: "block", marginBottom: 6 }}>
-            Outre-mer : <strong>À partir de {formatEuroFromCents(overseasMinimum)}</strong>
+            Outre-mer :{" "}
+            <strong>À partir de {formatEuroFromCents(overseasMinimum)}</strong>
           </small>
           <small style={{ display: "block" }}>
-            Hors France : <strong>À partir de {formatEuroFromCents(internationalMinimum)}</strong>
+            Hors France :{" "}
+            <strong>À partir de {formatEuroFromCents(internationalMinimum)}</strong>
           </small>
         </div>
       ) : null}

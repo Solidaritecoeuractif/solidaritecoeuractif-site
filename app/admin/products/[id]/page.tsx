@@ -34,6 +34,7 @@ export default async function ProductEditPage({ params }: { params: Promise<{ id
           <label><span>Poids (g)</span><input name="weightGrams" type="number" defaultValue={product.weightGrams} /></label>
           <label><span>Quantité max</span><input name="maxQuantity" type="number" defaultValue={product.maxQuantity} /></label>
           <label><span>Montant livraison (centimes)</span><input name="shippingFeeAmount" type="number" defaultValue={product.shippingFeeAmount} /></label>
+          <label><span><input name="isFeatured" type="checkbox" defaultChecked={Boolean(product.isFeatured)} /> Offre mise en avant sur l’accueil</span></label>
           <label><span><input name="isActive" type="checkbox" defaultChecked={product.isActive} /> Active</span></label>
           <label><span><input name="isPhysical" type="checkbox" defaultChecked={product.isPhysical} /> Produit physique</span></label>
           <label><span><input name="requiresShipping" type="checkbox" defaultChecked={product.requiresShipping} /> Livraison requise</span></label>

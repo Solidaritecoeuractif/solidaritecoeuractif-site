@@ -45,6 +45,7 @@ export const productFormSchema = z.object({
   isPhysical: z.boolean().default(false),
   requiresShipping: z.boolean().default(false),
   shippingFeeAmount: z.number().int().nonnegative().optional(),
+  isFeatured: z.boolean().default(false),
   maxQuantity: z.number().int().positive().optional(),
   stock: z.number().int().nonnegative().optional(),
   sku: z.string().optional().default(""),

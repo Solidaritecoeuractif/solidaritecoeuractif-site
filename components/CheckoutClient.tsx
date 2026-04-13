@@ -503,16 +503,6 @@ export function CheckoutClient({ products }: { products: Product[] }) {
         ) : null}
 
         {error ? <p className="error-note">{error}</p> : null}
-
-        <button
-          className="button primary"
-          type="submit"
-          disabled={loading || resolvedPreview.length === 0}
-        >
-          {loading
-            ? "Redirection..."
-            : "Continuer vers la participation sécurisée"}
-        </button>
       </form>
 
       <div className="panel summary-panel">
@@ -643,6 +633,25 @@ export function CheckoutClient({ products }: { products: Product[] }) {
         <div className="summary-row total">
           <span>Total</span>
           <strong>{euros(quote?.totalAmount || 0)}</strong>
+        </div>
+
+        <div style={{ marginTop: 16 }}>
+          <button
+            className="button primary"
+            type="button"
+            onClick={(e) => {
+              e.preventDefault();
+              const formElement = document.querySelector("form");
+              if (formElement) {
+                formElement.requestSubmit();
+              }
+            }}
+            disabled={loading || resolvedPreview.length === 0}
+          >
+            {loading
+              ? "Redirection..."
+              : "Continuer vers le paiement sécurisé"}
+          </button>
         </div>
 
         <p>

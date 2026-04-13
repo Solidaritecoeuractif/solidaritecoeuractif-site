@@ -10,6 +10,9 @@ export default async function HomePage() {
     (product) => product.isActive
   );
 
+  const featuredProduct =
+    products.find((product) => product.isFeatured) || products[0];
+
   const stats = {
     totalActiveProducts: products.length,
     totalPhysicalProducts: products.filter((item) => item.isPhysical).length,
@@ -20,7 +23,7 @@ export default async function HomePage() {
 
   return (
     <main>
-      <Hero />
+      <Hero featuredProduct={featuredProduct} />
 
       <section className="stats-grid">
         <article className="stat-card">

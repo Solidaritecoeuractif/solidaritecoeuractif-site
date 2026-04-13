@@ -1,4 +1,7 @@
-export function Hero() {
+import Link from "next/link";
+import type { Product } from "@/lib/types";
+
+export function Hero({ featuredProduct }: { featuredProduct?: Product }) {
   return (
     <section className="hero">
       <div className="container hero-grid">
@@ -25,15 +28,33 @@ export function Hero() {
         </div>
 
         <div className="hero-card">
-          <h3>Cette plateforme permet notamment</h3>
-          <ul>
-            <li>De présenter les actions et initiatives de l’association</li>
-            <li>D’accueillir des participations libres ou définies</li>
-            <li>De soutenir des collectes solidaires</li>
-            <li>De gérer des contributions sécurisées</li>
-            <li>De suivre les demandes et les participations</li>
-            <li>D’organiser les envois liés aux supports proposés</li>
-          </ul>
+          {featuredProduct ? (
+            <>
+              <h3>Offre mise en avant</h3>
+              <p style={{ fontWeight: 700, marginBottom: 8 }}>
+                {featuredProduct.title}
+              </p>
+              {featuredProduct.subtitle ? (
+                <p style={{ marginBottom: 8 }}>{featuredProduct.subtitle}</p>
+              ) : null}
+              <p style={{ marginBottom: 12 }}>
+                {featuredProduct.shortDescription}
+              </p>
+              <Link
+                href={`/produit/${featuredProduct.slug}`}
+                className="button primary"
+              >
+                Voir cette offre
+              </Link>
+            </>
+          ) : (
+            <>
+              <h3>Aucune offre mise en avant</h3>
+              <p>
+                Sélectionne une offre depuis l’administration pour l’afficher ici.
+              </p>
+            </>
+          )}
         </div>
       </div>
     </section>

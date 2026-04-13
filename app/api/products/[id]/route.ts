@@ -20,6 +20,7 @@ function fromForm(data: FormData) {
     isPhysical: data.get("isPhysical") === "on",
     requiresShipping: data.get("requiresShipping") === "on",
     shippingFeeAmount: Number(data.get("shippingFeeAmount") || 0) || undefined,
+    isFeatured: data.get("isFeatured") === "on",
     maxQuantity: Number(data.get("maxQuantity") || 0) || undefined,
     stock: Number(data.get("stock") || 0) || undefined,
     sku: String(data.get("sku") || ""),
@@ -56,6 +57,19 @@ export async function POST(
       { error: parsed.error.flatten() },
       { status: 400 }
     );
+  }
+
+  if (parsed.data.isFeatured) {
+    const products = await storage().getProducts();
+    for (const product of products) {
+      if (product.id !== id && product.isFeatured) {
+        await storage().updateProduct(product.id, {
+          ...product,
+          isFeatured: false,
+          updatedAt: new Date().toISOString(),
+        });
+      }
+    }
   }
 
   const updated = {
