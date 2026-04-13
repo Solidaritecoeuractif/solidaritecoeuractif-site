@@ -35,7 +35,7 @@ export const productFormSchema = z.object({
   subtitle: z.string().optional().default(""),
   shortDescription: z.string().min(10),
   longDescription: z.string().min(20),
-  image: z.string().url().optional().or(z.literal("")),
+  image: z.string().optional().default(""),
   offerType: z.enum(["product", "donation", "campaign", "participation"]),
   pricingMode: z.enum(["fixed", "flexible"]),
   fixedPrice: z.number().int().nonnegative().optional(),

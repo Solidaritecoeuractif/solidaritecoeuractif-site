@@ -1,4 +1,3 @@
-
 import { Pool } from "pg";
 import type { StorageAdapter } from "./base";
 import type { Order, Product } from "@/lib/types";
@@ -28,6 +27,8 @@ function rowToProduct(row: any): Product {
     isActive: row.is_active,
     isPhysical: row.is_physical,
     requiresShipping: row.requires_shipping,
+    shippingFeeAmount: row.shipping_fee_amount ?? undefined,
+    isFeatured: row.is_featured ?? false,
     maxQuantity: row.max_quantity ?? undefined,
     stock: row.stock ?? undefined,
     sku: row.sku ?? "",
@@ -77,7 +78,8 @@ function rowToOrder(row: any, items: any[]): Order {
     stripePaymentIntentId: row.stripe_payment_intent_id ?? undefined,
     currency: row.currency,
     createdAt: row.created_at.toISOString(),
-    updatedAt: row.updated_at.toISOString()
+    updatedAt: row.updated_at.toISOString(),
+    exportedAt: row.exported_at ? row.exported_at.toISOString() : undefined
   };
 }
 
@@ -123,9 +125,9 @@ export class PostgresStorageAdapter implements StorageAdapter {
         `insert into products (
           id, slug, title, subtitle, short_description, long_description, image, offer_type, pricing_mode,
           fixed_price, minimum_amount, suggested_amount, is_active, is_physical, requires_shipping,
-          max_quantity, stock, sku, weight_grams, category, created_at, updated_at
+          shipping_fee_amount, is_featured, max_quantity, stock, sku, weight_grams, category, created_at, updated_at
         ) values (
-          $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22
+          $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24
         )`,
         [
           product.id,
@@ -143,6 +145,8 @@ export class PostgresStorageAdapter implements StorageAdapter {
           product.isActive,
           product.isPhysical,
           product.requiresShipping,
+          product.shippingFeeAmount ?? null,
+          product.isFeatured ?? false,
           product.maxQuantity ?? null,
           product.stock ?? null,
           product.sku || null,
@@ -162,7 +166,9 @@ export class PostgresStorageAdapter implements StorageAdapter {
     const client = await pool().connect();
     try {
       await client.query(
-        `update products set slug=$2,title=$3,subtitle=$4,short_description=$5,long_description=$6,image=$7,offer_type=$8,pricing_mode=$9,fixed_price=$10,minimum_amount=$11,suggested_amount=$12,is_active=$13,is_physical=$14,requires_shipping=$15,max_quantity=$16,stock=$17,sku=$18,weight_grams=$19,category=$20,updated_at=$21 where id=$1`,
+        `update products
+         set slug=$2,title=$3,subtitle=$4,short_description=$5,long_description=$6,image=$7,offer_type=$8,pricing_mode=$9,fixed_price=$10,minimum_amount=$11,suggested_amount=$12,is_active=$13,is_physical=$14,requires_shipping=$15,shipping_fee_amount=$16,is_featured=$17,max_quantity=$18,stock=$19,sku=$20,weight_grams=$21,category=$22,updated_at=$23
+         where id=$1`,
         [
           id,
           product.slug,
@@ -179,6 +185,8 @@ export class PostgresStorageAdapter implements StorageAdapter {
           product.isActive,
           product.isPhysical,
           product.requiresShipping,
+          product.shippingFeeAmount ?? null,
+          product.isFeatured ?? false,
           product.maxQuantity ?? null,
           product.stock ?? null,
           product.sku || null,
@@ -207,7 +215,9 @@ export class PostgresStorageAdapter implements StorageAdapter {
     try {
       const ordersRes = await client.query("select * from orders order by created_at desc");
       const itemsRes = await client.query("select * from order_items order by created_at desc");
-      return ordersRes.rows.map((row) => rowToOrder(row, itemsRes.rows.filter((item) => item.order_id === row.id)));
+      return ordersRes.rows.map((row) =>
+        rowToOrder(row, itemsRes.rows.filter((item) => item.order_id === row.id))
+      );
     } finally {
       client.release();
     }
@@ -218,7 +228,10 @@ export class PostgresStorageAdapter implements StorageAdapter {
     try {
       const orderRes = await client.query("select * from orders where reference = $1 limit 1", [reference]);
       if (!orderRes.rows[0]) return undefined;
-      const itemsRes = await client.query("select * from order_items where order_id = $1 order by created_at asc", [orderRes.rows[0].id]);
+      const itemsRes = await client.query(
+        "select * from order_items where order_id = $1 order by created_at asc",
+        [orderRes.rows[0].id]
+      );
       return rowToOrder(orderRes.rows[0], itemsRes.rows);
     } finally {
       client.release();
@@ -259,7 +272,18 @@ export class PostgresStorageAdapter implements StorageAdapter {
       for (const item of order.items) {
         await client.query(
           `insert into order_items (id, order_id, product_id, product_title, offer_type, pricing_mode, unit_amount, quantity, custom_amount, created_at) values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)`,
-          [item.id, order.id, item.productId ?? null, item.productTitle, item.offerType, item.pricingMode, item.unitAmount, item.quantity, item.customAmount ?? null, order.createdAt]
+          [
+            item.id,
+            order.id,
+            item.productId ?? null,
+            item.productTitle,
+            item.offerType,
+            item.pricingMode,
+            item.unitAmount,
+            item.quantity,
+            item.customAmount ?? null,
+            order.createdAt
+          ]
         );
       }
       await client.query("commit");
@@ -277,27 +301,7 @@ export class PostgresStorageAdapter implements StorageAdapter {
     try {
       await client.query(
         `update orders set payment_status=$2, logistics_status=$3, stripe_session_id=$4, stripe_payment_intent_id=$5, updated_at=$6 where reference=$1`,
-        [reference, order.paymentStatus, order.logisticsStatus, order.stripeSessionId ?? null, order.stripePaymentIntentId ?? null, order.updatedAt]
-      );
-      return order;
-    } finally {
-      client.release();
-    }
-  }
-  async markOrdersExported(references: string[], exportedAt: string) {
-    if (!references.length) return;
-
-    const client = await pool().connect();
-    try {
-      await client.query(
-        `update orders
-         set exported_at = $2,
-             updated_at = $3
-         where reference = any($1::text[])`,
-        [references, exportedAt, new Date().toISOString()]
-      );
-    } finally {
-      client.release();
-    }
-  }
-}
+        [
+          reference,
+          order.paymentStatus,
+          order

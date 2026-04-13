@@ -4,13 +4,19 @@ import { storage } from "@/lib/storage";
 import { productFormSchema } from "@/lib/validators";
 import { slugify } from "@/lib/utils";
 
-function fromForm(data: FormData) {
+async function fileToDataUrl(file: File | null) {
+  if (!file || file.size === 0) return "";
+  const bytes = Buffer.from(await file.arrayBuffer());
+  return `data:${file.type};base64,${bytes.toString("base64")}`;
+}
+
+function fromForm(data: FormData, fallbackImage: string) {
   return {
     title: String(data.get("title") || ""),
     subtitle: String(data.get("subtitle") || ""),
     shortDescription: String(data.get("shortDescription") || ""),
     longDescription: String(data.get("longDescription") || ""),
-    image: String(data.get("image") || ""),
+    image: fallbackImage,
     offerType: String(data.get("offerType") || "product"),
     pricingMode: String(data.get("pricingMode") || "fixed"),
     fixedPrice: Number(data.get("fixedPrice") || 0),
@@ -50,7 +56,12 @@ export async function POST(
     return NextResponse.redirect(new URL("/admin/products", request.url));
   }
 
-  const parsed = productFormSchema.safeParse(fromForm(formData));
+  const imageFile = formData.get("imageFile");
+  const uploadedImage =
+    imageFile instanceof File ? await fileToDataUrl(imageFile) : "";
+  const finalImage = uploadedImage || current.image || "";
+
+  const parsed = productFormSchema.safeParse(fromForm(formData, finalImage));
 
   if (!parsed.success) {
     return NextResponse.json(

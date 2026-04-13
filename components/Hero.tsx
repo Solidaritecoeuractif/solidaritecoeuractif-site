@@ -1,5 +1,5 @@
-import Link from "next/link";
 import type { Product } from "@/lib/types";
+import { AddToCartForm } from "@/components/AddToCartForm";
 
 export function Hero({ featuredProduct }: { featuredProduct?: Product }) {
   return (
@@ -17,42 +17,36 @@ export function Hero({ featuredProduct }: { featuredProduct?: Product }) {
             participations, notamment pour les frais de livraison et certaines
             initiatives solidaires, dans un cadre clair et sécurisé.
           </p>
-          <div className="hero-actions">
-            <a href="#catalogue" className="button primary">
-              Découvrir les actions
-            </a>
-            <a href="/panier" className="button secondary">
-              Voir le panier
-            </a>
-          </div>
         </div>
 
         <div className="hero-card">
           {featuredProduct ? (
             <>
-              <h3>Offre mise en avant</h3>
-              <p style={{ fontWeight: 700, marginBottom: 8 }}>
-                {featuredProduct.title}
-              </p>
-              {featuredProduct.subtitle ? (
-                <p style={{ marginBottom: 8 }}>{featuredProduct.subtitle}</p>
+              {featuredProduct.image ? (
+                <img
+                  src={featuredProduct.image}
+                  alt={featuredProduct.title}
+                  className="product-image"
+                  style={{ marginBottom: 16 }}
+                />
               ) : null}
-              <p style={{ marginBottom: 12 }}>
-                {featuredProduct.shortDescription}
-              </p>
-              <Link
-                href={`/produit/${featuredProduct.slug}`}
-                className="button primary"
-              >
-                Voir cette offre
-              </Link>
+
+              <h3>{featuredProduct.title}</h3>
+
+              {featuredProduct.subtitle ? (
+                <p className="muted" style={{ marginBottom: 8 }}>
+                  {featuredProduct.subtitle}
+                </p>
+              ) : null}
+
+              <p style={{ marginBottom: 16 }}>{featuredProduct.longDescription}</p>
+
+              <AddToCartForm product={featuredProduct} />
             </>
           ) : (
             <>
               <h3>Aucune offre mise en avant</h3>
-              <p>
-                Sélectionne une offre depuis l’administration pour l’afficher ici.
-              </p>
+              <p>Sélectionne une offre depuis l’administration pour l’afficher ici.</p>
             </>
           )}
         </div>

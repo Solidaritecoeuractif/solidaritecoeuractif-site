@@ -4,18 +4,19 @@ import { storage } from "@/lib/storage";
 import { productFormSchema } from "@/lib/validators";
 import { slugify, uniqueId } from "@/lib/utils";
 
-export async function GET() {
-  const products = await storage().getProducts();
-  return NextResponse.json(products);
+async function fileToDataUrl(file: File | null) {
+  if (!file || file.size === 0) return "";
+  const bytes = Buffer.from(await file.arrayBuffer());
+  return `data:${file.type};base64,${bytes.toString("base64")}`;
 }
 
-function fromForm(data: FormData) {
+function fromForm(data: FormData, uploadedImage: string) {
   return {
     title: String(data.get("title") || ""),
     subtitle: String(data.get("subtitle") || ""),
     shortDescription: String(data.get("shortDescription") || ""),
     longDescription: String(data.get("longDescription") || ""),
-    image: String(data.get("image") || ""),
+    image: uploadedImage,
     offerType: String(data.get("offerType") || "product"),
     pricingMode: String(data.get("pricingMode") || "fixed"),
     fixedPrice: Number(data.get("fixedPrice") || 0),
@@ -25,6 +26,7 @@ function fromForm(data: FormData) {
     isPhysical: data.get("isPhysical") === "on",
     requiresShipping: data.get("requiresShipping") === "on",
     shippingFeeAmount: Number(data.get("shippingFeeAmount") || 0) || undefined,
+    isFeatured: data.get("isFeatured") === "on",
     maxQuantity: Number(data.get("maxQuantity") || 0) || undefined,
     stock: Number(data.get("stock") || 0) || undefined,
     sku: String(data.get("sku") || ""),
@@ -33,12 +35,34 @@ function fromForm(data: FormData) {
   };
 }
 
+export async function GET() {
+  const products = await storage().getProducts();
+  return NextResponse.json(products);
+}
+
 export async function POST(request: Request) {
   const formData = await request.formData();
-  const parsed = productFormSchema.safeParse(fromForm(formData));
+  const imageFile = formData.get("imageFile");
+  const uploadedImage =
+    imageFile instanceof File ? await fileToDataUrl(imageFile) : "";
+
+  const parsed = productFormSchema.safeParse(fromForm(formData, uploadedImage));
 
   if (!parsed.success) {
     return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
+  }
+
+  if (parsed.data.isFeatured) {
+    const products = await storage().getProducts();
+    for (const product of products) {
+      if (product.isFeatured) {
+        await storage().updateProduct(product.id, {
+          ...product,
+          isFeatured: false,
+          updatedAt: new Date().toISOString(),
+        });
+      }
+    }
   }
 
   const now = new Date().toISOString();
