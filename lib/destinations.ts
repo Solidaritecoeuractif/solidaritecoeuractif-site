@@ -233,12 +233,14 @@ const REST_OPTIONS: Array<{ code: string; label: string }> = [
 export const DESTINATION_OPTIONS: DestinationOption[] = [
   { code: "FR", label: "France", zone: "france_metropolitaine", countryCode: "FR" },
   ...OVERSEAS_OPTIONS,
-  ...REST_OPTIONS.map((item) => ({
-    code: item.code,
-    label: item.label,
-    zone: AFRICA_CODES.has(item.code) ? "afrique" : "international",
-    countryCode: item.code,
-  })),
+  ...REST_OPTIONS.map(
+    (item): DestinationOption => ({
+      code: item.code,
+      label: item.label,
+      zone: AFRICA_CODES.has(item.code) ? "afrique" : "international",
+      countryCode: item.code,
+    })
+  ),
 ];
 
 export const FORCED_POSTAL_CODES: Record<string, string> = {
