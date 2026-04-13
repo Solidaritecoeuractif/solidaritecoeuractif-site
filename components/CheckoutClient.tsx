@@ -26,6 +26,12 @@ function lineAmountToUnitAmount(lineAmount: number, quantity: number) {
   return Math.ceil(lineAmount / Math.max(1, quantity));
 }
 
+function parseEuroInput(value: string) {
+  const numeric = Number(String(value || "").replace(",", "."));
+  if (!Number.isFinite(numeric)) return null;
+  return Math.round(numeric * 100);
+}
+
 export function CheckoutClient({ products }: { products: Product[] }) {
   const [items, setItems] = useState<ClientItem[]>([]);
   const [quote, setQuote] = useState<Quote | null>(null);
@@ -34,8 +40,12 @@ export function CheckoutClient({ products }: { products: Product[] }) {
   const [error, setError] = useState("");
   const [supportEnabled, setSupportEnabled] = useState(true);
   const [supportAmount, setSupportAmount] = useState(0);
-  const [touchedShippingInputs, setTouchedShippingInputs] = useState<number[]>([]);
-  const [shippingInputs, setShippingInputs] = useState<Record<number, string>>({});
+  const [touchedShippingInputs, setTouchedShippingInputs] = useState<number[]>(
+    []
+  );
+  const [shippingInputs, setShippingInputs] = useState<Record<number, string>>(
+    {}
+  );
   const [form, setForm] = useState({
     firstName: "",
     lastName: "",
@@ -95,10 +105,15 @@ export function CheckoutClient({ products }: { products: Product[] }) {
           item.quantity
         );
 
+        const hasCustomAmount =
+          typeof item.customAmount === "number" && item.customAmount > 0;
+
         const unit =
           product.pricingMode === "fixed"
             ? product.fixedPrice || 0
-            : Math.max(item.customAmount || 0, minimumUnitAmount);
+            : hasCustomAmount
+              ? Math.max(item.customAmount || 0, minimumUnitAmount)
+              : 0;
 
         return {
           ...item,
@@ -108,6 +123,8 @@ export function CheckoutClient({ products }: { products: Product[] }) {
           total: unit * item.quantity,
           minimumLineAmount,
           minimumUnitAmount,
+          isFlexibleReady:
+            product.pricingMode === "fixed" ? true : hasCustomAmount,
         };
       })
       .filter(Boolean) as Array<
@@ -118,42 +135,24 @@ export function CheckoutClient({ products }: { products: Product[] }) {
         total: number;
         minimumLineAmount: number;
         minimumUnitAmount: number;
+        isFlexibleReady: boolean;
       }
     >;
   }, [items, products, form.country]);
 
-  useEffect(() => {
-    setItems((prev) =>
-      prev.map((item) => {
-        const product = products.find(
-          (entry) => entry.id === item.productId && entry.isActive
-        );
-        if (!product || product.pricingMode !== "flexible") return item;
-
-        const minimumLineAmount = calculateZoneAdjustedLineMinimum(
-          product.minimumAmount || 0,
-          item.quantity,
-          form.country
-        );
-
-        const minimumUnitAmount = lineAmountToUnitAmount(
-          minimumLineAmount,
-          item.quantity
-        );
-
-        return {
-          ...item,
-          customAmount:
-            typeof item.customAmount === "number"
-              ? Math.max(item.customAmount, minimumUnitAmount)
-              : minimumUnitAmount,
-        };
-      })
-    );
-  }, [form.country, products]);
-
   const requiresShipping = resolvedPreview.some(
     (item) => item.product.requiresShipping && item.product.isPhysical
+  );
+
+  const flexibleItems = resolvedPreview.filter(
+    (item) => item.product.pricingMode === "flexible"
+  );
+
+  const allFlexibleAmountsEntered = flexibleItems.every(
+    (item) =>
+      typeof item.customAmount === "number" &&
+      item.customAmount > 0 &&
+      String(shippingInputs[item.index] ?? "").trim() !== ""
   );
 
   const localSubtotal = useMemo(
@@ -172,7 +171,7 @@ export function CheckoutClient({ products }: { products: Product[] }) {
 
   useEffect(() => {
     async function refreshQuote() {
-      if (!items.length) {
+      if (!items.length || !allFlexibleAmountsEntered) {
         setQuote(null);
         return;
       }
@@ -207,11 +206,24 @@ export function CheckoutClient({ products }: { products: Product[] }) {
     }
 
     refreshQuote();
-  }, [items, form.country, requiresShipping, supportEnabled, supportAmount]);
+  }, [
+    items,
+    form.country,
+    requiresShipping,
+    supportEnabled,
+    supportAmount,
+    allFlexibleAmountsEntered,
+  ]);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     setError("");
+
+    if (!allFlexibleAmountsEntered) {
+      setError("Merci de renseigner les frais de livraison avant de continuer.");
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -266,10 +278,15 @@ export function CheckoutClient({ products }: { products: Product[] }) {
   function updateFlexibleLineAmount(index: number, amountInEuros: string) {
     setShippingInputs((prev) => ({ ...prev, [index]: amountInEuros }));
 
-    const numeric = Number(amountInEuros.replace(",", "."));
-    if (!Number.isFinite(numeric)) return;
-
-    const requestedLineAmount = Math.max(0, Math.round(numeric * 100));
+    const parsed = parseEuroInput(amountInEuros);
+    if (parsed === null || parsed <= 0) {
+      setItems((prev) =>
+        prev.map((item, idx) =>
+          idx === index ? { ...item, customAmount: undefined } : item
+        )
+      );
+      return;
+    }
 
     setItems((prev) =>
       prev.map((item, idx) => {
@@ -286,7 +303,7 @@ export function CheckoutClient({ products }: { products: Product[] }) {
           form.country
         );
 
-        const finalLineAmount = Math.max(requestedLineAmount, minimumLineAmount);
+        const finalLineAmount = Math.max(parsed, minimumLineAmount);
         const finalUnitAmount = lineAmountToUnitAmount(
           finalLineAmount,
           item.quantity
@@ -306,31 +323,16 @@ export function CheckoutClient({ products }: { products: Product[] }) {
     );
 
     const value = shippingInputs[index];
-    const numeric = Number(String(value || "").replace(",", "."));
+    const parsed = parseEuroInput(value);
+
+    if (parsed === null || parsed <= 0) {
+      return;
+    }
 
     const item = resolvedPreview.find((entry) => entry.index === index);
     if (!item) return;
 
-    if (!Number.isFinite(numeric) || numeric <= 0) {
-      setItems((prev) =>
-        prev.map((entry, idx) =>
-          idx === index
-            ? {
-                ...entry,
-                customAmount: item.minimumUnitAmount,
-              }
-            : entry
-        )
-      );
-      setShippingInputs((prev) => ({
-        ...prev,
-        [index]: (item.minimumLineAmount / 100).toFixed(2).replace(".", ","),
-      }));
-      return;
-    }
-
-    const requestedLineAmount = Math.round(numeric * 100);
-    const finalLineAmount = Math.max(requestedLineAmount, item.minimumLineAmount);
+    const finalLineAmount = Math.max(parsed, item.minimumLineAmount);
 
     setItems((prev) =>
       prev.map((entry, idx) =>
@@ -353,18 +355,7 @@ export function CheckoutClient({ products }: { products: Product[] }) {
   }
 
   function displayShippingInput(itemIndex: number) {
-    if (shippingInputs[itemIndex] !== undefined) {
-      return shippingInputs[itemIndex];
-    }
-
-    if (!touchedShippingInputs.includes(itemIndex)) {
-      return "";
-    }
-
-    const item = resolvedPreview.find((entry) => entry.index === itemIndex);
-    if (!item) return "";
-
-    return (item.total / 100).toFixed(2).replace(".", ",");
+    return shippingInputs[itemIndex] ?? "";
   }
 
   return (
@@ -516,7 +507,9 @@ export function CheckoutClient({ products }: { products: Product[] }) {
               </span>
               <strong>
                 {item.product.pricingMode === "flexible"
-                  ? `Frais de livraison ${euros(item.total)}`
+                  ? item.isFlexibleReady
+                    ? `Frais de livraison ${euros(item.total)}`
+                    : "Frais de livraison à renseigner"
                   : euros(item.total)}
               </strong>
             </div>
@@ -535,7 +528,6 @@ export function CheckoutClient({ products }: { products: Product[] }) {
                   </span>
                   <input
                     type="number"
-                    min={(item.minimumLineAmount / 100).toFixed(2)}
                     step="0.01"
                     value={displayShippingInput(item.index)}
                     onChange={(e) =>
@@ -556,12 +548,22 @@ export function CheckoutClient({ products }: { products: Product[] }) {
 
         <div className="summary-row" style={{ marginTop: 16 }}>
           <span>Sous-total</span>
-          <strong>{euros(quote?.subtotalAmount || 0)}</strong>
+          <strong>
+            {allFlexibleAmountsEntered
+              ? euros(quote?.subtotalAmount || 0)
+              : "—"}
+          </strong>
         </div>
 
         <div className="summary-row">
           <span>Livraison</span>
-          <strong>{quoting ? "Calcul..." : euros(quote?.shippingAmount || 0)}</strong>
+          <strong>
+            {allFlexibleAmountsEntered
+              ? quoting
+                ? "Calcul..."
+                : euros(quote?.shippingAmount || 0)
+              : "—"}
+          </strong>
         </div>
 
         {resolvedPreview.length > 0 ? (
@@ -632,7 +634,11 @@ export function CheckoutClient({ products }: { products: Product[] }) {
 
         <div className="summary-row total">
           <span>Total</span>
-          <strong>{euros(quote?.totalAmount || 0)}</strong>
+          <strong>
+            {allFlexibleAmountsEntered
+              ? euros(quote?.totalAmount || 0)
+              : "—"}
+          </strong>
         </div>
 
         <div style={{ marginTop: 16 }}>
@@ -646,7 +652,11 @@ export function CheckoutClient({ products }: { products: Product[] }) {
                 formElement.requestSubmit();
               }
             }}
-            disabled={loading || resolvedPreview.length === 0}
+            disabled={
+              loading ||
+              resolvedPreview.length === 0 ||
+              !allFlexibleAmountsEntered
+            }
           >
             {loading
               ? "Redirection..."
