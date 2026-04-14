@@ -107,7 +107,7 @@ async function drawInvoiceCopy(
 
   const left = 50;
   const right = width - 50;
-  let y = height - 44;
+  let y = height - 58;
 
   if (logo) {
     const maxLogoWidth = 48;
@@ -120,7 +120,7 @@ async function drawInvoiceCopy(
       width: logoWidth,
       height: logoHeight,
     });
-    y -= logoHeight + 10;
+    y -= logoHeight + 18;
   }
 
   drawCenteredText(page, "FACTURE PRO FORMA", y, 18, bold);
@@ -313,9 +313,10 @@ async function drawInvoiceCopy(
     font,
   });
 
-  const footerY = 78;
+  const footerY = 74;
+  const labelY = footerY + 62;
 
-  drawCenteredText(page, "Cachet et paraphe", footerY + 54, 10, font);
+  drawCenteredText(page, "Cachet et signature", labelY, 10, font);
 
   if (cachet) {
     const maxStampWidth = 140;
@@ -323,7 +324,7 @@ async function drawInvoiceCopy(
     const stampWidth = cachet.width * scale;
     const stampHeight = cachet.height * scale;
     page.drawImage(cachet, {
-      x: width / 2 - stampWidth - 28,
+      x: width / 2 - stampWidth - 34,
       y: footerY,
       width: stampWidth,
       height: stampHeight,
@@ -337,8 +338,8 @@ async function drawInvoiceCopy(
     const sigWidth = signature.width * scale;
     const sigHeight = signature.height * scale;
     page.drawImage(signature, {
-      x: width / 2 + 28,
-      y: footerY + 8,
+      x: width / 2 + 34,
+      y: footerY + 4,
       width: sigWidth,
       height: sigHeight,
     });
