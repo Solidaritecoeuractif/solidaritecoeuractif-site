@@ -121,7 +121,6 @@ export async function generatePaymentReceiptPdf(order: Order) {
     `Téléphone : ${order.customer.phone}`,
     `Statut : Paiement confirmé`,
     `Sous-total : ${formatAmount(order.subtotalAmount, order.currency)}`,
-    `Livraison : ${formatAmount(order.shippingAmount, order.currency)}`,
     `Total payé : ${formatAmount(order.totalAmount, order.currency)}`,
   ];
 

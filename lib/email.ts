@@ -68,7 +68,6 @@ export async function sendPaymentConfirmationEmail(
         <ul>${itemsHtml}</ul>
 
         <p>Sous-total : <strong>${formatAmount(order.subtotalAmount, order.currency)}</strong></p>
-        <p>Livraison : <strong>${formatAmount(order.shippingAmount, order.currency)}</strong></p>
         <p>Total payé : <strong>${formatAmount(order.totalAmount, order.currency)}</strong></p>
 
         ${deliveryInfo}
