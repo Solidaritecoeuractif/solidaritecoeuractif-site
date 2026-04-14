@@ -416,3 +416,14 @@ for (const order of orders) {
     bold
   );
 }
+
+const bytes = await pdf.save();
+
+return new NextResponse(Buffer.from(bytes), {
+  headers: {
+    "Content-Type": "application/pdf",
+    "Content-Disposition":
+      'attachment; filename="factures-pro-forma-selection.pdf"',
+  },
+});
+}
