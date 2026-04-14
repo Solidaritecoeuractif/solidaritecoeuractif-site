@@ -10,6 +10,16 @@ async function fileToDataUrl(file: File | null) {
   return `data:${file.type};base64,${bytes.toString("base64")}`;
 }
 
+function parseWeightGrams(data: FormData) {
+  const raw = String(data.get("weightKg") || "").trim().replace(",", ".");
+  if (!raw) return undefined;
+
+  const numeric = Number(raw);
+  if (!Number.isFinite(numeric) || numeric <= 0) return undefined;
+
+  return Math.round(numeric * 1000);
+}
+
 function fromForm(data: FormData, fallbackImage: string) {
   return {
     title: String(data.get("title") || ""),
@@ -30,7 +40,7 @@ function fromForm(data: FormData, fallbackImage: string) {
     maxQuantity: Number(data.get("maxQuantity") || 0) || undefined,
     stock: Number(data.get("stock") || 0) || undefined,
     sku: String(data.get("sku") || ""),
-    weightGrams: Number(data.get("weightGrams") || 0) || undefined,
+    weightGrams: parseWeightGrams(data),
     category: String(data.get("category") || ""),
   };
 }

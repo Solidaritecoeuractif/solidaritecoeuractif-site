@@ -10,6 +10,16 @@ async function fileToDataUrl(file: File | null) {
   return `data:${file.type};base64,${bytes.toString("base64")}`;
 }
 
+function parseWeightGrams(data: FormData) {
+  const raw = String(data.get("weightKg") || "").trim().replace(",", ".");
+  if (!raw) return undefined;
+
+  const numeric = Number(raw);
+  if (!Number.isFinite(numeric) || numeric <= 0) return undefined;
+
+  return Math.round(numeric * 1000);
+}
+
 function fromForm(data: FormData, uploadedImage: string) {
   return {
     title: String(data.get("title") || ""),
@@ -30,8 +40,8 @@ function fromForm(data: FormData, uploadedImage: string) {
     maxQuantity: Number(data.get("maxQuantity") || 0) || undefined,
     stock: Number(data.get("stock") || 0) || undefined,
     sku: String(data.get("sku") || ""),
-    weightGrams: Number(data.get("weightGrams") || 0) || undefined,
-    category: String(data.get("category") || "")
+    weightGrams: parseWeightGrams(data),
+    category: String(data.get("category") || ""),
   };
 }
 
@@ -49,7 +59,10 @@ export async function POST(request: Request) {
   const parsed = productFormSchema.safeParse(fromForm(formData, uploadedImage));
 
   if (!parsed.success) {
-    return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
+    return NextResponse.json(
+      { error: parsed.error.flatten() },
+      { status: 400 }
+    );
   }
 
   if (parsed.data.isFeatured) {
@@ -71,7 +84,7 @@ export async function POST(request: Request) {
     slug: slugify(parsed.data.title),
     ...parsed.data,
     createdAt: now,
-    updatedAt: now
+    updatedAt: now,
   };
 
   await storage().saveProduct(product);

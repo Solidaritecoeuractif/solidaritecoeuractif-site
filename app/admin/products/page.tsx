@@ -13,34 +13,123 @@ export default async function ProductsAdminPage() {
           encType="multipart/form-data"
           className="form-grid"
         >
-          <label><span>Titre</span><input name="title" required /></label>
-          <label><span>Sous-titre</span><input name="subtitle" /></label>
-          <label className="full"><span>Description courte</span><textarea name="shortDescription" required /></label>
-          <label className="full"><span>Description longue</span><textarea name="longDescription" required /></label>
+          <label>
+            <span>Titre</span>
+            <input name="title" required />
+          </label>
+
+          <label>
+            <span>Sous-titre</span>
+            <input name="subtitle" />
+          </label>
+
+          <label className="full">
+            <span>Description courte</span>
+            <textarea name="shortDescription" required />
+          </label>
+
+          <label className="full">
+            <span>Description longue</span>
+            <textarea name="longDescription" required />
+          </label>
 
           <label>
             <span>Image (fichier)</span>
             <input name="imageFile" type="file" accept="image/*" />
           </label>
 
-          <label><span>Type d’offre</span><select name="offerType"><option value="product">Produit</option><option value="donation">Don</option><option value="campaign">Collecte</option><option value="participation">Participation</option></select></label>
-          <label><span>Mode de prix</span><select name="pricingMode"><option value="fixed">Prix fixe</option><option value="flexible">Montant libre</option></select></label>
-          <label><span>Prix fixe (centimes)</span><input name="fixedPrice" type="number" /></label>
-          <label><span>Minimum (centimes)</span><input name="minimumAmount" type="number" /></label>
-          <label><span>Montant suggéré (centimes)</span><input name="suggestedAmount" type="number" /></label>
-          <label><span>Catégorie</span><input name="category" /></label>
-          <label><span>SKU</span><input name="sku" /></label>
-          <label><span>Stock</span><input name="stock" type="number" /></label>
-          <label><span>Poids (g)</span><input name="weightGrams" type="number" /></label>
-          <label><span>Quantité max</span><input name="maxQuantity" type="number" /></label>
-          <label><span>Montant livraison (centimes)</span><input name="shippingFeeAmount" type="number" /></label>
+          <label>
+            <span>Type d’offre</span>
+            <select name="offerType">
+              <option value="product">Produit</option>
+              <option value="donation">Don</option>
+              <option value="campaign">Collecte</option>
+              <option value="participation">Participation</option>
+            </select>
+          </label>
 
-          <label><span><input name="isFeatured" type="checkbox" /> Offre mise en avant sur l’accueil</span></label>
-          <label><span><input name="isActive" type="checkbox" defaultChecked /> Active</span></label>
-          <label><span><input name="isPhysical" type="checkbox" /> Produit physique</span></label>
-          <label><span><input name="requiresShipping" type="checkbox" /> Livraison requise</span></label>
+          <label>
+            <span>Mode de prix</span>
+            <select name="pricingMode">
+              <option value="fixed">Prix fixe</option>
+              <option value="flexible">Montant libre</option>
+            </select>
+          </label>
 
-          <button className="button primary" type="submit">Créer l’offre</button>
+          <label>
+            <span>Prix fixe (centimes)</span>
+            <input name="fixedPrice" type="number" />
+          </label>
+
+          <label>
+            <span>Minimum (centimes)</span>
+            <input name="minimumAmount" type="number" />
+          </label>
+
+          <label>
+            <span>Montant suggéré (centimes)</span>
+            <input name="suggestedAmount" type="number" />
+          </label>
+
+          <label>
+            <span>Catégorie</span>
+            <input name="category" />
+          </label>
+
+          <label>
+            <span>SKU</span>
+            <input name="sku" />
+          </label>
+
+          <label>
+            <span>Stock</span>
+            <input name="stock" type="number" />
+          </label>
+
+          <label>
+            <span>Poids (kg)</span>
+            <input name="weightKg" type="number" step="0.001" min="0" />
+          </label>
+
+          <label>
+            <span>Quantité max</span>
+            <input name="maxQuantity" type="number" />
+          </label>
+
+          <label>
+            <span>Montant livraison (centimes)</span>
+            <input name="shippingFeeAmount" type="number" />
+          </label>
+
+          <label>
+            <span>
+              <input name="isFeatured" type="checkbox" /> Offre mise en avant
+              sur l’accueil
+            </span>
+          </label>
+
+          <label>
+            <span>
+              <input name="isActive" type="checkbox" defaultChecked /> Active
+            </span>
+          </label>
+
+          <label>
+            <span>
+              <input name="isPhysical" type="checkbox" /> Produit physique
+            </span>
+          </label>
+
+          <label>
+            <span>
+              <input name="requiresShipping" type="checkbox" /> Livraison
+              requise
+            </span>
+          </label>
+
+          <button className="button primary" type="submit">
+            Créer l’offre
+          </button>
         </form>
       </section>
 
@@ -75,7 +164,14 @@ export default async function ProductsAdminPage() {
                 </td>
                 <td>{product.isFeatured ? "Oui" : "Non"}</td>
                 <td>{product.isActive ? "Actif" : "Inactif"}</td>
-                <td><a className="button ghost small" href={`/admin/products/${product.id}`}>Modifier</a></td>
+                <td>
+                  <a
+                    className="button ghost small"
+                    href={`/admin/products/${product.id}`}
+                  >
+                    Modifier
+                  </a>
+                </td>
               </tr>
             ))}
           </tbody>
