@@ -152,6 +152,8 @@ export function CheckoutClient({ products }: { products: Product[] }) {
     (item) => item.product.pricingMode === "flexible"
   );
 
+  const hasFlexibleItems = flexibleItems.length > 0;
+
   const allFlexibleAmountsEntered = flexibleItems.every(
     (item) => item.isValidTypedAmount
   );
@@ -421,6 +423,14 @@ export function CheckoutClient({ products }: { products: Product[] }) {
     } as const;
   }
 
+  const displayedSubtotal = hasFlexibleItems
+    ? localSubtotal
+    : quote?.subtotalAmount || 0;
+
+  const displayedTotal = hasFlexibleItems
+    ? localSubtotal + (supportEnabled ? supportAmount : 0)
+    : quote?.totalAmount || 0;
+
   return (
     <div className="checkout-layout">
       <form onSubmit={submit} className="panel">
@@ -636,20 +646,22 @@ export function CheckoutClient({ products }: { products: Product[] }) {
         <div className="summary-row" style={{ marginTop: 16 }}>
           <span>Sous-total</span>
           <strong>
-            {allFlexibleAmountsEntered ? euros(quote?.subtotalAmount || 0) : "—"}
+            {allFlexibleAmountsEntered ? euros(displayedSubtotal) : "—"}
           </strong>
         </div>
 
-        <div className="summary-row">
-          <span>Livraison</span>
-          <strong>
-            {allFlexibleAmountsEntered
-              ? quoting
-                ? "Calcul..."
-                : euros(quote?.shippingAmount || 0)
-              : "—"}
-          </strong>
-        </div>
+        {!hasFlexibleItems && (
+          <div className="summary-row">
+            <span>Livraison</span>
+            <strong>
+              {allFlexibleAmountsEntered
+                ? quoting
+                  ? "Calcul..."
+                  : euros(quote?.shippingAmount || 0)
+                : "—"}
+            </strong>
+          </div>
+        )}
 
         {resolvedPreview.length > 0 ? (
           <div
@@ -702,10 +714,16 @@ export function CheckoutClient({ products }: { products: Product[] }) {
                   type="number"
                   min={0}
                   step="0.01"
-                  value={(supportAmount / 100).toFixed(2)}
+                  value={(supportAmount / 100).toFixed(2).replace(".", ",")}
                   onChange={(e) =>
                     setSupportAmount(
-                      Math.max(0, Math.round(Number(e.target.value || 0) * 100))
+                      Math.max(
+                        0,
+                        Math.round(
+                          Number(String(e.target.value || "0").replace(",", ".")) *
+                            100
+                        )
+                      )
                     )
                   }
                 />
@@ -720,7 +738,9 @@ export function CheckoutClient({ products }: { products: Product[] }) {
         <div className="summary-row total">
           <span>Total</span>
           <strong>
-            {allFlexibleAmountsEntered ? euros(quote?.totalAmount || 0) : "—"}
+            {allFlexibleAmountsEntered
+              ? euros(displayedTotal)
+              : "—"}
           </strong>
         </div>
 
