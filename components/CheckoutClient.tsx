@@ -423,6 +423,14 @@ export function CheckoutClient({ products }: { products: Product[] }) {
     } as const;
   }
 
+  function decreaseSupport() {
+    setSupportAmount((prev) => Math.max(0, prev - 100));
+  }
+
+  function increaseSupport() {
+    setSupportAmount((prev) => prev + 100);
+  }
+
   const displayedSubtotal = hasFlexibleItems
     ? localSubtotal
     : quote?.subtotalAmount || 0;
@@ -702,39 +710,58 @@ export function CheckoutClient({ products }: { products: Product[] }) {
             </label>
 
             {supportEnabled ? (
-              <label style={{ display: "block", marginTop: 4 }}>
+              <div style={{ marginTop: 4 }}>
                 <span
                   style={{
                     display: "block",
-                    marginBottom: 6,
+                    marginBottom: 8,
                     fontWeight: 600,
                     fontSize: "0.95rem",
                   }}
                 >
                   Montant de la participation libre
                 </span>
-                <input
-                  type="number"
-                  min={0}
-                  step="0.01"
-                  value={(supportAmount / 100).toFixed(2).replace(".", ",")}
-                  onChange={(e) =>
-                    setSupportAmount(
-                      Math.max(
-                        0,
-                        Math.round(
-                          Number(
-                            String(e.target.value || "0").replace(",", ".")
-                          ) * 100
-                        )
-                      )
-                    )
-                  }
+
+                <div
                   style={{
-                    padding: "12px 14px",
-                    borderRadius: "13px",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 10,
                   }}
-                />
+                >
+                  <button
+                    type="button"
+                    className="button secondary small"
+                    onClick={decreaseSupport}
+                    aria-label="Diminuer la participation"
+                  >
+                    –
+                  </button>
+
+                  <div
+                    style={{
+                      flex: 1,
+                      padding: "12px 14px",
+                      border: "1px solid #dbe2ec",
+                      borderRadius: "13px",
+                      background: "#ffffff",
+                      fontWeight: 700,
+                      textAlign: "center",
+                    }}
+                  >
+                    {euros(supportAmount)}
+                  </div>
+
+                  <button
+                    type="button"
+                    className="button secondary small"
+                    onClick={increaseSupport}
+                    aria-label="Augmenter la participation"
+                  >
+                    +
+                  </button>
+                </div>
+
                 <small
                   style={{
                     display: "block",
@@ -745,7 +772,7 @@ export function CheckoutClient({ products }: { products: Product[] }) {
                 >
                   Suggestion actuelle : <strong>{euros(suggestedSupport)}</strong>
                 </small>
-              </label>
+              </div>
             ) : null}
           </div>
         ) : null}
