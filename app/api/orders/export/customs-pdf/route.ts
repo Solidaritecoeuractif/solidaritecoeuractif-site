@@ -25,8 +25,7 @@ function safeText(value: string | undefined) {
 }
 
 function formatInvoiceDate(dateIso: string) {
-  const date = new Date(dateIso);
-  return date.toLocaleDateString("fr-FR");
+  return new Date(dateIso).toLocaleDateString("fr-FR");
 }
 
 function formatInvoiceNumber(order: Order, index: number) {
@@ -46,10 +45,10 @@ function drawCenteredText(
   font: any,
   color = rgb(0.08, 0.08, 0.08)
 ) {
-  const width = page.getWidth();
+  const pageWidth = page.getWidth();
   const textWidth = font.widthOfTextAtSize(text, size);
   page.drawText(text, {
-    x: (width - textWidth) / 2,
+    x: (pageWidth - textWidth) / 2,
     y,
     size,
     font,
@@ -82,48 +81,6 @@ function drawLabelValue(
   });
 }
 
-function drawWrappedText(
-  page: any,
-  text: string,
-  x: number,
-  y: number,
-  maxWidth: number,
-  font: any,
-  size: number,
-  lineHeight = 14
-) {
-  const words = text.split(/\s+/);
-  const lines: string[] = [];
-  let current = "";
-
-  for (const word of words) {
-    const test = current ? `${current} ${word}` : word;
-    const testWidth = font.widthOfTextAtSize(test, size);
-    if (testWidth <= maxWidth) {
-      current = test;
-    } else {
-      if (current) lines.push(current);
-      current = word;
-    }
-  }
-
-  if (current) lines.push(current);
-
-  let currentY = y;
-  for (const line of lines) {
-    page.drawText(line, {
-      x,
-      y: currentY,
-      size,
-      font,
-      color: rgb(0.1, 0.1, 0.1),
-    });
-    currentY -= lineHeight;
-  }
-
-  return currentY;
-}
-
 function totalDeclaredValue(order: Order) {
   return order.items.reduce(
     (sum, item) => sum + item.unitAmount * item.quantity,
@@ -150,16 +107,20 @@ async function drawInvoiceCopy(
 
   const left = 50;
   const right = width - 50;
-  let y = height - 42;
+  let y = height - 44;
 
   if (logo) {
-    const dims = logo.scale(0.18);
+    const maxLogoWidth = 48;
+    const scale = maxLogoWidth / logo.width;
+    const logoWidth = logo.width * scale;
+    const logoHeight = logo.height * scale;
     page.drawImage(logo, {
-      x: left,
-      y: y - 8,
-      width: dims.width,
-      height: dims.height,
+      x: (width - logoWidth) / 2,
+      y: y - 6,
+      width: logoWidth,
+      height: logoHeight,
     });
+    y -= logoHeight + 10;
   }
 
   drawCenteredText(page, "FACTURE PRO FORMA", y, 18, bold);
@@ -354,33 +315,34 @@ async function drawInvoiceCopy(
 
   const footerY = 78;
 
+  drawCenteredText(page, "Cachet et paraphe", footerY + 54, 10, font);
+
   if (cachet) {
-    const dims = cachet.scale(0.23);
+    const maxStampWidth = 140;
+    const scale = maxStampWidth / cachet.width;
+    const stampWidth = cachet.width * scale;
+    const stampHeight = cachet.height * scale;
     page.drawImage(cachet, {
-      x: 70,
-      y: footerY - 18,
-      width: dims.width,
-      height: dims.height,
+      x: width / 2 - stampWidth - 28,
+      y: footerY,
+      width: stampWidth,
+      height: stampHeight,
       opacity: 0.96,
     });
   }
 
   if (signature) {
-    const dims = signature.scale(0.25);
+    const maxSigWidth = 90;
+    const scale = maxSigWidth / signature.width;
+    const sigWidth = signature.width * scale;
+    const sigHeight = signature.height * scale;
     page.drawImage(signature, {
-      x: width - 165,
-      y: footerY - 8,
-      width: dims.width,
-      height: dims.height,
+      x: width / 2 + 28,
+      y: footerY + 8,
+      width: sigWidth,
+      height: sigHeight,
     });
   }
-
-  page.drawText("Signature", {
-    x: width - 125,
-    y: footerY - 28,
-    size: 10,
-    font,
-  });
 }
 
 export async function GET(request: Request) {
