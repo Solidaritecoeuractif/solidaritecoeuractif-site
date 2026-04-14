@@ -674,20 +674,20 @@ export function CheckoutClient({ products }: { products: Product[] }) {
         {resolvedPreview.length > 0 ? (
           <div
             style={{
-              marginTop: 14,
-              marginBottom: 14,
-              padding: 14,
-              border: "1px solid #e2e8f0",
-              borderRadius: 14,
-              background: "#fbfcfe",
+              marginTop: 12,
+              marginBottom: 12,
+              padding: "10px 12px",
+              border: "1px solid #edf2f7",
+              borderRadius: 12,
+              background: "#fcfdff",
             }}
           >
             <label
               style={{
                 display: "flex",
                 alignItems: "flex-start",
-                gap: 10,
-                marginBottom: supportEnabled ? 12 : 0,
+                gap: 8,
+                marginBottom: supportEnabled ? 8 : 0,
                 cursor: "pointer",
               }}
             >
@@ -695,38 +695,26 @@ export function CheckoutClient({ products }: { products: Product[] }) {
                 type="checkbox"
                 checked={supportEnabled}
                 onChange={(e) => setSupportEnabled(e.target.checked)}
-                style={{ marginTop: 3 }}
+                style={{ marginTop: 2, transform: "scale(0.95)" }}
               />
-              <span style={{ lineHeight: 1.45 }}>
-                <strong style={{ fontSize: "1rem", fontWeight: 700 }}>
+              <span style={{ lineHeight: 1.35 }}>
+                <strong style={{ fontSize: "0.95rem", fontWeight: 700 }}>
                   Participation libre à l’Association
                 </strong>
                 <br />
-                <small style={{ color: "#5f6c80" }}>
-                  Une contribution complémentaire, entièrement libre, pour
-                  soutenir les actions solidaires de l’association.
+                <small style={{ color: "#6b7280" }}>
+                  Contribution complémentaire facultative.
                 </small>
               </span>
             </label>
 
             {supportEnabled ? (
-              <div style={{ marginTop: 4 }}>
-                <span
-                  style={{
-                    display: "block",
-                    marginBottom: 8,
-                    fontWeight: 600,
-                    fontSize: "0.95rem",
-                  }}
-                >
-                  Montant de la participation libre
-                </span>
-
+              <div style={{ marginTop: 2 }}>
                 <div
                   style={{
                     display: "flex",
                     alignItems: "center",
-                    gap: 10,
+                    gap: 8,
                   }}
                 >
                   <button
@@ -734,6 +722,12 @@ export function CheckoutClient({ products }: { products: Product[] }) {
                     className="button secondary small"
                     onClick={decreaseSupport}
                     aria-label="Diminuer la participation"
+                    style={{
+                      minWidth: 38,
+                      height: 38,
+                      padding: 0,
+                      borderRadius: 10,
+                    }}
                   >
                     –
                   </button>
@@ -741,11 +735,12 @@ export function CheckoutClient({ products }: { products: Product[] }) {
                   <div
                     style={{
                       flex: 1,
-                      padding: "12px 14px",
-                      border: "1px solid #dbe2ec",
-                      borderRadius: "13px",
+                      padding: "9px 12px",
+                      border: "1px solid #e5e7eb",
+                      borderRadius: 11,
                       background: "#ffffff",
                       fontWeight: 700,
+                      fontSize: "0.98rem",
                       textAlign: "center",
                     }}
                   >
@@ -757,6 +752,12 @@ export function CheckoutClient({ products }: { products: Product[] }) {
                     className="button secondary small"
                     onClick={increaseSupport}
                     aria-label="Augmenter la participation"
+                    style={{
+                      minWidth: 38,
+                      height: 38,
+                      padding: 0,
+                      borderRadius: 10,
+                    }}
                   >
                     +
                   </button>
@@ -765,12 +766,13 @@ export function CheckoutClient({ products }: { products: Product[] }) {
                 <small
                   style={{
                     display: "block",
-                    marginTop: 8,
-                    color: "#5f6c80",
-                    lineHeight: 1.4,
+                    marginTop: 6,
+                    color: "#6b7280",
+                    lineHeight: 1.35,
+                    fontSize: "0.88rem",
                   }}
                 >
-                  Suggestion actuelle : <strong>{euros(suggestedSupport)}</strong>
+                  Suggestion : <strong>{euros(suggestedSupport)}</strong>
                 </small>
               </div>
             ) : null}
