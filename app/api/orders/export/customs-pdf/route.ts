@@ -391,36 +391,28 @@ export async function GET(request: Request) {
 
   let invoiceIndex = 100;
 
-  for (const order of orders) {
-    await drawInvoiceCopy(
-      pdf,
-      order,
-      invoiceIndex++,
-      embeddedLogo,
-      embeddedCachet,
-      embeddedSignature,
-      font,
-      bold
-    );
+for (const order of orders) {
+  const currentInvoiceIndex = invoiceIndex++;
 
-    await drawInvoiceCopy(
-      pdf,
-      order,
-      invoiceIndex++,
-      embeddedLogo,
-      embeddedCachet,
-      embeddedSignature,
-      font,
-      bold
-    );
-  }
+  await drawInvoiceCopy(
+    pdf,
+    order,
+    currentInvoiceIndex,
+    embeddedLogo,
+    embeddedCachet,
+    embeddedSignature,
+    font,
+    bold
+  );
 
-  const bytes = await pdf.save();
-
-  return new NextResponse(Buffer.from(bytes), {
-    headers: {
-      "Content-Type": "application/pdf",
-      "Content-Disposition": 'attachment; filename="factures-pro-forma-selection.pdf"',
-    },
-  });
+  await drawInvoiceCopy(
+    pdf,
+    order,
+    currentInvoiceIndex,
+    embeddedLogo,
+    embeddedCachet,
+    embeddedSignature,
+    font,
+    bold
+  );
 }
