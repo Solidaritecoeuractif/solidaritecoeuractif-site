@@ -703,7 +703,7 @@ export function CheckoutClient({ products }: { products: Product[] }) {
                 </strong>
                 <br />
                 <small style={{ color: "#6b7280" }}>
-                  Contribution complémentaire facultative.
+                  Cette contribution facultative aide l’association à poursuivre ses actions solidaires
                 </small>
               </span>
             </label>
