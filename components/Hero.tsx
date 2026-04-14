@@ -8,14 +8,14 @@ export function Hero({ featuredProduct }: { featuredProduct?: Product }) {
         <div>
           <span className="eyebrow">Association solidaire</span>
           <h1>
-            Actions de solidarité, soutiens, collectes et participations au service
-            des personnes en situation de précarité et de vulnérabilité
+            Actions de solidarité, soutiens, collectes et participations au
+            service des personnes en situation de précarité et de vulnérabilité
           </h1>
           <p>
             Cette plateforme permet de présenter les actions de l’association,
-            d’accueillir des soutiens, d’organiser des collectes et de proposer des
-            participations, notamment pour les frais de livraison et certaines
-            initiatives solidaires, dans un cadre clair et sécurisé.
+            d’accueillir des soutiens, d’organiser des collectes et de proposer
+            des participations, notamment pour les frais de livraison et
+            certaines initiatives solidaires, dans un cadre clair et sécurisé.
           </p>
         </div>
 
@@ -39,14 +39,21 @@ export function Hero({ featuredProduct }: { featuredProduct?: Product }) {
                 </p>
               ) : null}
 
-              <p style={{ marginBottom: 16 }}>{featuredProduct.longDescription}</p>
+              <p className="hero-card-description">
+                {featuredProduct.longDescription}
+              </p>
 
-              <AddToCartForm product={featuredProduct} />
+              <div className="hero-card-action">
+                <AddToCartForm product={featuredProduct} />
+              </div>
             </>
           ) : (
             <>
               <h3>Aucune offre mise en avant</h3>
-              <p>Sélectionne une offre depuis l’administration pour l’afficher ici.</p>
+              <p>
+                Sélectionne une offre depuis l’administration pour l’afficher
+                ici.
+              </p>
             </>
           )}
         </div>

@@ -319,7 +319,11 @@ export function CheckoutClient({ products }: { products: Product[] }) {
         )
       : null;
 
-    if (!currentItem || !currentProduct || currentProduct.pricingMode !== "flexible") {
+    if (
+      !currentItem ||
+      !currentProduct ||
+      currentProduct.pricingMode !== "flexible"
+    ) {
       return;
     }
 
@@ -390,16 +394,30 @@ export function CheckoutClient({ products }: { products: Product[] }) {
     return shippingInputs[itemIndex] ?? "";
   }
 
-  function shippingInputStyle(isInvalid: boolean) {
+  function shippingInputStyle(isInvalid: boolean, isValid: boolean) {
     return {
       width: "100%",
-      padding: "12px 14px",
-      borderRadius: "12px",
-      border: isInvalid ? "2px solid #dc2626" : "2px solid #cbd5e1",
+      padding: "14px 16px",
+      borderRadius: "14px",
+      border: isInvalid
+        ? "1.5px solid #dc2626"
+        : isValid
+          ? "1.5px solid #0b7a4b"
+          : "1.5px solid #cbd5e1",
       outline: "none",
-      boxShadow: isInvalid ? "0 0 0 3px rgba(220, 38, 38, 0.18)" : "none",
-      animation: isInvalid ? "shippingBlink 0.8s ease-in-out infinite" : "none",
-      background: "#fff",
+      boxShadow: isInvalid
+        ? "0 0 0 4px rgba(220, 38, 38, 0.10)"
+        : isValid
+          ? "0 0 0 4px rgba(11, 122, 75, 0.08)"
+          : "0 8px 18px rgba(18, 34, 61, 0.04)",
+      animation: isInvalid ? "shippingBlink 1.15s ease-in-out" : "none",
+      background: isInvalid
+        ? "#fffafa"
+        : isValid
+          ? "#fbfffc"
+          : "#ffffff",
+      transition:
+        "border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease",
     } as const;
   }
 
@@ -546,6 +564,10 @@ export function CheckoutClient({ products }: { products: Product[] }) {
 
         {resolvedPreview.map((item) => {
           const isInvalid = invalidShippingInputs.includes(item.index);
+          const isValid =
+            item.product.pricingMode === "flexible" &&
+            item.hasTypedAmount &&
+            item.isValidTypedAmount;
 
           return (
             <div key={item.index} style={{ marginBottom: 16 }}>
@@ -583,11 +605,26 @@ export function CheckoutClient({ products }: { products: Product[] }) {
                       }
                       onBlur={() => handleShippingBlur(item.index)}
                       placeholder=""
-                      style={shippingInputStyle(isInvalid)}
+                      style={shippingInputStyle(isInvalid, isValid)}
                     />
-                    <small style={{ display: "block", marginTop: 8 }}>
+                    <small
+                      style={{
+                        display: "block",
+                        marginTop: 8,
+                        color: isInvalid
+                          ? "#9f1d1d"
+                          : isValid
+                            ? "#0b7a4b"
+                            : "#5f6c80",
+                        lineHeight: 1.5,
+                      }}
+                    >
                       Minimum autorisé pour cette destination :{" "}
                       <strong>{euros(item.minimumLineAmount)}</strong>
+                      {isInvalid
+                        ? " — merci de saisir un montant égal ou supérieur."
+                        : ""}
+                      {isValid ? " — montant validé." : ""}
                     </small>
                   </label>
                 </div>
@@ -718,16 +755,13 @@ export function CheckoutClient({ products }: { products: Product[] }) {
         <style jsx>{`
           @keyframes shippingBlink {
             0% {
-              border-color: #dc2626;
-              box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.18);
+              box-shadow: 0 0 0 4px rgba(220, 38, 38, 0.1);
             }
             50% {
-              border-color: #fca5a5;
-              box-shadow: 0 0 0 5px rgba(220, 38, 38, 0.26);
+              box-shadow: 0 0 0 7px rgba(220, 38, 38, 0.16);
             }
             100% {
-              border-color: #dc2626;
-              box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.18);
+              box-shadow: 0 0 0 4px rgba(220, 38, 38, 0.1);
             }
           }
         `}</style>

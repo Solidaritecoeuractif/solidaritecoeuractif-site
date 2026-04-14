@@ -6,6 +6,7 @@ function amountText(product: Product) {
   if (product.pricingMode === "fixed") {
     return euros(product.fixedPrice || 0);
   }
+
   return `Participation à partir de ${euros(product.minimumAmount || 0)}`;
 }
 
@@ -22,11 +23,14 @@ export function ProductCard({ product }: { product: Product }) {
 
       <div className="product-body">
         <span className="product-type">{label(product.offerType)}</span>
+
         <h3>{product.title}</h3>
+
         <p>{product.shortDescription}</p>
 
         <div className="product-footer">
           <strong>{amountText(product)}</strong>
+
           <Link
             href={`/produit/${product.slug}`}
             className="button secondary small"
@@ -49,5 +53,7 @@ function label(type: Product["offerType"]) {
       return "Collecte";
     case "participation":
       return "Participation";
+    default:
+      return "Offre";
   }
 }

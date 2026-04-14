@@ -38,7 +38,11 @@ export function AddToCartForm({ product }: { product: Product }) {
   );
 
   const overseasMinimum = useMemo(
-    () => calculateZoneAdjustedLineMinimum(minimumUnitAmount, quantity, "FR-GP"),
+    () => calculateZoneAdjustedLineMinimum(
+      minimumUnitAmount,
+      quantity,
+      "FR-GP"
+    ),
     [minimumUnitAmount, quantity]
   );
 
@@ -107,20 +111,22 @@ export function AddToCartForm({ product }: { product: Product }) {
       </div>
 
       {product.pricingMode === "flexible" ? (
-        <div style={{ marginTop: 12 }}>
-          <p style={{ marginBottom: 8, fontWeight: 700 }}>Frais de livraison</p>
-          <small style={{ display: "block", marginBottom: 6 }}>
+        <div className="shipping-preview-box">
+          <p className="shipping-preview-title">
+            Repères pour les frais de livraison
+          </p>
+          <small>
             France métropolitaine :{" "}
-            <strong>À partir de {formatEuroFromCents(franceMinimum)}</strong>
+            <strong>à partir de {formatEuroFromCents(franceMinimum)}</strong>
           </small>
-          <small style={{ display: "block", marginBottom: 6 }}>
+          <small>
             Outre-mer :{" "}
-            <strong>À partir de {formatEuroFromCents(overseasMinimum)}</strong>
+            <strong>à partir de {formatEuroFromCents(overseasMinimum)}</strong>
           </small>
-          <small style={{ display: "block" }}>
+          <small>
             Hors France :{" "}
             <strong>
-              À partir de {formatEuroFromCents(internationalMinimum)}
+              à partir de {formatEuroFromCents(internationalMinimum)}
             </strong>
           </small>
         </div>
