@@ -666,12 +666,12 @@ export function CheckoutClient({ products }: { products: Product[] }) {
         {resolvedPreview.length > 0 ? (
           <div
             style={{
-              marginTop: 16,
-              marginBottom: 16,
-              padding: 16,
+              marginTop: 14,
+              marginBottom: 14,
+              padding: 14,
               border: "1px solid #e2e8f0",
-              borderRadius: 16,
-              background: "#f8fafc",
+              borderRadius: 14,
+              background: "#fbfcfe",
             }}
           >
             <label
@@ -679,7 +679,7 @@ export function CheckoutClient({ products }: { products: Product[] }) {
                 display: "flex",
                 alignItems: "flex-start",
                 gap: 10,
-                marginBottom: 10,
+                marginBottom: supportEnabled ? 12 : 0,
                 cursor: "pointer",
               }}
             >
@@ -687,25 +687,28 @@ export function CheckoutClient({ products }: { products: Product[] }) {
                 type="checkbox"
                 checked={supportEnabled}
                 onChange={(e) => setSupportEnabled(e.target.checked)}
-                style={{ marginTop: 4 }}
+                style={{ marginTop: 3 }}
               />
-              <span>
-                <strong>Participation libre à l’Association</strong>
+              <span style={{ lineHeight: 1.45 }}>
+                <strong style={{ fontSize: "1rem", fontWeight: 700 }}>
+                  Participation libre à l’Association
+                </strong>
                 <br />
-                <small>
-                  Cette participation complémentaire aide l’association à
-                  poursuivre ses actions solidaires.
+                <small style={{ color: "#5f6c80" }}>
+                  Une contribution complémentaire, entièrement libre, pour
+                  soutenir les actions solidaires de l’association.
                 </small>
               </span>
             </label>
 
             {supportEnabled ? (
-              <label style={{ display: "block" }}>
+              <label style={{ display: "block", marginTop: 4 }}>
                 <span
                   style={{
                     display: "block",
                     marginBottom: 6,
                     fontWeight: 600,
+                    fontSize: "0.95rem",
                   }}
                 >
                   Montant de la participation libre
@@ -720,14 +723,26 @@ export function CheckoutClient({ products }: { products: Product[] }) {
                       Math.max(
                         0,
                         Math.round(
-                          Number(String(e.target.value || "0").replace(",", ".")) *
-                            100
+                          Number(
+                            String(e.target.value || "0").replace(",", ".")
+                          ) * 100
                         )
                       )
                     )
                   }
+                  style={{
+                    padding: "12px 14px",
+                    borderRadius: "13px",
+                  }}
                 />
-                <small style={{ display: "block", marginTop: 8 }}>
+                <small
+                  style={{
+                    display: "block",
+                    marginTop: 8,
+                    color: "#5f6c80",
+                    lineHeight: 1.4,
+                  }}
+                >
                   Suggestion actuelle : <strong>{euros(suggestedSupport)}</strong>
                 </small>
               </label>
@@ -737,11 +752,7 @@ export function CheckoutClient({ products }: { products: Product[] }) {
 
         <div className="summary-row total">
           <span>Total</span>
-          <strong>
-            {allFlexibleAmountsEntered
-              ? euros(displayedTotal)
-              : "—"}
-          </strong>
+          <strong>{allFlexibleAmountsEntered ? euros(displayedTotal) : "—"}</strong>
         </div>
 
         <div style={{ marginTop: 16 }}>
