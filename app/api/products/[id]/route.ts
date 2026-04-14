@@ -31,7 +31,7 @@ function fromForm(data: FormData, fallbackImage: string) {
     stock: Number(data.get("stock") || 0) || undefined,
     sku: String(data.get("sku") || ""),
     weightGrams: Number(data.get("weightGrams") || 0) || undefined,
-    category: String(data.get("category") || "")
+    category: String(data.get("category") || ""),
   };
 }
 
@@ -39,73 +39,97 @@ export async function POST(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const { id } = await params;
-  const url = new URL(request.url);
+  try {
+    const { id } = await params;
+    const formData = await request.formData();
+    const method =
+      String(formData.get("_method") || "").toLowerCase() ||
+      new URL(request.url).searchParams.get("_method")?.toLowerCase() ||
+      "post";
 
-  if (url.searchParams.get("_method") === "delete") {
-    await storage().deleteProduct(id);
-    revalidatePath("/");
-    revalidatePath("/admin/products");
-    return NextResponse.redirect(new URL("/admin/products", request.url));
-  }
+    if (method === "delete") {
+      await storage().deleteProduct(id);
+      revalidatePath("/");
+      revalidatePath("/admin");
+      revalidatePath("/admin/products");
+      return NextResponse.redirect(new URL("/admin/products", request.url), 303);
+    }
 
-  const formData = await request.formData();
-  const current = await storage().getProductById(id);
+    const current = await storage().getProductById(id);
 
-  if (!current) {
-    return NextResponse.redirect(new URL("/admin/products", request.url));
-  }
+    if (!current) {
+      return NextResponse.redirect(new URL("/admin/products", request.url), 303);
+    }
 
-  const imageFile = formData.get("imageFile");
-  const uploadedImage =
-    imageFile instanceof File ? await fileToDataUrl(imageFile) : "";
-  const finalImage = uploadedImage || current.image || "";
+    const imageFile = formData.get("imageFile");
+    const uploadedImage =
+      imageFile instanceof File ? await fileToDataUrl(imageFile) : "";
+    const finalImage = uploadedImage || current.image || "";
 
-  const parsed = productFormSchema.safeParse(fromForm(formData, finalImage));
+    const parsed = productFormSchema.safeParse(fromForm(formData, finalImage));
 
-  if (!parsed.success) {
-    return NextResponse.json(
-      { error: parsed.error.flatten() },
-      { status: 400 }
-    );
-  }
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: parsed.error.flatten() },
+        { status: 400 }
+      );
+    }
 
-  if (parsed.data.isFeatured) {
-    const products = await storage().getProducts();
-    for (const product of products) {
-      if (product.id !== id && product.isFeatured) {
-        await storage().updateProduct(product.id, {
-          ...product,
-          isFeatured: false,
-          updatedAt: new Date().toISOString(),
-        });
+    if (parsed.data.isFeatured) {
+      const products = await storage().getProducts();
+
+      for (const product of products) {
+        if (product.id !== id && product.isFeatured) {
+          await storage().updateProduct(product.id, {
+            ...product,
+            isFeatured: false,
+            updatedAt: new Date().toISOString(),
+          });
+        }
       }
     }
+
+    const updated = {
+      ...current,
+      ...parsed.data,
+      slug: slugify(parsed.data.title),
+      updatedAt: new Date().toISOString(),
+    };
+
+    await storage().updateProduct(id, updated);
+
+    revalidatePath("/");
+    revalidatePath("/admin");
+    revalidatePath("/admin/products");
+    revalidatePath(`/produit/${current.slug}`);
+    revalidatePath(`/produit/${updated.slug}`);
+
+    return NextResponse.redirect(new URL("/admin/products", request.url), 303);
+  } catch (error) {
+    console.error("Erreur update produit:", error);
+    return NextResponse.json(
+      { error: "Impossible de mettre à jour le produit." },
+      { status: 500 }
+    );
   }
-
-  const updated = {
-    ...current,
-    ...parsed.data,
-    slug: slugify(parsed.data.title),
-    updatedAt: new Date().toISOString(),
-  };
-
-  await storage().updateProduct(id, updated);
-
-  revalidatePath("/");
-  revalidatePath("/admin/products");
-  revalidatePath(`/produit/${updated.slug}`);
-
-  return NextResponse.redirect(new URL("/admin/products", request.url));
 }
 
 export async function DELETE(
   _: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const { id } = await params;
-  await storage().deleteProduct(id);
-  revalidatePath("/");
-  revalidatePath("/admin/products");
-  return NextResponse.json({ ok: true });
+  try {
+    const { id } = await params;
+    await storage().deleteProduct(id);
+    revalidatePath("/");
+    revalidatePath("/admin");
+    revalidatePath("/admin/products");
+    return NextResponse.json({ ok: true });
+  } catch (error) {
+    console.error("Erreur suppression produit:", error);
+    return NextResponse.json(
+      { error: "Impossible de supprimer le produit." },
+      { status: 500 }
+    );
+  }
 }
