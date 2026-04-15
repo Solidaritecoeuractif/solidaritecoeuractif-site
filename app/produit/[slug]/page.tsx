@@ -5,6 +5,10 @@ import { storage } from "@/lib/storage";
 import { euros } from "@/lib/utils";
 import type { Product } from "@/lib/types";
 
+const baseUrl =
+  process.env.NEXT_PUBLIC_BASE_URL || "https://www.solidaritecoeuractif.com";
+const brand = process.env.NEXT_PUBLIC_BRAND_NAME || "Solidarité Cœur Actif";
+
 function offerTypeLabel(type: Product["offerType"]) {
   switch (type) {
     case "product":
@@ -18,6 +22,25 @@ function offerTypeLabel(type: Product["offerType"]) {
     default:
       return "Offre";
   }
+}
+
+function absoluteImageUrl(image?: string | null) {
+  if (!image) return undefined;
+  if (image.startsWith("http://") || image.startsWith("https://")) {
+    return image;
+  }
+  if (image.startsWith("data:")) {
+    return undefined;
+  }
+  return new URL(image, baseUrl).toString();
+}
+
+function productDescription(product: Product) {
+  if (product.shortDescription?.trim()) {
+    return product.shortDescription.trim();
+  }
+
+  return "Découvrez cette initiative solidaire proposée par Solidarité Cœur Actif.";
 }
 
 export async function generateMetadata({
@@ -34,10 +57,37 @@ export async function generateMetadata({
     };
   }
 
+  const description = productDescription(product);
+  const url = `${baseUrl}/produit/${product.slug}`;
+  const imageUrl = absoluteImageUrl(product.image);
+
   return {
     title: product.title,
-    description:
-      "Recevez le livre 365 jours avec le Seigneur Jésus-Christ et soutenez une initiative solidaire pour accompagner la prière au quotidien.",
+    description,
+    alternates: {
+      canonical: url,
+    },
+    openGraph: {
+      type: "website",
+      siteName: brand,
+      url,
+      title: product.title,
+      description,
+      images: imageUrl
+        ? [
+            {
+              url: imageUrl,
+              alt: product.title,
+            },
+          ]
+        : undefined,
+    },
+    twitter: {
+      card: imageUrl ? "summary_large_image" : "summary",
+      title: product.title,
+      description,
+      images: imageUrl ? [imageUrl] : undefined,
+    },
   };
 }
 
