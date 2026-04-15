@@ -25,11 +25,15 @@ type Order = {
     firstName: string;
     lastName: string;
     email: string;
+    phone?: string;
   };
   shippingAddress?: {
     country?: string;
     city?: string;
     postalCode?: string;
+    address1?: string;
+    address2?: string;
+    notes?: string;
   };
   items: OrderItem[];
 };
@@ -477,7 +481,13 @@ export default function OrdersTableClient({ orders }: { orders: Order[] }) {
                 />
               </td>
               <td>
-                <a href={`/admin/orders/${order.reference}`}>{order.reference}</a>
+                <a
+                  href={`/admin/orders/${order.reference}`}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  {order.reference}
+                </a>
                 <br />
                 <small>{toDateTimeLocalValue(order.createdAt).replace("T", " ")}</small>
               </td>
