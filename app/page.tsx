@@ -20,34 +20,9 @@ export default async function HomePage() {
   const featuredProduct =
     products.find((product) => product.isFeatured) || products[0];
 
-  const stats = {
-    totalActiveProducts: products.length,
-    totalPhysicalProducts: products.filter((item) => item.isPhysical).length,
-    totalFlexibleOffers: products.filter(
-      (item) => item.pricingMode === "flexible"
-    ).length,
-  };
-
   return (
     <main>
       <Hero featuredProduct={featuredProduct} />
-
-      <section className="stats-grid">
-        <article className="stat-card">
-          <span>Actions disponibles</span>
-          <strong>{stats.totalActiveProducts}</strong>
-        </article>
-
-        <article className="stat-card">
-          <span>Supports imprimés</span>
-          <strong>{stats.totalPhysicalProducts}</strong>
-        </article>
-
-        <article className="stat-card">
-          <span>Participations libres</span>
-          <strong>{stats.totalFlexibleOffers}</strong>
-        </article>
-      </section>
 
       <section className="catalog-section" id="catalogue">
         <div className="container">
