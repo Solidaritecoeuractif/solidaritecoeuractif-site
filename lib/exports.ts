@@ -42,14 +42,12 @@ export function toCsv(rows: Record<string, string | number>[]) {
   const headers = Object.keys(rows[0]);
   const bom = "\uFEFF";
   const lines = [headers.join(",")];
-
   for (const row of rows) {
-    const values = headers.map(
-      (header) => `"${String(row[header] ?? "").replaceAll('"', '""')}"`
+    const values = headers.map((header) =>
+      `"${String(row[header] ?? "").replaceAll('"', '""')}"`
     );
     lines.push(values.join(","));
   }
-
   return `${bom}${lines.join("\n")}`;
 }
 
@@ -157,17 +155,17 @@ export function chronopostRows(orders: Order[], products: Product[]) {
         "Description du contenu": order.items
           .map((item) => `${item.productTitle} x${item.quantity}`)
           .join(" | "),
-        "Livraison le samedi": "N",
+        "Livraison le samedi": "",
         "Identifiant Relais": "",
         Poids: computeChronopostWeight(order, products),
         Largueur: "",
         Longueur: "",
         Hauteur: "",
-        "Avertir destinataire": "Y",
+        "Avertir destinataire": "1",
         "Nombre de colis": "1",
         "date d'envoi": formatShipDate(),
         "A intégrer": "Y",
-        "Avertir expéditeur": "N",
+        "Avertir expéditeur": "",
       };
     });
 }
@@ -179,8 +177,8 @@ export function toSemicolonCsv(rows: Record<string, string | number>[]) {
   const lines = [headers.join(";")];
 
   for (const row of rows) {
-    const values = headers.map(
-      (header) => `"${String(row[header] ?? "").replaceAll('"', '""')}"`
+    const values = headers.map((header) =>
+      `"${String(row[header] ?? "").replaceAll('"', '""')}"`
     );
     lines.push(values.join(";"));
   }
