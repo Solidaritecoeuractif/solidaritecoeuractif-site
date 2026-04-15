@@ -18,7 +18,12 @@ export function exportRows(orders: Order[]) {
     notes_livraison: order.shippingAddress?.notes || "",
     quantite_totale: order.items.reduce((sum, item) => sum + item.quantity, 0),
     lignes_commande: order.items
-      .map((item) => `${item.productTitle} x${item.quantity} @ ${(item.unitAmount / 100).toFixed(2)}€`)
+      .map(
+        (item) =>
+          `${item.productTitle} x${item.quantity} @ ${(
+            item.unitAmount / 100
+          ).toFixed(2)}€`
+      )
       .join(" | "),
     sous_total: (order.subtotalAmount / 100).toFixed(2),
     livraison: (order.shippingAmount / 100).toFixed(2),
@@ -37,12 +42,14 @@ export function toCsv(rows: Record<string, string | number>[]) {
   const headers = Object.keys(rows[0]);
   const bom = "\uFEFF";
   const lines = [headers.join(",")];
+
   for (const row of rows) {
-    const values = headers.map((header) =>
-      `"${String(row[header] ?? "").replaceAll('"', '""')}"`
+    const values = headers.map(
+      (header) => `"${String(row[header] ?? "").replaceAll('"', '""')}"`
     );
     lines.push(values.join(","));
   }
+
   return `${bom}${lines.join("\n")}`;
 }
 
@@ -66,9 +73,33 @@ function formatShipDate(date = new Date()) {
 
 function isEuropeanCountry(code: string) {
   const eu = new Set([
-    "AT", "BE", "BG", "HR", "CY", "CZ", "DK", "EE", "FI", "FR", "DE", "GR",
-    "HU", "IE", "IT", "LV", "LT", "LU", "MT", "NL", "PL", "PT", "RO", "SK",
-    "SI", "ES", "SE"
+    "AT",
+    "BE",
+    "BG",
+    "HR",
+    "CY",
+    "CZ",
+    "DK",
+    "EE",
+    "FI",
+    "FR",
+    "DE",
+    "GR",
+    "HU",
+    "IE",
+    "IT",
+    "LV",
+    "LT",
+    "LU",
+    "MT",
+    "NL",
+    "PL",
+    "PT",
+    "RO",
+    "SK",
+    "SI",
+    "ES",
+    "SE",
   ]);
   return eu.has(code);
 }
@@ -81,16 +112,18 @@ function chronopostProductCode(countryCode: string) {
 
 function computeChronopostWeight(order: Order, products: Product[]) {
   const productMap = new Map(products.map((product) => [product.id, product]));
-  let total = 0;
+  let totalGrams = 0;
 
   for (const item of order.items) {
     const product = item.productId ? productMap.get(item.productId) : undefined;
-    const unitWeight = product?.weightGrams ?? 600;
-    total += unitWeight * item.quantity;
+    const unitWeightGrams = product?.weightGrams ?? 600;
+    totalGrams += unitWeightGrams * item.quantity;
   }
 
-  if (total <= 0) return "600";
-  return String(total + 50);
+  const finalGrams = totalGrams > 0 ? totalGrams + 50 : 650;
+  const weightKg = finalGrams / 1000;
+
+  return weightKg.toFixed(3).replace(".", ",");
 }
 
 export function chronopostRows(orders: Order[], products: Product[]) {
@@ -102,7 +135,8 @@ export function chronopostRows(orders: Order[], products: Product[]) {
       return {
         "Référence destinataire": order.reference,
         "Nom ou Raison sociale": order.customer.lastName || "",
-        "Suite Nom ou Suite Raison sociale ou Prénom ou Contact": order.customer.firstName || "",
+        "Suite Nom ou Suite Raison sociale ou Prénom ou Contact":
+          order.customer.firstName || "",
         "Suite Nom 2 ou Suite Raison sociale 2 ou Prénom ou Contact": "",
         "Adresse destinataire": order.shippingAddress?.address1 || "",
         "Adresse destinataire suite": order.shippingAddress?.address2 || "",
@@ -114,19 +148,21 @@ export function chronopostRows(orders: Order[], products: Product[]) {
         "Email destinataire": order.customer.email || "",
         "Référence envoi": order.reference,
         "Code barres client": "",
-        "Produit": chronopostProductCode(country),
-        "Compte": "",
+        Produit: chronopostProductCode(country),
+        Compte: "",
         "Sous-compte": "",
         "Valeur assurée": "",
         "Valeur douane": "",
         "Document / marchandise": "M",
-        "Description du contenu": order.items.map((item) => `${item.productTitle} x${item.quantity}`).join(" | "),
+        "Description du contenu": order.items
+          .map((item) => `${item.productTitle} x${item.quantity}`)
+          .join(" | "),
         "Livraison le samedi": "N",
         "Identifiant Relais": "",
-        "Poids": computeChronopostWeight(order, products),
-        "Largueur": "",
-        "Longueur": "",
-        "Hauteur": "",
+        Poids: computeChronopostWeight(order, products),
+        Largueur: "",
+        Longueur: "",
+        Hauteur: "",
         "Avertir destinataire": "Y",
         "Nombre de colis": "1",
         "date d'envoi": formatShipDate(),
@@ -143,8 +179,8 @@ export function toSemicolonCsv(rows: Record<string, string | number>[]) {
   const lines = [headers.join(";")];
 
   for (const row of rows) {
-    const values = headers.map((header) =>
-      `"${String(row[header] ?? "").replaceAll('"', '""')}"`
+    const values = headers.map(
+      (header) => `"${String(row[header] ?? "").replaceAll('"', '""')}"`
     );
     lines.push(values.join(";"));
   }
