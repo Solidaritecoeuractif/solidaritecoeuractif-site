@@ -160,6 +160,7 @@ async function drawInvoiceCopy(
 
   const recipientLines = [
     `${safeText(order.customer.firstName)} ${safeText(order.customer.lastName)}`.trim(),
+    safeText(order.customer.phone),
     safeText(order.shippingAddress?.city),
     safeText(order.shippingAddress?.address1),
     safeText(order.shippingAddress?.address2) || "nan nan",
@@ -391,39 +392,39 @@ export async function GET(request: Request) {
 
   let invoiceIndex = 100;
 
-for (const order of orders) {
-  const currentInvoiceIndex = invoiceIndex++;
+  for (const order of orders) {
+    const currentInvoiceIndex = invoiceIndex++;
 
-  await drawInvoiceCopy(
-    pdf,
-    order,
-    currentInvoiceIndex,
-    embeddedLogo,
-    embeddedCachet,
-    embeddedSignature,
-    font,
-    bold
-  );
+    await drawInvoiceCopy(
+      pdf,
+      order,
+      currentInvoiceIndex,
+      embeddedLogo,
+      embeddedCachet,
+      embeddedSignature,
+      font,
+      bold
+    );
 
-  await drawInvoiceCopy(
-    pdf,
-    order,
-    currentInvoiceIndex,
-    embeddedLogo,
-    embeddedCachet,
-    embeddedSignature,
-    font,
-    bold
-  );
-}
+    await drawInvoiceCopy(
+      pdf,
+      order,
+      currentInvoiceIndex,
+      embeddedLogo,
+      embeddedCachet,
+      embeddedSignature,
+      font,
+      bold
+    );
+  }
 
-const bytes = await pdf.save();
+  const bytes = await pdf.save();
 
-return new NextResponse(Buffer.from(bytes), {
-  headers: {
-    "Content-Type": "application/pdf",
-    "Content-Disposition":
-      'attachment; filename="factures-pro-forma-selection.pdf"',
-  },
-});
+  return new NextResponse(Buffer.from(bytes), {
+    headers: {
+      "Content-Type": "application/pdf",
+      "Content-Disposition":
+        'attachment; filename="factures-pro-forma-selection.pdf"',
+    },
+  });
 }
