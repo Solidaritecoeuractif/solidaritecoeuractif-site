@@ -126,7 +126,15 @@ async function drawInvoiceCopy(
   drawCenteredText(page, "FACTURE PRO FORMA", y, 18, bold);
 
   y -= 30;
-  drawLabelValue(page, "N°:", formatInvoiceNumber(order, invoiceIndex), left, y, font, bold);
+  drawLabelValue(
+    page,
+    "N°:",
+    formatInvoiceNumber(order, invoiceIndex),
+    left,
+    y,
+    font,
+    bold
+  );
 
   y -= 20;
   drawLabelValue(page, "Date:", formatInvoiceDate(order.createdAt), left, y, font, bold);
@@ -160,11 +168,11 @@ async function drawInvoiceCopy(
 
   const recipientLines = [
     `${safeText(order.customer.firstName)} ${safeText(order.customer.lastName)}`.trim(),
-    safeText(order.customer.phone),
     safeText(order.shippingAddress?.city),
     safeText(order.shippingAddress?.address1),
     safeText(order.shippingAddress?.address2) || "nan nan",
     safeText(order.shippingAddress?.country),
+    safeText(order.customer.phone),
   ];
 
   let y1 = y;
