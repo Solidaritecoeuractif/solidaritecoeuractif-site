@@ -1,7 +1,15 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { storage } from "@/lib/storage";
+import { isAdminAuthenticated } from "@/lib/auth";
 
 export default async function AdminDashboardPage() {
+  const authenticated = await isAdminAuthenticated();
+
+  if (!authenticated) {
+    redirect("/admin-login");
+  }
+
   const [products, orders] = await Promise.all([
     storage().getProducts(),
     storage().getOrders(),

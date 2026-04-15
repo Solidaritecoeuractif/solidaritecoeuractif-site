@@ -1,4 +1,3 @@
-
 import crypto from "node:crypto";
 import { cookies } from "next/headers";
 
@@ -13,11 +12,12 @@ export async function createAdminSession() {
   const value = `admin:${Date.now()}`;
   const token = `${value}.${sign(value)}`;
   const store = await cookies();
+
   store.set(COOKIE_NAME, token, {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
     sameSite: "lax",
-    path: "/"
+    path: "/",
   });
 }
 
@@ -30,6 +30,12 @@ export async function isAdminAuthenticated() {
   const store = await cookies();
   const token = store.get(COOKIE_NAME)?.value;
   if (!token) return false;
-  const [value, signature] = token.split(".");
+
+  const parts = token.split(".");
+  if (parts.length !== 2) return false;
+
+  const [value, signature] = parts;
+  if (!value || !signature) return false;
+
   return sign(value) === signature;
 }
