@@ -7,15 +7,15 @@ const brand = process.env.NEXT_PUBLIC_BRAND_NAME || "Solidarité Cœur Actif";
 
 export const metadata: Metadata = {
   metadataBase: new URL(
-    process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000"
+    process.env.NEXT_PUBLIC_BASE_URL || "https://www.solidaritecoeuractif.com"
   ),
   title: {
     default: `${brand} | Association solidaire et actions de soutien`,
-    template: `%s | ${brand}`
+    template: `%s | ${brand}`,
   },
   description:
-    "Solidarité Cœur Actif est une association à but non lucratif engagée auprès des personnes en situation de précarité et de vulnérabilité, à travers des actions de soutien, de solidarité, de collecte et d’accompagnement.",
-  robots: { index: true, follow: true }
+    "Solidarité Cœur Actif : actions de soutien, collectes solidaires et participation au service des personnes en situation de précarité.",
+  robots: { index: true, follow: true },
 };
 
 export default function RootLayout({

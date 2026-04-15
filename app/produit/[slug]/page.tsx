@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { AddToCartForm } from "@/components/AddToCartForm";
 import { storage } from "@/lib/storage";
@@ -17,6 +18,27 @@ function offerTypeLabel(type: Product["offerType"]) {
     default:
       return "Offre";
   }
+}
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ slug: string }>;
+}): Promise<Metadata> {
+  const { slug } = await params;
+  const product = await storage().getProductBySlug(slug);
+
+  if (!product || !product.isActive) {
+    return {
+      title: "Offre",
+    };
+  }
+
+  return {
+    title: product.title,
+    description:
+      "Recevez le livre 365 jours avec le Seigneur Jésus-Christ et soutenez une initiative solidaire pour accompagner la prière au quotidien.",
+  };
 }
 
 export default async function ProductPage({

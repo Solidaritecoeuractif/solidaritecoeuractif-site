@@ -1,3 +1,11 @@
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Contact",
+  description:
+    "Contactez Solidarité Cœur Actif pour toute question sur nos actions solidaires, le livre, les commandes ou les demandes d’accompagnement.",
+};
+
 export default function Page() {
   const email =
     process.env.NEXT_PUBLIC_SUPPORT_EMAIL || "solidaritecoeuractif@gmail.com";

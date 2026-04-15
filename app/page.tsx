@@ -1,8 +1,15 @@
 export const dynamic = "force-dynamic";
 
+import type { Metadata } from "next";
 import { Hero } from "@/components/Hero";
 import { ProductCard } from "@/components/ProductCard";
 import { storage } from "@/lib/storage";
+
+export const metadata: Metadata = {
+  title: "Accueil",
+  description:
+    "Solidarité Cœur Actif : actions de soutien, collectes solidaires et participation au service des personnes en situation de précarité.",
+};
 
 export default async function HomePage() {
   await storage().seedIfNeeded();
