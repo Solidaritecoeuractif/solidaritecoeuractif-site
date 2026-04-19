@@ -242,7 +242,14 @@ export default function OrdersTableClient({ orders }: { orders: Order[] }) {
     setSearchTerm("");
   }
 
-  function exportSelection(format: "csv" | "xlsx" | "chronopost" | "customs-pdf") {
+  function exportSelection(
+    format:
+      | "csv"
+      | "xlsx"
+      | "chronopost"
+      | "customs-pdf"
+      | "customs-pdf-chronopost"
+  ) {
     if (selected.length === 0) return;
 
     const params = new URLSearchParams();
@@ -266,7 +273,9 @@ export default function OrdersTableClient({ orders }: { orders: Order[] }) {
     const base =
       format === "customs-pdf"
         ? "/api/orders/export/customs-pdf"
-        : `/api/orders/export/${format}`;
+        : format === "customs-pdf-chronopost"
+          ? "/api/orders/export/customs-pdf-chronopost"
+          : `/api/orders/export/${format}`;
 
     window.location.href = `${base}?${params.toString()}`;
   }
@@ -383,7 +392,9 @@ export default function OrdersTableClient({ orders }: { orders: Order[] }) {
         </label>
 
         <label style={{ display: "grid", gap: "6px" }}>
-          <span style={{ fontSize: "14px", fontWeight: 600 }}>Date/heure début</span>
+          <span style={{ fontSize: "14px", fontWeight: 600 }}>
+            Date/heure début
+          </span>
           <input
             className="input"
             type="datetime-local"
@@ -393,7 +404,9 @@ export default function OrdersTableClient({ orders }: { orders: Order[] }) {
         </label>
 
         <label style={{ display: "grid", gap: "6px" }}>
-          <span style={{ fontSize: "14px", fontWeight: 600 }}>Date/heure fin</span>
+          <span style={{ fontSize: "14px", fontWeight: 600 }}>
+            Date/heure fin
+          </span>
           <input
             className="input"
             type="datetime-local"
@@ -420,19 +433,35 @@ export default function OrdersTableClient({ orders }: { orders: Order[] }) {
           {allVisibleSelected ? "Tout désélectionner" : "Tout sélectionner"}
         </button>
 
-        <button type="button" className="button secondary" onClick={selectAllVisible}>
+        <button
+          type="button"
+          className="button secondary"
+          onClick={selectAllVisible}
+        >
           Sélectionner tout le filtre courant
         </button>
 
-        <button type="button" className="button secondary" onClick={selectWithoutOverseas}>
+        <button
+          type="button"
+          className="button secondary"
+          onClick={selectWithoutOverseas}
+        >
           Tout sans Outre-Mer
         </button>
 
-        <button type="button" className="button secondary" onClick={selectWithoutAfrica}>
+        <button
+          type="button"
+          className="button secondary"
+          onClick={selectWithoutAfrica}
+        >
           Tout sans l’Afrique
         </button>
 
-        <button type="button" className="button secondary" onClick={selectOverseas}>
+        <button
+          type="button"
+          className="button secondary"
+          onClick={selectOverseas}
+        >
           Sélectionner Outre-Mer
         </button>
 
@@ -484,6 +513,15 @@ export default function OrdersTableClient({ orders }: { orders: Order[] }) {
           onClick={() => exportSelection("customs-pdf")}
         >
           Exporter fiches douanières PDF
+        </button>
+
+        <button
+          type="button"
+          className="button secondary"
+          disabled={customsEligibleSelectedCount === 0}
+          onClick={() => exportSelection("customs-pdf-chronopost")}
+        >
+          Exporter fiches douanières Chronopost PDF
         </button>
 
         <button
