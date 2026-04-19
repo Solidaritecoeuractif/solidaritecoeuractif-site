@@ -11,6 +11,8 @@ const NET_WEIGHT_KG = "0,520 kg";
 const GROSS_WEIGHT_KG = "0,555 kg";
 const SHIPMENT_CATEGORY = "Cadeau / Gift";
 
+const MAGHREB_COUNTRY_CODES = new Set(["MA", "DZ", "TN", "LY", "MR"]);
+
 function customsEligible(order: Order) {
   const code = order.shippingAddress?.country || "";
   const zone = getDestinationZone(code);
@@ -55,6 +57,26 @@ function formatInvoiceNumber(order: Order, index: number) {
 
 function formatAmount(amountInCents: number) {
   return (amountInCents / 100).toFixed(2);
+}
+
+function formatEuroAmount(value: number) {
+  return value.toFixed(2).replace(".", ",");
+}
+
+function getPostageCosts(countryCode?: string) {
+  const code = safeText(countryCode).toUpperCase();
+  const zone = getDestinationZone(code);
+
+  if (zone === "outre_mer") return "19,00 €";
+  if (MAGHREB_COUNTRY_CODES.has(code)) return "28,39 €";
+  if (zone === "france_metropolitaine") return "0,00 €";
+  if (zone === "afrique") return "39,19 €";
+  if (zone === "international") {
+    if (code === "US" || code === "CA") return "39,19 €";
+    return "39,19 €";
+  }
+
+  return "39,19 €";
 }
 
 function drawCenteredText(
@@ -279,6 +301,7 @@ async function drawInvoiceCopy(
   const qty = totalQuantity(order);
   const declaredValue = totalDeclaredValue(order);
   const valueText = formatAmount(declaredValue);
+  const postageCostsText = getPostageCosts(order.shippingAddress?.country);
 
   page.drawText("Printed Book – Not for resale", {
     x: left,
@@ -363,9 +386,7 @@ async function drawInvoiceCopy(
   y -= 16;
 
   page.drawText(
-    `Frais de port / Frais / Postage costs: ${formatAmount(
-      order.shippingAmount || 0
-    )} €`,
+    `Frais de port / Frais / Postage costs: ${postageCostsText}`,
     {
       x: left,
       y,
