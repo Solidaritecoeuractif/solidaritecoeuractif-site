@@ -87,6 +87,14 @@ function isInternationalCustomsEligible(countryCode?: string) {
   return zone === "afrique" || zone === "international";
 }
 
+function normalizeSearchText(value: string) {
+  return String(value || "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .trim();
+}
+
 export default function OrdersTableClient({ orders }: { orders: Order[] }) {
   const [selected, setSelected] = useState<string[]>([]);
   const [logisticsFilter, setLogisticsFilter] = useState("all");
@@ -94,9 +102,12 @@ export default function OrdersTableClient({ orders }: { orders: Order[] }) {
   const [zoneFilter, setZoneFilter] = useState("all");
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
+  const [searchTerm, setSearchTerm] = useState("");
   const [busy, setBusy] = useState(false);
 
   const filteredOrders = useMemo(() => {
+    const normalizedSearch = normalizeSearchText(searchTerm);
+
     return orders.filter((order) => {
       const logisticsOk =
         logisticsFilter === "all"
@@ -130,9 +141,30 @@ export default function OrdersTableClient({ orders }: { orders: Order[] }) {
                   ? zone === "france_metropolitaine"
                   : true;
 
-      return logisticsOk && exportOk && fromOk && toOk && zoneOk;
+      const searchSource = normalizeSearchText(
+        [
+          order.reference,
+          order.customer.firstName,
+          order.customer.lastName,
+          order.customer.email,
+          order.customer.phone,
+        ].join(" ")
+      );
+
+      const searchOk =
+        normalizedSearch === "" || searchSource.includes(normalizedSearch);
+
+      return logisticsOk && exportOk && fromOk && toOk && zoneOk && searchOk;
     });
-  }, [orders, logisticsFilter, exportFilter, zoneFilter, dateFrom, dateTo]);
+  }, [
+    orders,
+    logisticsFilter,
+    exportFilter,
+    zoneFilter,
+    dateFrom,
+    dateTo,
+    searchTerm,
+  ]);
 
   const allVisibleSelected = useMemo(() => {
     return (
@@ -203,6 +235,7 @@ export default function OrdersTableClient({ orders }: { orders: Order[] }) {
     setZoneFilter("all");
     setDateFrom("");
     setDateTo("");
+    setSearchTerm("");
   }
 
   function exportSelection(format: "csv" | "xlsx" | "chronopost" | "customs-pdf") {
@@ -289,6 +322,19 @@ export default function OrdersTableClient({ orders }: { orders: Order[] }) {
           flexWrap: "wrap",
         }}
       >
+        <label style={{ display: "grid", gap: "6px", minWidth: "260px" }}>
+          <span style={{ fontSize: "14px", fontWeight: 600 }}>
+            Rechercher un client ou une commande
+          </span>
+          <input
+            className="input"
+            type="text"
+            placeholder="Nom, téléphone, email ou n° de commande"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
+        </label>
+
         <label style={{ display: "grid", gap: "6px" }}>
           <span style={{ fontSize: "14px", fontWeight: 600 }}>Logistique</span>
           <select
@@ -495,6 +541,12 @@ export default function OrdersTableClient({ orders }: { orders: Order[] }) {
                 {order.customer.firstName} {order.customer.lastName}
                 <br />
                 <small>{order.customer.email}</small>
+                {order.customer.phone ? (
+                  <>
+                    <br />
+                    <small>{order.customer.phone}</small>
+                  </>
+                ) : null}
               </td>
               <td>
                 <strong>{zoneLabel(order.shippingAddress?.country)}</strong>
