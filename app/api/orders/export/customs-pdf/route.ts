@@ -117,8 +117,9 @@ function drawLabelValue(
 }
 
 function totalDeclaredValue(order: Order) {
+  const unitDeclaredValueInCents = 1000;
   return order.items.reduce(
-    (sum, item) => sum + item.unitAmount * item.quantity,
+    (sum, item) => sum + unitDeclaredValueInCents * item.quantity,
     0
   );
 }
