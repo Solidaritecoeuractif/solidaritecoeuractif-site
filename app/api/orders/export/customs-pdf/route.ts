@@ -12,6 +12,38 @@ const GROSS_WEIGHT_KG = "0,555 kg";
 const SHIPMENT_CATEGORY = "Cadeau / Gift";
 
 const MAGHREB_COUNTRY_CODES = new Set(["MA", "DZ", "TN", "LY", "MR"]);
+const EUROPE_COUNTRY_CODES = new Set([
+  "AT",
+  "BE",
+  "BG",
+  "CH",
+  "CY",
+  "CZ",
+  "DE",
+  "DK",
+  "EE",
+  "ES",
+  "FI",
+  "GB",
+  "GR",
+  "HR",
+  "HU",
+  "IE",
+  "IS",
+  "IT",
+  "LT",
+  "LU",
+  "LV",
+  "MT",
+  "NL",
+  "NO",
+  "PL",
+  "PT",
+  "RO",
+  "SE",
+  "SI",
+  "SK",
+]);
 
 function customsEligible(order: Order) {
   const code = order.shippingAddress?.country || "";
@@ -65,6 +97,7 @@ function getPostageCosts(countryCode?: string) {
 
   if (zone === "outre_mer") return "19,00 €";
   if (MAGHREB_COUNTRY_CODES.has(code)) return "28,39 €";
+  if (EUROPE_COUNTRY_CODES.has(code)) return "19,39 €";
   if (zone === "france_metropolitaine") return "0,00 €";
   if (zone === "afrique") return "39,19 €";
   if (zone === "international") return "39,19 €";
