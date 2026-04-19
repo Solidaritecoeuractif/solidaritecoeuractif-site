@@ -6,10 +6,19 @@ import { storage } from "@/lib/storage";
 import { getDestinationZone } from "@/lib/destinations";
 import type { Order } from "@/lib/types";
 
+const SENDER_PHONE = "0033745224124";
+const NET_WEIGHT_KG = "0,520 kg";
+const GROSS_WEIGHT_KG = "0,555 kg";
+const SHIPMENT_CATEGORY = "Autre / Other";
+
 function customsEligible(order: Order) {
   const code = order.shippingAddress?.country || "";
   const zone = getDestinationZone(code);
-  return zone === "international" || zone === "afrique";
+  return (
+    zone === "outre_mer" ||
+    zone === "afrique" ||
+    zone === "international"
+  );
 }
 
 async function readOptionalFileBuffer(filePath: string) {
@@ -24,6 +33,13 @@ function safeText(value: string | undefined) {
   return String(value || "").trim();
 }
 
+function cleanAddressLine(value: string | undefined) {
+  const cleaned = safeText(value);
+  if (!cleaned) return "";
+  if (cleaned.toLowerCase() === "nan nan") return "";
+  return cleaned;
+}
+
 function formatInvoiceDate(dateIso: string) {
   return new Date(dateIso).toLocaleDateString("fr-FR");
 }
@@ -35,6 +51,10 @@ function formatInvoiceNumber(order: Order, index: number) {
   const day = String(d.getDate()).padStart(2, "0");
   const seq = String(100 + index).padStart(4, "0");
   return `PF-${y}${m}${day}-${seq}`;
+}
+
+function formatAmount(amountInCents: number) {
+  return (amountInCents / 100).toFixed(2);
 }
 
 function drawCenteredText(
@@ -137,7 +157,15 @@ async function drawInvoiceCopy(
   );
 
   y -= 20;
-  drawLabelValue(page, "Date:", formatInvoiceDate(order.createdAt), left, y, font, bold);
+  drawLabelValue(
+    page,
+    "Date:",
+    formatInvoiceDate(order.createdAt),
+    left,
+    y,
+    font,
+    bold
+  );
 
   y -= 34;
 
@@ -164,19 +192,20 @@ async function drawInvoiceCopy(
     "SOLIDARITÉ CŒUR ACTIF (Association)",
     "53 rue Roger Salengro",
     "45120 Châlette-sur-Loing, FRANCE",
+    SENDER_PHONE,
   ];
 
   const recipientLines = [
     `${safeText(order.customer.firstName)} ${safeText(order.customer.lastName)}`.trim(),
     safeText(order.shippingAddress?.city),
     safeText(order.shippingAddress?.address1),
-    safeText(order.shippingAddress?.address2) || "nan nan",
+    cleanAddressLine(order.shippingAddress?.address2),
     safeText(order.shippingAddress?.country),
     safeText(order.customer.phone),
   ];
 
   let y1 = y;
-  for (const line of senderLines) {
+  for (const line of senderLines.filter(Boolean)) {
     page.drawText(line, {
       x: col1,
       y: y1,
@@ -249,7 +278,7 @@ async function drawInvoiceCopy(
 
   const qty = totalQuantity(order);
   const declaredValue = totalDeclaredValue(order);
-  const valueText = (declaredValue / 100).toFixed(2);
+  const valueText = formatAmount(declaredValue);
 
   page.drawText("Printed Book – Not for resale", {
     x: left,
@@ -304,7 +333,48 @@ async function drawInvoiceCopy(
     font: bold,
   });
 
-  y -= 42;
+  y -= 28;
+
+  page.drawText(`Catégorie de l'envoi / Category: ${SHIPMENT_CATEGORY}`, {
+    x: left,
+    y,
+    size: 10,
+    font,
+  });
+
+  y -= 16;
+
+  page.drawText(`Poids net / Net weight: ${NET_WEIGHT_KG}`, {
+    x: left,
+    y,
+    size: 10,
+    font,
+  });
+
+  y -= 16;
+
+  page.drawText(`Poids brut total / Gross total weight: ${GROSS_WEIGHT_KG}`, {
+    x: left,
+    y,
+    size: 10,
+    font,
+  });
+
+  y -= 16;
+
+  page.drawText(
+    `Frais de port / Frais / Postage costs: ${formatAmount(
+      order.shippingAmount || 0
+    )} €`,
+    {
+      x: left,
+      y,
+      size: 10,
+      font,
+    }
+  );
+
+  y -= 16;
 
   page.drawText("Incoterm: DAP", {
     x: left,
@@ -316,6 +386,68 @@ async function drawInvoiceCopy(
   y -= 16;
 
   page.drawText("Pays d'origine / Country of origin: FRANCE", {
+    x: left,
+    y,
+    size: 10,
+    font,
+  });
+
+  y -= 28;
+
+  page.drawText("Certification douanière / Customs certification", {
+    x: left,
+    y,
+    size: 10,
+    font: bold,
+  });
+
+  y -= 16;
+
+  page.drawText(
+    "Je certifie que les renseignements fournis dans ce document sont exacts et que cet envoi ne contient aucun objet interdit ou dangereux.",
+    {
+      x: left,
+      y,
+      size: 9,
+      font,
+      maxWidth: right - left,
+      lineHeight: 12,
+      color: rgb(0.1, 0.1, 0.1),
+    }
+  );
+
+  y -= 28;
+
+  page.drawText(
+    "I certify that the particulars given in this declaration are correct and that this item does not contain any dangerous or prohibited article.",
+    {
+      x: left,
+      y,
+      size: 9,
+      font,
+      maxWidth: right - left,
+      lineHeight: 12,
+      color: rgb(0.1, 0.1, 0.1),
+    }
+  );
+
+  y -= 34;
+
+  page.drawText(
+    `Date et signature de l'expéditeur / Date and sender's signature: ${formatInvoiceDate(
+      order.createdAt
+    )}`,
+    {
+      x: left,
+      y,
+      size: 10,
+      font,
+    }
+  );
+
+  y -= 16;
+
+  page.drawText(`Téléphone expéditeur / Shipper phone: ${SENDER_PHONE}`, {
     x: left,
     y,
     size: 10,
@@ -375,7 +507,10 @@ export async function GET(request: Request) {
 
   if (orders.length === 0) {
     return NextResponse.json(
-      { error: "Aucune commande internationale sélectionnée pour l’export douanier." },
+      {
+        error:
+          "Aucune commande internationale sélectionnée pour l’export douanier.",
+      },
       { status: 400 }
     );
   }

@@ -84,7 +84,11 @@ function zoneLabel(countryCode?: string) {
 
 function isInternationalCustomsEligible(countryCode?: string) {
   const zone = getDestinationZone(countryCode || "");
-  return zone === "afrique" || zone === "international";
+  return (
+    zone === "outre_mer" ||
+    zone === "afrique" ||
+    zone === "international"
+  );
 }
 
 function normalizeSearchText(value: string) {
@@ -136,7 +140,7 @@ export default function OrdersTableClient({ orders }: { orders: Order[] }) {
             : zoneFilter === "africa"
               ? zone === "afrique"
               : zoneFilter === "international"
-                ? zone === "international"
+                ? zone !== "france_metropolitaine"
                 : zoneFilter === "france"
                   ? zone === "france_metropolitaine"
                   : true;
