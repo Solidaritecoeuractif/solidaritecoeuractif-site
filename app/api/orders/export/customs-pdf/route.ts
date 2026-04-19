@@ -9,7 +9,7 @@ import type { Order } from "@/lib/types";
 const SENDER_PHONE = "0033745224124";
 const NET_WEIGHT_KG = "0,520 kg";
 const GROSS_WEIGHT_KG = "0,555 kg";
-const SHIPMENT_CATEGORY = "Autre / Other";
+const SHIPMENT_CATEGORY = "Cadeau / Gift";
 
 function customsEligible(order: Order) {
   const code = order.shippingAddress?.country || "";
