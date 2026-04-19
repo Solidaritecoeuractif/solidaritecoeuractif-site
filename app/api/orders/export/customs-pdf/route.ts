@@ -59,10 +59,6 @@ function formatAmount(amountInCents: number) {
   return (amountInCents / 100).toFixed(2);
 }
 
-function formatEuroAmount(value: number) {
-  return value.toFixed(2).replace(".", ",");
-}
-
 function getPostageCosts(countryCode?: string) {
   const code = safeText(countryCode).toUpperCase();
   const zone = getDestinationZone(code);
@@ -71,10 +67,7 @@ function getPostageCosts(countryCode?: string) {
   if (MAGHREB_COUNTRY_CODES.has(code)) return "28,39 €";
   if (zone === "france_metropolitaine") return "0,00 €";
   if (zone === "afrique") return "39,19 €";
-  if (zone === "international") {
-    if (code === "US" || code === "CA") return "39,19 €";
-    return "39,19 €";
-  }
+  if (zone === "international") return "39,19 €";
 
   return "39,19 €";
 }
