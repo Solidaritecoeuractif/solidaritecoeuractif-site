@@ -629,8 +629,8 @@ export function CheckoutClient({ products }: { products: Product[] }) {
                       Frais de livraison
                     </span>
                     <input
-                      type="number"
-                      step="0.01"
+                      type="text"
+                      inputMode="decimal"
                       value={displayShippingInput(item.index)}
                       onChange={(e) =>
                         updateFlexibleLineAmount(item.index, e.target.value)
