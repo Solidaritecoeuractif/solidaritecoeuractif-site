@@ -90,11 +90,10 @@ export function CheckoutClient({ products }: { products: Product[] }) {
         );
         if (!product) return null;
 
-        const baseMinimum = product.minimumAmount || 0;
         const minimumLineAmount =
           product.pricingMode === "flexible"
             ? calculateZoneAdjustedLineMinimum(
-                baseMinimum,
+                product,
                 item.quantity,
                 form.country
               )
@@ -293,7 +292,7 @@ export function CheckoutClient({ products }: { products: Product[] }) {
         if (!product || product.pricingMode !== "flexible") return item;
 
         const minimumLineAmount = calculateZoneAdjustedLineMinimum(
-          product.minimumAmount || 0,
+          product,
           item.quantity,
           form.country
         );
@@ -330,7 +329,7 @@ export function CheckoutClient({ products }: { products: Product[] }) {
     }
 
     const minimumLineAmount = calculateZoneAdjustedLineMinimum(
-      currentProduct.minimumAmount || 0,
+      currentProduct,
       currentItem.quantity,
       form.country
     );
