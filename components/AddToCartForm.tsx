@@ -19,7 +19,6 @@ function formatEuroFromCents(amount: number) {
 }
 
 export function AddToCartForm({ product }: { product: Product }) {
-  const minimumUnitAmount = product.minimumAmount || 0;
   const [quantityInput, setQuantityInput] = useState("");
   const [message, setMessage] = useState("");
 
@@ -33,22 +32,18 @@ export function AddToCartForm({ product }: { product: Product }) {
   }, [quantityInput, product.maxQuantity]);
 
   const franceMinimum = useMemo(
-    () => calculateZoneAdjustedLineMinimum(minimumUnitAmount, quantity, "FR"),
-    [minimumUnitAmount, quantity]
+    () => calculateZoneAdjustedLineMinimum(product, quantity, "FR"),
+    [product, quantity]
   );
 
   const overseasMinimum = useMemo(
-    () => calculateZoneAdjustedLineMinimum(
-      minimumUnitAmount,
-      quantity,
-      "FR-GP"
-    ),
-    [minimumUnitAmount, quantity]
+    () => calculateZoneAdjustedLineMinimum(product, quantity, "FR-GP"),
+    [product, quantity]
   );
 
   const internationalMinimum = useMemo(
-    () => calculateZoneAdjustedLineMinimum(minimumUnitAmount, quantity, "BE"),
-    [minimumUnitAmount, quantity]
+    () => calculateZoneAdjustedLineMinimum(product, quantity, "BE"),
+    [product, quantity]
   );
 
   function addToCart() {
