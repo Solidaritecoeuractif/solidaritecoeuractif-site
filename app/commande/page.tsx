@@ -1,3 +1,4 @@
+export const dynamic = "force-dynamic";
 
 import { CheckoutClient } from "@/components/CheckoutClient";
 import { storage } from "@/lib/storage";
