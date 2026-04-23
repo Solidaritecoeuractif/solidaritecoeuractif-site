@@ -32,6 +32,10 @@ function parseEuroInput(value: string) {
   return Math.round(numeric * 100);
 }
 
+function formatEuroInputFromCents(amount: number) {
+  return (amount / 100).toFixed(2).replace(".", ",");
+}
+
 export function CheckoutClient({ products }: { products: Product[] }) {
   const [items, setItems] = useState<ClientItem[]>([]);
   const [quote, setQuote] = useState<Quote | null>(null);
@@ -79,7 +83,18 @@ export function CheckoutClient({ products }: { products: Product[] }) {
 
   useEffect(() => {
     const raw = localStorage.getItem("sca_cart");
-    setItems(raw ? JSON.parse(raw) : []);
+    const parsedItems: ClientItem[] = raw ? JSON.parse(raw) : [];
+    setItems(parsedItems);
+
+    const initialInputs: Record<number, string> = {};
+    parsedItems.forEach((item, index) => {
+      if (typeof item.customAmount === "number" && item.customAmount > 0) {
+        initialInputs[index] = formatEuroInputFromCents(
+          item.customAmount * item.quantity
+        );
+      }
+    });
+    setShippingInputs(initialInputs);
   }, []);
 
   const resolvedPreview = useMemo(() => {
@@ -387,7 +402,7 @@ export function CheckoutClient({ products }: { products: Product[] }) {
 
     setShippingInputs((prev) => ({
       ...prev,
-      [index]: (parsed / 100).toFixed(2).replace(".", ","),
+      [index]: formatEuroInputFromCents(parsed),
     }));
   }
 
