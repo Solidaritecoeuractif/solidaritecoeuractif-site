@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { CartClient } from "@/components/CartClient";
 import { storage } from "@/lib/storage";
 
