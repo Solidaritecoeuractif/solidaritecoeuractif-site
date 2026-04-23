@@ -21,12 +21,6 @@ export function CartClient({ products }: { products: Product[] }) {
     setIsHydrated(true);
   }, []);
 
-  useEffect(() => {
-    if (!isHydrated) return;
-    localStorage.setItem("sca_cart", JSON.stringify(items));
-    window.dispatchEvent(new Event("sca-cart-updated"));
-  }, [items, isHydrated]);
-
   const resolved = useMemo(() => {
     return items
       .map((item) => {
@@ -42,6 +36,23 @@ export function CartClient({ products }: { products: Product[] }) {
       })
       .filter(Boolean) as Array<ClientItem & { product: Product }>;
   }, [items, products]);
+
+  useEffect(() => {
+    if (!isHydrated) return;
+
+    const cleaned = resolved.map((item) => ({
+      productId: item.productId,
+      quantity: item.quantity,
+      customAmount: item.customAmount,
+    }));
+
+    localStorage.setItem("sca_cart", JSON.stringify(cleaned));
+    window.dispatchEvent(new Event("sca-cart-updated"));
+
+    if (cleaned.length !== items.length) {
+      setItems(cleaned);
+    }
+  }, [resolved, items.length, isHydrated]);
 
   function updateQuantity(index: number, quantity: number) {
     setItems((prev) =>
