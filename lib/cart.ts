@@ -1,7 +1,5 @@
 import type { CartItemInput, Product } from "@/lib/types";
-import {
-  calculateZoneAdjustedLineMinimum,
-} from "@/lib/destinations";
+import { calculateZoneAdjustedLineMinimum } from "@/lib/destinations";
 
 export type ResolvedCartItem = {
   product: Product;
@@ -28,9 +26,8 @@ function resolveUnitAmount(
     return product.fixedPrice ?? 0;
   }
 
-  const baseMinimum = product.minimumAmount ?? 0;
   const adjustedLineMinimum = calculateZoneAdjustedLineMinimum(
-    baseMinimum,
+    product,
     quantity,
     destinationCode || "FR"
   );
@@ -76,7 +73,7 @@ export function resolveCart(
 
     if (product.pricingMode === "flexible") {
       const adjustedLineMinimum = calculateZoneAdjustedLineMinimum(
-        product.minimumAmount ?? 0,
+        product,
         item.quantity,
         destinationCode || "FR"
       );

@@ -1,3 +1,5 @@
+import type { Product } from "@/lib/types";
+
 export type DestinationZone =
   | "france_metropolitaine"
   | "outre_mer"
@@ -324,11 +326,24 @@ export function getDestinationCountryCode(code: string) {
   );
 }
 
-export function getDestinationMultiplier(code: string) {
-  const zone = getDestinationZone(code);
-  if (zone === "france_metropolitaine") return 1;
-  if (zone === "outre_mer") return 1.66;
-  return 3;
+export function getProductMinimumForDestination(
+  product: Pick<
+    Product,
+    "minimumAmount" | "minimumAmountOutreMer" | "minimumAmountInternational"
+  >,
+  destinationCode: string
+) {
+  const zone = getDestinationZone(destinationCode);
+
+  if (zone === "outre_mer") {
+    return product.minimumAmountOutreMer ?? product.minimumAmount ?? 0;
+  }
+
+  if (zone === "afrique" || zone === "international") {
+    return product.minimumAmountInternational ?? product.minimumAmount ?? 0;
+  }
+
+  return product.minimumAmount ?? 0;
 }
 
 export function roundUpToUpperEuro(amountInCents: number) {
@@ -336,13 +351,15 @@ export function roundUpToUpperEuro(amountInCents: number) {
 }
 
 export function calculateZoneAdjustedLineMinimum(
-  baseUnitAmount: number,
+  product: Pick<
+    Product,
+    "minimumAmount" | "minimumAmountOutreMer" | "minimumAmountInternational"
+  >,
   quantity: number,
   destinationCode: string
 ) {
-  const multiplier = getDestinationMultiplier(destinationCode);
-  const raw = baseUnitAmount * quantity * multiplier;
-  return roundUpToUpperEuro(raw);
+  const minimum = getProductMinimumForDestination(product, destinationCode);
+  return roundUpToUpperEuro(minimum * quantity);
 }
 
 export function isOverseasDestination(code: string) {

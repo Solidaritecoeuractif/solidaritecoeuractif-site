@@ -40,6 +40,8 @@ export const productFormSchema = z.object({
   pricingMode: z.enum(["fixed", "flexible"]),
   fixedPrice: z.number().int().nonnegative().optional(),
   minimumAmount: z.number().int().nonnegative().optional(),
+  minimumAmountOutreMer: z.number().int().nonnegative().optional(),
+  minimumAmountInternational: z.number().int().nonnegative().optional(),
   suggestedAmount: z.number().int().nonnegative().optional(),
   isActive: z.boolean().default(true),
   isPhysical: z.boolean().default(false),

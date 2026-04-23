@@ -20,6 +20,8 @@ export type Product = {
   pricingMode: PricingMode;
   fixedPrice?: number;
   minimumAmount?: number;
+  minimumAmountOutreMer?: number;
+  minimumAmountInternational?: number;
   suggestedAmount?: number;
   isActive: boolean;
   isPhysical: boolean;

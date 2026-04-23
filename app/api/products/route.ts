@@ -20,6 +20,16 @@ function parseWeightGrams(data: FormData) {
   return Math.round(numeric * 1000);
 }
 
+function parseOptionalAmount(data: FormData, field: string) {
+  const raw = String(data.get(field) || "").trim();
+  if (!raw) return undefined;
+
+  const numeric = Number(raw);
+  if (!Number.isFinite(numeric) || numeric < 0) return undefined;
+
+  return numeric;
+}
+
 function fromForm(data: FormData, uploadedImage: string) {
   return {
     title: String(data.get("title") || ""),
@@ -29,13 +39,15 @@ function fromForm(data: FormData, uploadedImage: string) {
     image: uploadedImage,
     offerType: String(data.get("offerType") || "product"),
     pricingMode: String(data.get("pricingMode") || "fixed"),
-    fixedPrice: Number(data.get("fixedPrice") || 0),
-    minimumAmount: Number(data.get("minimumAmount") || 0),
-    suggestedAmount: Number(data.get("suggestedAmount") || 0),
+    fixedPrice: parseOptionalAmount(data, "fixedPrice"),
+    minimumAmount: parseOptionalAmount(data, "minimumAmount"),
+    minimumAmountOutreMer: parseOptionalAmount(data, "minimumAmountOutreMer"),
+    minimumAmountInternational: parseOptionalAmount(data, "minimumAmountInternational"),
+    suggestedAmount: parseOptionalAmount(data, "suggestedAmount"),
     isActive: data.get("isActive") === "on",
     isPhysical: data.get("isPhysical") === "on",
     requiresShipping: data.get("requiresShipping") === "on",
-    shippingFeeAmount: Number(data.get("shippingFeeAmount") || 0) || undefined,
+    shippingFeeAmount: parseOptionalAmount(data, "shippingFeeAmount"),
     isFeatured: data.get("isFeatured") === "on",
     maxQuantity: Number(data.get("maxQuantity") || 0) || undefined,
     stock: Number(data.get("stock") || 0) || undefined,

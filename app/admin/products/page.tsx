@@ -62,8 +62,18 @@ export default async function ProductsAdminPage() {
           </label>
 
           <label>
-            <span>Minimum (centimes)</span>
+            <span>Minimum métropole (centimes)</span>
             <input name="minimumAmount" type="number" />
+          </label>
+
+          <label>
+            <span>Minimum Outre-Mer (centimes)</span>
+            <input name="minimumAmountOutreMer" type="number" />
+          </label>
+
+          <label>
+            <span>Minimum International (centimes)</span>
+            <input name="minimumAmountInternational" type="number" />
           </label>
 
           <label>
@@ -155,7 +165,7 @@ export default async function ProductsAdminPage() {
                 <td>
                   {product.pricingMode === "fixed"
                     ? `${product.fixedPrice} cts`
-                    : `min ${product.minimumAmount} cts`}
+                    : `min métro ${product.minimumAmount ?? 0} cts / OM ${product.minimumAmountOutreMer ?? product.minimumAmount ?? 0} cts / INT ${product.minimumAmountInternational ?? product.minimumAmount ?? 0} cts`}
                 </td>
                 <td>
                   {product.requiresShipping

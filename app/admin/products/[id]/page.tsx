@@ -106,11 +106,29 @@ export default async function ProductEditPage({
           </label>
 
           <label>
-            <span>Minimum (centimes)</span>
+            <span>Minimum métropole (centimes)</span>
             <input
               name="minimumAmount"
               type="number"
               defaultValue={product.minimumAmount}
+            />
+          </label>
+
+          <label>
+            <span>Minimum Outre-Mer (centimes)</span>
+            <input
+              name="minimumAmountOutreMer"
+              type="number"
+              defaultValue={product.minimumAmountOutreMer}
+            />
+          </label>
+
+          <label>
+            <span>Minimum International (centimes)</span>
+            <input
+              name="minimumAmountInternational"
+              type="number"
+              defaultValue={product.minimumAmountInternational}
             />
           </label>
 
