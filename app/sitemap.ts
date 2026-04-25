@@ -17,9 +17,8 @@ function normalizeBaseUrl(url?: string) {
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const baseUrl = normalizeBaseUrl(process.env.NEXT_PUBLIC_BASE_URL);
-  const products = await storage().getProducts();
 
-  return [
+  const staticPaths = [
     "",
     "/panier",
     "/commande",
@@ -27,8 +26,20 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     "/mentions-legales",
     "/politique-confidentialite",
     "/conditions",
-    ...products.map((product) => `/produit/${product.slug}`),
-  ].map((path) => ({
+  ];
+
+  let productPaths: string[] = [];
+
+  try {
+    const products = await storage().getProducts();
+    productPaths = products
+      .filter((product) => product.isActive)
+      .map((product) => `/produit/${product.slug}`);
+  } catch (error) {
+    console.error("Sitemap fallback: impossible de charger les produits.", error);
+  }
+
+  return [...staticPaths, ...productPaths].map((path) => ({
     url: `${baseUrl}${path}`,
     lastModified: new Date(),
   }));
