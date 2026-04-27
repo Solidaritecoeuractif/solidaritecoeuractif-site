@@ -197,14 +197,14 @@ async function drawInvoiceCopy(
   ];
 
   const recipientLines = [
-  `${safeText(order.customer.firstName)} ${safeText(order.customer.lastName)}`.trim(),
-  safeText(order.shippingAddress?.city),
-  safeText(order.shippingAddress?.address1),
-  cleanAddressLine(order.shippingAddress?.address2),
-  safeText(order.shippingAddress?.postalCode),
-  safeText(order.shippingAddress?.country),
-  safeText(order.customer.phone),
-];
+    `${safeText(order.customer.firstName)} ${safeText(order.customer.lastName)}`.trim(),
+    safeText(order.shippingAddress?.city),
+    safeText(order.shippingAddress?.address1),
+    cleanAddressLine(order.shippingAddress?.address2),
+    safeText(order.shippingAddress?.postalCode),
+    safeText(order.shippingAddress?.country),
+    safeText(order.customer.phone),
+  ];
 
   let y1 = y;
   for (const line of senderLines.filter(Boolean)) {
@@ -282,7 +282,7 @@ async function drawInvoiceCopy(
   const declaredValue = totalDeclaredValue(order);
   const valueText = formatAmount(declaredValue);
 
-  page.drawText("Printed Book – Not for resale", {
+  page.drawText("Printed Book – Gift – Not for resale", {
     x: left,
     y,
     size: 10,
