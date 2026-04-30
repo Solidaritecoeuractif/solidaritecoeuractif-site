@@ -7,8 +7,6 @@ import { getDestinationZone } from "@/lib/destinations";
 import type { Order } from "@/lib/types";
 
 const SENDER_PHONE = "0033745224124";
-const NET_WEIGHT_KG = "0,520 kg";
-const GROSS_WEIGHT_KG = "0,555 kg";
 const SHIPMENT_CATEGORY = "Cadeau / Gift";
 
 function customsEligible(order: Order) {
@@ -111,6 +109,35 @@ function totalDeclaredValue(order: Order) {
 
 function totalQuantity(order: Order) {
   return order.items.reduce((sum, item) => sum + item.quantity, 0);
+}
+
+function computeNetWeightKg(quantity: number) {
+  return 0.53 * quantity;
+}
+
+function computeGrossWeightKg(quantity: number) {
+  const fixedGrossWeights: Record<number, number> = {
+    1: 0.555,
+    2: 1.155,
+    3: 1.685,
+    4: 2.215,
+    5: 2.85,
+    6: 3.43,
+    7: 3.96,
+    8: 4.54,
+    9: 5.17,
+    10: 5.75,
+  };
+
+  if (fixedGrossWeights[quantity]) {
+    return fixedGrossWeights[quantity];
+  }
+
+  return fixedGrossWeights[10];
+}
+
+function formatWeightKg(weightKg: number) {
+  return `${weightKg.toFixed(3).replace(".", ",")} kg`;
 }
 
 async function drawInvoiceCopy(
@@ -281,6 +308,8 @@ async function drawInvoiceCopy(
   const qty = totalQuantity(order);
   const declaredValue = totalDeclaredValue(order);
   const valueText = formatAmount(declaredValue);
+  const netWeightText = formatWeightKg(computeNetWeightKg(qty));
+  const grossWeightText = formatWeightKg(computeGrossWeightKg(qty));
 
   page.drawText("Printed Book – Gift – Not for resale", {
     x: left,
@@ -346,7 +375,7 @@ async function drawInvoiceCopy(
 
   y -= 16;
 
-  page.drawText(`Poids net / Net weight: ${NET_WEIGHT_KG}`, {
+  page.drawText(`Poids net / Net weight: ${netWeightText}`, {
     x: left,
     y,
     size: 10,
@@ -355,7 +384,7 @@ async function drawInvoiceCopy(
 
   y -= 16;
 
-  page.drawText(`Poids brut total / Gross total weight: ${GROSS_WEIGHT_KG}`, {
+  page.drawText(`Poids brut total / Gross total weight: ${grossWeightText}`, {
     x: left,
     y,
     size: 10,

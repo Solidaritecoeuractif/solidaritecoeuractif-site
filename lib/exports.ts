@@ -108,20 +108,43 @@ function chronopostProductCode(countryCode: string) {
   return "17";
 }
 
-function computeChronopostWeight(order: Order, products: Product[]) {
-  const productMap = new Map(products.map((product) => [product.id, product]));
-  let totalGrams = 0;
+function totalQuantity(order: Order) {
+  return order.items.reduce((sum, item) => sum + item.quantity, 0);
+}
 
-  for (const item of order.items) {
-    const product = item.productId ? productMap.get(item.productId) : undefined;
-    const unitWeightGrams = product?.weightGrams ?? 600;
-    totalGrams += unitWeightGrams * item.quantity;
+function computeNetWeightKg(quantity: number) {
+  return 0.53 * quantity;
+}
+
+function computeGrossWeightKg(quantity: number) {
+  const fixedGrossWeights: Record<number, number> = {
+    1: 0.555,
+    2: 1.155,
+    3: 1.685,
+    4: 2.215,
+    5: 2.85,
+    6: 3.43,
+    7: 3.96,
+    8: 4.54,
+    9: 5.17,
+    10: 5.75,
+  };
+
+  if (fixedGrossWeights[quantity]) {
+    return fixedGrossWeights[quantity];
   }
 
-  const finalGrams = totalGrams > 0 ? totalGrams + 50 : 650;
-  const weightKg = finalGrams / 1000;
+  return fixedGrossWeights[10];
+}
 
+function formatWeightKg(weightKg: number) {
   return weightKg.toFixed(3).replace(".", ",");
+}
+
+function computeChronopostWeight(order: Order) {
+  const quantity = totalQuantity(order);
+  const grossWeightKg = computeGrossWeightKg(quantity);
+  return formatWeightKg(grossWeightKg);
 }
 
 export function chronopostRows(orders: Order[], products: Product[]) {
@@ -129,6 +152,7 @@ export function chronopostRows(orders: Order[], products: Product[]) {
     .filter((order) => order.paymentStatus === "paid" && order.shippingAddress)
     .map((order) => {
       const country = order.shippingAddress?.country || "FR";
+      const quantity = totalQuantity(order);
 
       return {
         "Référence destinataire": order.reference,
@@ -157,7 +181,7 @@ export function chronopostRows(orders: Order[], products: Product[]) {
           .join(" | "),
         "Livraison le samedi": "",
         "Identifiant Relais": "",
-        Poids: computeChronopostWeight(order, products),
+        Poids: computeChronopostWeight(order),
         Largueur: "",
         Longueur: "",
         Hauteur: "",
@@ -166,6 +190,7 @@ export function chronopostRows(orders: Order[], products: Product[]) {
         "date d'envoi": formatShipDate(),
         "A intégrer": "Y",
         "Avertir expéditeur": "",
+        "Poids net théorique": formatWeightKg(computeNetWeightKg(quantity)),
       };
     });
 }
