@@ -99,6 +99,25 @@ function normalizeSearchText(value: string) {
     .trim();
 }
 
+function sectionCardStyle() {
+  return {
+    border: "1px solid #e5e7eb",
+    borderRadius: "14px",
+    padding: "14px",
+    background: "#ffffff",
+    minWidth: "260px",
+    flex: "1 1 260px",
+  } as const;
+}
+
+function sectionTitleStyle() {
+  return {
+    fontSize: "14px",
+    fontWeight: 700,
+    marginBottom: "10px",
+  } as const;
+}
+
 export default function OrdersTableClient({ orders }: { orders: Order[] }) {
   const [selected, setSelected] = useState<string[]>([]);
   const [logisticsFilter, setLogisticsFilter] = useState("all");
@@ -328,212 +347,235 @@ export default function OrdersTableClient({ orders }: { orders: Order[] }) {
 
       <div
         style={{
-          display: "flex",
-          alignItems: "end",
-          gap: "12px",
-          marginBottom: "16px",
-          flexWrap: "wrap",
+          border: "1px solid #dbe3ee",
+          borderRadius: "16px",
+          padding: "16px",
+          background: "#f8fafc",
+          marginBottom: "18px",
         }}
       >
-        <label style={{ display: "grid", gap: "6px", minWidth: "260px" }}>
-          <span style={{ fontSize: "14px", fontWeight: 600 }}>
-            Rechercher un client ou une commande
-          </span>
-          <input
-            className="input"
-            type="text"
-            placeholder="Nom, téléphone, email ou n° de commande"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
-        </label>
-
-        <label style={{ display: "grid", gap: "6px" }}>
-          <span style={{ fontSize: "14px", fontWeight: 600 }}>Logistique</span>
-          <select
-            className="input"
-            value={logisticsFilter}
-            onChange={(e) => setLogisticsFilter(e.target.value)}
-          >
-            <option value="all">Tous</option>
-            <option value="to_process">À traiter</option>
-            <option value="prepared">Préparé</option>
-            <option value="shipped">Expédié</option>
-            <option value="delivered">Livré</option>
-          </select>
-        </label>
-
-        <label style={{ display: "grid", gap: "6px" }}>
-          <span style={{ fontSize: "14px", fontWeight: 600 }}>Export</span>
-          <select
-            className="input"
-            value={exportFilter}
-            onChange={(e) => setExportFilter(e.target.value)}
-          >
-            <option value="all">Toutes</option>
-            <option value="not_exported">Non exportées</option>
-            <option value="exported">Exportées</option>
-          </select>
-        </label>
-
-        <label style={{ display: "grid", gap: "6px" }}>
-          <span style={{ fontSize: "14px", fontWeight: 600 }}>Zone</span>
-          <select
-            className="input"
-            value={zoneFilter}
-            onChange={(e) => setZoneFilter(e.target.value)}
-          >
-            <option value="all">Toutes</option>
-            <option value="france">France métropolitaine</option>
-            <option value="overseas">Outre-Mer / DOM</option>
-            <option value="africa">Afrique</option>
-            <option value="international">International hors Afrique et DOM</option>
-          </select>
-        </label>
-
-        <label style={{ display: "grid", gap: "6px" }}>
-          <span style={{ fontSize: "14px", fontWeight: 600 }}>
-            Date/heure début
-          </span>
-          <input
-            className="input"
-            type="datetime-local"
-            value={dateFrom}
-            onChange={(e) => setDateFrom(e.target.value)}
-          />
-        </label>
-
-        <label style={{ display: "grid", gap: "6px" }}>
-          <span style={{ fontSize: "14px", fontWeight: 600 }}>
-            Date/heure fin
-          </span>
-          <input
-            className="input"
-            type="datetime-local"
-            value={dateTo}
-            onChange={(e) => setDateTo(e.target.value)}
-          />
-        </label>
-
-        <button type="button" className="button secondary" onClick={resetFilters}>
-          Réinitialiser
-        </button>
-      </div>
-
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: "12px",
-          marginBottom: "16px",
-          flexWrap: "wrap",
-        }}
-      >
-        <button type="button" className="button secondary" onClick={toggleAll}>
-          {allVisibleSelected ? "Tout désélectionner" : "Tout sélectionner"}
-        </button>
-
-        <button
-          type="button"
-          className="button secondary"
-          onClick={selectAllVisible}
+        <div
+          style={{
+            display: "flex",
+            alignItems: "end",
+            gap: "12px",
+            marginBottom: "16px",
+            flexWrap: "wrap",
+          }}
         >
-          Sélectionner tout le filtre courant
-        </button>
+          <label style={{ display: "grid", gap: "6px", minWidth: "260px" }}>
+            <span style={{ fontSize: "14px", fontWeight: 600 }}>
+              Rechercher un client ou une commande
+            </span>
+            <input
+              className="input"
+              type="text"
+              placeholder="Nom, téléphone, email ou n° de commande"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </label>
 
-        <button
-          type="button"
-          className="button secondary"
-          onClick={selectWithoutOverseas}
+          <label style={{ display: "grid", gap: "6px" }}>
+            <span style={{ fontSize: "14px", fontWeight: 600 }}>Logistique</span>
+            <select
+              className="input"
+              value={logisticsFilter}
+              onChange={(e) => setLogisticsFilter(e.target.value)}
+            >
+              <option value="all">Tous</option>
+              <option value="to_process">À traiter</option>
+              <option value="prepared">Préparé</option>
+              <option value="shipped">Expédié</option>
+              <option value="delivered">Livré</option>
+            </select>
+          </label>
+
+          <label style={{ display: "grid", gap: "6px" }}>
+            <span style={{ fontSize: "14px", fontWeight: 600 }}>Export</span>
+            <select
+              className="input"
+              value={exportFilter}
+              onChange={(e) => setExportFilter(e.target.value)}
+            >
+              <option value="all">Toutes</option>
+              <option value="not_exported">Non exportées</option>
+              <option value="exported">Exportées</option>
+            </select>
+          </label>
+
+          <label style={{ display: "grid", gap: "6px" }}>
+            <span style={{ fontSize: "14px", fontWeight: 600 }}>Zone</span>
+            <select
+              className="input"
+              value={zoneFilter}
+              onChange={(e) => setZoneFilter(e.target.value)}
+            >
+              <option value="all">Toutes</option>
+              <option value="france">France métropolitaine</option>
+              <option value="overseas">Outre-Mer / DOM</option>
+              <option value="africa">Afrique</option>
+              <option value="international">International hors Afrique et DOM</option>
+            </select>
+          </label>
+
+          <label style={{ display: "grid", gap: "6px" }}>
+            <span style={{ fontSize: "14px", fontWeight: 600 }}>
+              Date/heure début
+            </span>
+            <input
+              className="input"
+              type="datetime-local"
+              value={dateFrom}
+              onChange={(e) => setDateFrom(e.target.value)}
+            />
+          </label>
+
+          <label style={{ display: "grid", gap: "6px" }}>
+            <span style={{ fontSize: "14px", fontWeight: 600 }}>
+              Date/heure fin
+            </span>
+            <input
+              className="input"
+              type="datetime-local"
+              value={dateTo}
+              onChange={(e) => setDateTo(e.target.value)}
+            />
+          </label>
+
+          <button type="button" className="button secondary" onClick={resetFilters}>
+            Réinitialiser
+          </button>
+        </div>
+
+        <div
+          style={{
+            display: "flex",
+            alignItems: "stretch",
+            gap: "12px",
+            flexWrap: "wrap",
+          }}
         >
-          Tout sans Outre-Mer
-        </button>
+          <div style={sectionCardStyle()}>
+            <div style={sectionTitleStyle()}>Sélection</div>
+            <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+              <button type="button" className="button secondary" onClick={toggleAll}>
+                {allVisibleSelected ? "Tout désélectionner" : "Tout sélectionner"}
+              </button>
 
-        <button
-          type="button"
-          className="button secondary"
-          onClick={selectWithoutAfrica}
-        >
-          Tout sans l’Afrique
-        </button>
+              <button
+                type="button"
+                className="button secondary"
+                onClick={selectAllVisible}
+              >
+                Sélectionner tout le filtre courant
+              </button>
 
-        <button
-          type="button"
-          className="button secondary"
-          onClick={selectOverseas}
-        >
-          Sélectionner Outre-Mer
-        </button>
+              <button
+                type="button"
+                className="button secondary"
+                onClick={selectWithoutOverseas}
+              >
+                Tout sans Outre-Mer
+              </button>
 
-        <button type="button" className="button secondary" onClick={selectAfrica}>
-          Sélectionner Afrique
-        </button>
-      </div>
+              <button
+                type="button"
+                className="button secondary"
+                onClick={selectWithoutAfrica}
+              >
+                Tout sans l’Afrique
+              </button>
 
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: "12px",
-          marginBottom: "16px",
-          flexWrap: "wrap",
-        }}
-      >
-        <button
-          type="button"
-          className="button secondary"
-          disabled={selected.length === 0}
-          onClick={() => exportSelection("csv")}
-        >
-          Exporter la sélection en CSV
-        </button>
+              <button
+                type="button"
+                className="button secondary"
+                onClick={selectOverseas}
+              >
+                Sélectionner Outre-Mer
+              </button>
 
-        <button
-          type="button"
-          className="button secondary"
-          disabled={selected.length === 0}
-          onClick={() => exportSelection("xlsx")}
-        >
-          Exporter la sélection en Excel
-        </button>
+              <button
+                type="button"
+                className="button secondary"
+                onClick={selectAfrica}
+              >
+                Sélectionner Afrique
+              </button>
+            </div>
+          </div>
 
-        <button
-          type="button"
-          className="button secondary"
-          disabled={selected.length === 0}
-          onClick={() => exportSelection("chronopost")}
-        >
-          Exporter la sélection Chronopost
-        </button>
+          <div style={sectionCardStyle()}>
+            <div style={sectionTitleStyle()}>Exports commandes</div>
+            <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+              <button
+                type="button"
+                className="button secondary"
+                disabled={selected.length === 0}
+                onClick={() => exportSelection("csv")}
+              >
+                Exporter CSV
+              </button>
 
-        <button
-          type="button"
-          className="button secondary"
-          disabled={customsEligibleSelectedCount === 0}
-          onClick={() => exportSelection("customs-pdf")}
-        >
-          Exporter fiches douanières PDF
-        </button>
+              <button
+                type="button"
+                className="button secondary"
+                disabled={selected.length === 0}
+                onClick={() => exportSelection("xlsx")}
+              >
+                Exporter Excel
+              </button>
 
-        <button
-          type="button"
-          className="button secondary"
-          disabled={customsEligibleSelectedCount === 0}
-          onClick={() => exportSelection("customs-pdf-chronopost")}
-        >
-          Exporter fiches douanières Chronopost PDF
-        </button>
+              <button
+                type="button"
+                className="button secondary"
+                disabled={selected.length === 0}
+                onClick={() => exportSelection("chronopost")}
+              >
+                Exporter Chronopost
+              </button>
+            </div>
+          </div>
 
-        <button
-          type="button"
-          className="button secondary"
-          disabled={selected.length === 0 || busy}
-          onClick={markSelectedAsExported}
-        >
-          Marquer la sélection comme exportée
-        </button>
+          <div style={sectionCardStyle()}>
+            <div style={sectionTitleStyle()}>Fiches douanières</div>
+            <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+              <button
+                type="button"
+                className="button secondary"
+                disabled={customsEligibleSelectedCount === 0}
+                onClick={() => exportSelection("customs-pdf")}
+              >
+                Fiches douanières PDF
+              </button>
 
-        <div style={{ fontWeight: 600 }}>
+              <button
+                type="button"
+                className="button secondary"
+                disabled={customsEligibleSelectedCount === 0}
+                onClick={() => exportSelection("customs-pdf-chronopost")}
+              >
+                Fiches douanières Chronopost PDF
+              </button>
+            </div>
+          </div>
+
+          <div style={sectionCardStyle()}>
+            <div style={sectionTitleStyle()}>Actions</div>
+            <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+              <button
+                type="button"
+                className="button secondary"
+                disabled={selected.length === 0 || busy}
+                onClick={markSelectedAsExported}
+              >
+                Marquer la sélection comme exportée
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div style={{ marginTop: "12px", fontWeight: 600 }}>
           {filteredOrders.length} résultat(s)
         </div>
       </div>
