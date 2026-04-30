@@ -266,6 +266,7 @@ export default function OrdersTableClient({ orders }: { orders: Order[] }) {
       | "csv"
       | "xlsx"
       | "chronopost"
+      | "word"
       | "customs-pdf"
       | "customs-pdf-chronopost"
   ) {
@@ -533,6 +534,15 @@ export default function OrdersTableClient({ orders }: { orders: Order[] }) {
                 onClick={() => exportSelection("chronopost")}
               >
                 Exporter Chronopost
+              </button>
+
+              <button
+                type="button"
+                className="button secondary"
+                disabled={selected.length === 0}
+                onClick={() => exportSelection("word")}
+              >
+                Exporter Word
               </button>
             </div>
           </div>
