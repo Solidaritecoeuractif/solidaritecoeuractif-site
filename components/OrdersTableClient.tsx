@@ -140,7 +140,7 @@ export default function OrdersTableClient({ orders }: { orders: Order[] }) {
             : zoneFilter === "africa"
               ? zone === "afrique"
               : zoneFilter === "international"
-                ? zone !== "france_metropolitaine"
+                ? zone === "international"
                 : zoneFilter === "france"
                   ? zone === "france_metropolitaine"
                   : true;
@@ -385,9 +385,9 @@ export default function OrdersTableClient({ orders }: { orders: Order[] }) {
           >
             <option value="all">Toutes</option>
             <option value="france">France métropolitaine</option>
-            <option value="overseas">Outre-Mer</option>
+            <option value="overseas">Outre-Mer / DOM</option>
             <option value="africa">Afrique</option>
-            <option value="international">International</option>
+            <option value="international">International hors Afrique et DOM</option>
           </select>
         </label>
 
