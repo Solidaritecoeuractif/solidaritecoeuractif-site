@@ -14,10 +14,11 @@ function containsPhysicalProduct(order: Order) {
   return Boolean(order.shippingAddress);
 }
 
-export async function sendPaymentConfirmationEmail(
-  order: Order,
-  pdfBuffer: Buffer
-) {
+function safeText(value?: string) {
+  return String(value || "").trim();
+}
+
+export async function sendPaymentConfirmationEmail(order: Order) {
   const from = process.env.EMAIL_FROM;
 
   if (!from) {
@@ -40,11 +41,40 @@ export async function sendPaymentConfirmationEmail(
     )
     .join("");
 
-  const deliveryInfo = containsPhysicalProduct(order)
+  const shippingHtml = containsPhysicalProduct(order)
     ? `
+      <p style="margin: 0 0 8px;"><strong>Adresse de livraison confirmée</strong></p>
+      <p style="margin: 0 0 4px;">Nom : <strong>${safeText(
+        `${order.customer.firstName} ${order.customer.lastName}`.trim()
+      )}</strong></p>
+      <p style="margin: 0 0 4px;">Adresse : <strong>${safeText(
+        order.shippingAddress?.address1
+      )}</strong></p>
+      ${
+        safeText(order.shippingAddress?.address2)
+          ? `<p style="margin: 0 0 4px;">Complément : <strong>${safeText(
+              order.shippingAddress?.address2
+            )}</strong></p>`
+          : ""
+      }
+      <p style="margin: 0 0 4px;">Code postal : <strong>${safeText(
+        order.shippingAddress?.postalCode
+      )}</strong></p>
+      <p style="margin: 0 0 4px;">Ville : <strong>${safeText(
+        order.shippingAddress?.city
+      )}</strong></p>
+      <p style="margin: 0 0 4px;">Pays / destination : <strong>${safeText(
+        order.shippingAddress?.country
+      )}</strong></p>
+      <p style="margin: 0 0 4px;">Email : <strong>${safeText(
+        order.customer.email
+      )}</strong></p>
+      <p style="margin: 0 0 16px;">Téléphone : <strong>${safeText(
+        order.customer.phone
+      )}</strong></p>
+
       <p>
-        Pour les produits physiques, les informations de livraison vous seront communiquées
-        par mail ou par SMS par l’agence de livraison partenaire.
+        Pour les produits physiques, les informations de suivi et de livraison vous seront communiquées dès que votre envoi sera traité par l’agence de livraison partenaire. Les délais peuvent varier de 3 à 10 jours en fonction de la densité des demandes.
       </p>
     `
     : "";
@@ -57,39 +87,36 @@ export async function sendPaymentConfirmationEmail(
       <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #111;">
         <h2 style="margin-bottom: 16px;">Confirmation de paiement</h2>
 
-        <p>Bonjour ${order.customer.firstName},</p>
+        <p>Bonjour ${safeText(order.customer.firstName)},</p>
 
         <p>
-          Nous vous confirmons la bonne réception de votre paiement pour la référence
-          <strong>${order.reference}</strong>.
+          Nous vous remercions de tout cœur pour votre confiance et pour votre soutien à <strong>Solidarité Cœur Actif</strong>. Votre paiement a bien été reçu, et votre commande <strong>${order.reference}</strong> a été enregistrée avec succès.
         </p>
 
-        <p><strong>Récapitulatif :</strong></p>
+        <p><strong>Récapitulatif de votre commande</strong></p>
         <ul>${itemsHtml}</ul>
 
         <p>Sous-total : <strong>${formatAmount(order.subtotalAmount, order.currency)}</strong></p>
+        <p>Livraison : <strong>${formatAmount(order.shippingAmount, order.currency)}</strong></p>
         <p>Total payé : <strong>${formatAmount(order.totalAmount, order.currency)}</strong></p>
 
-        ${deliveryInfo}
+        ${shippingHtml}
 
         <p>
-          Vous trouverez en pièce jointe votre attestation de paiement au format PDF.
+          Le reçu de paiement Stripe qui vous a été envoyé dans le second mail tient lieu de confirmation de paiement officielle. Nous vous conseillons de le conserver précieusement.
         </p>
 
         <p>
-          Solidarité Cœur Actif<br />
+          Merci encore pour votre soutien. Par votre geste, vous contribuez concrètement aux actions de l’association et à cette mission de foi et de solidarité portée au service de nombreuses personnes.
+        </p>
+
+        <p>
+          Avec reconnaissance,<br />
+          <strong>Solidarité Cœur Actif</strong><br />
           Email : solidaritecoeuractif@gmail.com<br />
           Téléphone : 0033745224124
         </p>
-
-        <p><strong>Dieu vous bénisse.</strong></p>
       </div>
     `,
-    attachments: [
-      {
-        filename: `attestation-paiement-${order.reference}.pdf`,
-        content: pdfBuffer,
-      },
-    ],
   });
 }

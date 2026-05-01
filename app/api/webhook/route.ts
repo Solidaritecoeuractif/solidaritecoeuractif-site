@@ -3,7 +3,6 @@ import { NextResponse } from "next/server";
 import Stripe from "stripe";
 import { stripe } from "@/lib/stripe";
 import { storage } from "@/lib/storage";
-import { generatePaymentReceiptPdf } from "@/lib/payment-receipt";
 import { sendPaymentConfirmationEmail } from "@/lib/email";
 
 export async function POST(request: Request) {
@@ -38,7 +37,7 @@ export async function POST(request: Request) {
 
         if (order) {
           const wasAlreadyPaid = order.paymentStatus === "paid";
-          const receiptAlreadySent = Boolean(order.paymentReceiptSentAt);
+          const emailAlreadySent = Boolean(order.emailSentAt);
 
           order.paymentStatus = "paid";
           order.stripeSessionId = session.id;
@@ -48,9 +47,8 @@ export async function POST(request: Request) {
               : session.payment_intent?.id;
           order.updatedAt = new Date().toISOString();
 
-          if (!wasAlreadyPaid || !receiptAlreadySent) {
-            const pdfBuffer = await generatePaymentReceiptPdf(order);
-            await sendPaymentConfirmationEmail(order, pdfBuffer);
+          if (!wasAlreadyPaid || !emailAlreadySent) {
+            await sendPaymentConfirmationEmail(order);
 
             const now = new Date().toISOString();
             order.emailSentAt = now;
