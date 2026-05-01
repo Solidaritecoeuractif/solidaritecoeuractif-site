@@ -30,6 +30,10 @@ export async function sendPaymentConfirmationEmail(order: Order) {
   }
 
   const subject = `Confirmation de paiement – ${order.reference}`;
+  const supportAmount = Math.max(
+    0,
+    order.totalAmount - order.subtotalAmount - order.shippingAmount
+  );
 
   const itemsHtml = order.items
     .map(
@@ -79,6 +83,19 @@ export async function sendPaymentConfirmationEmail(order: Order) {
     `
     : "";
 
+  const shippingLine =
+    order.shippingAmount > 0
+      ? `<p>Livraison : <strong>${formatAmount(order.shippingAmount, order.currency)}</strong></p>`
+      : "";
+
+  const supportLine =
+    supportAmount > 0
+      ? `<p>Participation libre à Solidarité Cœur Actif : <strong>${formatAmount(
+          supportAmount,
+          order.currency
+        )}</strong></p>`
+      : "";
+
   await resend.emails.send({
     from,
     to: order.customer.email,
@@ -97,7 +114,8 @@ export async function sendPaymentConfirmationEmail(order: Order) {
         <ul>${itemsHtml}</ul>
 
         <p>Sous-total : <strong>${formatAmount(order.subtotalAmount, order.currency)}</strong></p>
-        <p>Livraison : <strong>${formatAmount(order.shippingAmount, order.currency)}</strong></p>
+        ${shippingLine}
+        ${supportLine}
         <p>Total payé : <strong>${formatAmount(order.totalAmount, order.currency)}</strong></p>
 
         ${shippingHtml}
