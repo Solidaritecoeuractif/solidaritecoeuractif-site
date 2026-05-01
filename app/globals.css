@@ -834,3 +834,15 @@ label span {
   object-fit: contain;
   border-radius: 999px;
 }
+
+input[type="number"] {
+  border: 3px solid #cfd8e6 !important;
+  border-radius: 18px !important;
+  padding: 12px 13px !important;
+}
+
+input[type="number"]:focus {
+  border-color: #aebcd3 !important;
+  box-shadow: 0 0 0 4px rgba(18, 34, 61, 0.08) !important;
+  outline: none !important;
+}

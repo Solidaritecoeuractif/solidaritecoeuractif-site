@@ -101,6 +101,12 @@ export function AddToCartForm({ product }: { product: Product }) {
             value={quantityInput}
             onChange={(e) => setQuantityInput(e.target.value)}
             placeholder=""
+            style={{
+              border: "2px solid #cfd8e6",
+              borderRadius: "18px",
+              padding: "14px 16px",
+              maxWidth: "360px",
+            }}
           />
         </label>
       </div>
