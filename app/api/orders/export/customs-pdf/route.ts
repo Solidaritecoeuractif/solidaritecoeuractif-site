@@ -43,6 +43,10 @@ const EUROPE_COUNTRY_CODES = new Set([
   "SK",
 ]);
 
+let logoBufferPromise: Promise<Buffer | null> | null = null;
+let cachetBufferPromise: Promise<Buffer | null> | null = null;
+let signatureBufferPromise: Promise<Buffer | null> | null = null;
+
 function customsEligible(order: Order) {
   const code = order.shippingAddress?.country || "";
   const zone = getDestinationZone(code);
@@ -59,6 +63,30 @@ async function readOptionalFileBuffer(filePath: string) {
   } catch {
     return null;
   }
+}
+
+function getLogoBuffer() {
+  if (!logoBufferPromise) {
+    const logoPath = path.join(process.cwd(), "public", "logo-association.png");
+    logoBufferPromise = readOptionalFileBuffer(logoPath);
+  }
+  return logoBufferPromise;
+}
+
+function getCachetBuffer() {
+  if (!cachetBufferPromise) {
+    const cachetPath = path.join(process.cwd(), "public", "cachet.png");
+    cachetBufferPromise = readOptionalFileBuffer(cachetPath);
+  }
+  return cachetBufferPromise;
+}
+
+function getSignatureBuffer() {
+  if (!signatureBufferPromise) {
+    const signaturePath = path.join(process.cwd(), "public", "signature.png");
+    signatureBufferPromise = readOptionalFileBuffer(signaturePath);
+  }
+  return signatureBufferPromise;
 }
 
 function safeText(value: string | undefined) {
@@ -597,13 +625,11 @@ export async function GET(request: Request) {
   const font = await pdf.embedFont(StandardFonts.Helvetica);
   const bold = await pdf.embedFont(StandardFonts.HelveticaBold);
 
-  const logoPath = path.join(process.cwd(), "public", "logo-association.png");
-  const cachetPath = path.join(process.cwd(), "public", "cachet.png");
-  const signaturePath = path.join(process.cwd(), "public", "signature.png");
-
-  const logoBuffer = await readOptionalFileBuffer(logoPath);
-  const cachetBuffer = await readOptionalFileBuffer(cachetPath);
-  const signatureBuffer = await readOptionalFileBuffer(signaturePath);
+  const [logoBuffer, cachetBuffer, signatureBuffer] = await Promise.all([
+    getLogoBuffer(),
+    getCachetBuffer(),
+    getSignatureBuffer(),
+  ]);
 
   const embeddedLogo = logoBuffer ? await pdf.embedPng(logoBuffer) : null;
   const embeddedCachet = cachetBuffer ? await pdf.embedPng(cachetBuffer) : null;
@@ -646,6 +672,7 @@ export async function GET(request: Request) {
       "Content-Type": "application/pdf",
       "Content-Disposition":
         'attachment; filename="factures-pro-forma-selection.pdf"',
+      "Cache-Control": "private, max-age=300",
     },
   });
 }
