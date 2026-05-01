@@ -61,6 +61,16 @@ const COUNTRY_LABELS: Record<string, string> = {
   IS: "Islande",
 };
 
+let templateBufferPromise: Promise<Buffer> | null = null;
+
+function getTemplateBuffer() {
+  if (!templateBufferPromise) {
+    const templatePath = path.join(process.cwd(), "public", "Tableau vierge.docx");
+    templateBufferPromise = fs.readFile(templatePath);
+  }
+  return templateBufferPromise;
+}
+
 function safeText(value: string | undefined) {
   return String(value || "").trim();
 }
@@ -214,8 +224,7 @@ export async function GET(request: Request) {
     );
   }
 
-  const templatePath = path.join(process.cwd(), "public", "Tableau vierge.docx");
-  const templateBuffer = await fs.readFile(templatePath);
+  const templateBuffer = await getTemplateBuffer();
 
   const zip = new PizZip(templateBuffer);
   const documentXmlFile = zip.file("word/document.xml");
@@ -273,6 +282,7 @@ export async function GET(request: Request) {
       "Content-Type":
         "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
       "Content-Disposition": 'attachment; filename="adresses-selection.docx"',
+      "Cache-Control": "private, max-age=300",
     },
   });
 }
