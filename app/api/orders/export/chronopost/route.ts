@@ -11,7 +11,12 @@ export async function GET(request: Request) {
   const dateFrom = searchParams.get("dateFrom");
   const dateTo = searchParams.get("dateTo");
 
-  let orders = await storage().getOrders();
+  const [allOrders, products] = await Promise.all([
+    storage().getOrders(),
+    storage().getProducts(),
+  ]);
+
+  let orders = allOrders;
 
   if (paymentStatus) {
     orders = orders.filter((order) => order.paymentStatus === paymentStatus);
@@ -39,7 +44,6 @@ export async function GET(request: Request) {
 
   orders = orders.filter((order) => order.shippingAddress);
 
-  const products = await storage().getProducts();
   const rows = chronopostRows(orders, products);
   const csv = toSemicolonCsv(rows);
 
@@ -47,6 +51,7 @@ export async function GET(request: Request) {
     headers: {
       "Content-Type": "text/csv; charset=utf-8",
       "Content-Disposition": 'attachment; filename="chronopost-export.csv"',
+      "Cache-Control": "private, max-age=300",
     },
   });
 }
