@@ -43,7 +43,7 @@ export async function sendPaymentConfirmationEmail(order: Order) {
 
   const shippingHtml = containsPhysicalProduct(order)
     ? `
-      <p style="margin: 0 0 8px;"><strong>Adresse de livraison confirmée</strong></p>
+      <p style="margin: 0 0 8px;"><strong>📦 Adresse de livraison confirmée</strong></p>
       <p style="margin: 0 0 4px;">Nom : <strong>${safeText(
         `${order.customer.firstName} ${order.customer.lastName}`.trim()
       )}</strong></p>
@@ -90,7 +90,7 @@ export async function sendPaymentConfirmationEmail(order: Order) {
         <p>Bonjour ${safeText(order.customer.firstName)},</p>
 
         <p>
-          Nous vous remercions de tout cœur pour votre confiance et pour votre soutien à <strong>Solidarité Cœur Actif</strong>. Votre paiement a bien été reçu, et votre commande <strong>${order.reference}</strong> a été enregistrée avec succès.
+          Nous vous remercions de tout cœur pour votre confiance ❤️ et pour votre soutien à <strong>Solidarité Cœur Actif</strong>. Votre paiement a bien été reçu, et votre commande <strong>${order.reference}</strong> a été enregistrée avec succès.
         </p>
 
         <p><strong>Récapitulatif de votre commande</strong></p>
@@ -111,7 +111,7 @@ export async function sendPaymentConfirmationEmail(order: Order) {
         </p>
 
         <p>
-          Avec reconnaissance,<br />
+          Avec reconnaissance 🙏<br />
           <strong>Solidarité Cœur Actif</strong><br />
           Email : solidaritecoeuractif@gmail.com<br />
           Téléphone : 0033745224124
