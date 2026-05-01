@@ -7,8 +7,8 @@ export async function GET(
   { params }: { params: Promise<{ reference: string }> }
 ) {
   const { reference } = await params;
-  const orders = await storage().getOrders();
-  const order = orders.find((entry) => entry.reference === reference);
+
+  const order = await storage().getOrderByReference(reference);
 
   if (!order) {
     return NextResponse.json(
@@ -23,6 +23,7 @@ export async function GET(
     headers: {
       "Content-Type": "application/pdf",
       "Content-Disposition": `attachment; filename="attestation-${order.reference}.pdf"`,
+      "Cache-Control": "public, max-age=31536000, immutable",
     },
   });
 }
