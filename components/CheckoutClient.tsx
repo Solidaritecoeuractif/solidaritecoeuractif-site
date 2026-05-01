@@ -60,7 +60,6 @@ export function CheckoutClient({ products }: { products: Product[] }) {
     address2: "",
     postalCode: "",
     city: "",
-    notes: "",
   });
 
   const forcedPostalCode = FORCED_POSTAL_CODES[form.country] || "";
@@ -264,7 +263,6 @@ export function CheckoutClient({ products }: { products: Product[] }) {
                 address2: form.address2,
                 postalCode: form.postalCode,
                 city: form.city,
-                notes: form.notes,
               }
             : undefined,
         }),
@@ -574,14 +572,6 @@ export function CheckoutClient({ products }: { products: Product[] }) {
                   required
                   value={form.city}
                   onChange={(e) => update("city", e.target.value)}
-                />
-              </label>
-
-              <label className="full">
-                <span>Informations complémentaires pour la livraison</span>
-                <textarea
-                  value={form.notes}
-                  onChange={(e) => update("notes", e.target.value)}
                 />
               </label>
             </div>
