@@ -8,6 +8,59 @@ import type { Order } from "@/lib/types";
 
 const W_NS = "http://schemas.openxmlformats.org/wordprocessingml/2006/main";
 
+const COUNTRY_LABELS: Record<string, string> = {
+  FR: "France",
+  GP: "Guadeloupe",
+  MQ: "Martinique",
+  GF: "Guyane française",
+  RE: "La Réunion",
+  YT: "Mayotte",
+  PM: "Saint-Pierre-et-Miquelon",
+  BL: "Saint-Barthélemy",
+  MF: "Saint-Martin",
+  WF: "Wallis-et-Futuna",
+  PF: "Polynésie française",
+  NC: "Nouvelle-Calédonie",
+  TF: "Terres australes et antarctiques françaises",
+  MA: "Maroc",
+  DZ: "Algérie",
+  TN: "Tunisie",
+  LY: "Libye",
+  MR: "Mauritanie",
+  BE: "Belgique",
+  CH: "Suisse",
+  CA: "Canada",
+  US: "États-Unis",
+  GB: "Royaume-Uni",
+  DE: "Allemagne",
+  ES: "Espagne",
+  IT: "Italie",
+  PT: "Portugal",
+  NL: "Pays-Bas",
+  LU: "Luxembourg",
+  IE: "Irlande",
+  AT: "Autriche",
+  SE: "Suède",
+  NO: "Norvège",
+  DK: "Danemark",
+  FI: "Finlande",
+  PL: "Pologne",
+  CZ: "Tchéquie",
+  SK: "Slovaquie",
+  SI: "Slovénie",
+  HR: "Croatie",
+  HU: "Hongrie",
+  RO: "Roumanie",
+  BG: "Bulgarie",
+  GR: "Grèce",
+  CY: "Chypre",
+  MT: "Malte",
+  EE: "Estonie",
+  LV: "Lettonie",
+  LT: "Lituanie",
+  IS: "Islande",
+};
+
 function safeText(value: string | undefined) {
   return String(value || "").trim();
 }
@@ -19,9 +72,32 @@ function cleanAddressLine(value: string | undefined) {
   return cleaned;
 }
 
-function isFranceLike(value: string | undefined) {
-  const v = safeText(value).toUpperCase();
-  return v === "FR" || v === "FRANCE";
+function normalizeCountryCode(value: string | undefined) {
+  return safeText(value).toUpperCase();
+}
+
+function countryLabelForWord(value: string | undefined) {
+  const raw = safeText(value);
+  if (!raw) return "";
+
+  const normalized = normalizeCountryCode(raw);
+
+  if (COUNTRY_LABELS[normalized]) {
+    return COUNTRY_LABELS[normalized];
+  }
+
+  if (raw.startsWith("FR-")) {
+    const suffix = raw.slice(3).toUpperCase();
+    if (COUNTRY_LABELS[suffix]) {
+      return COUNTRY_LABELS[suffix];
+    }
+  }
+
+  return raw;
+}
+
+function totalQuantity(order: Order) {
+  return order.items.reduce((sum, item) => sum + item.quantity, 0);
 }
 
 function buildAddressLines(order: Order) {
@@ -39,15 +115,19 @@ function buildAddressLines(order: Order) {
     .join(" ")
     .trim();
 
-  const country = safeText(order.shippingAddress?.country);
+  const country = countryLabelForWord(order.shippingAddress?.country);
+  const phone = safeText(order.customer.phone);
+  const quantity = totalQuantity(order);
 
-  const lines = [fullName, address1, address2, postalCity];
-
-  if (country && !isFranceLike(country)) {
-    lines.push(country);
-  }
-
-  return lines.filter(Boolean);
+  return [
+    fullName,
+    address1,
+    address2,
+    postalCity,
+    country,
+    phone ? `Téléphone : ${phone}` : "",
+    `Quantité : ${quantity}`,
+  ].filter(Boolean);
 }
 
 function createRun(doc: any, text: string) {
