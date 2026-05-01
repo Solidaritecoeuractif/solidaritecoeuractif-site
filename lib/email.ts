@@ -121,7 +121,7 @@ export async function sendPaymentConfirmationEmail(order: Order) {
         ${shippingHtml}
 
         <p>
-          Le reçu de paiement Stripe qui vous a été envoyé dans le second mail tient lieu de confirmation de paiement officielle. Nous vous conseillons de le conserver précieusement.
+          Le reçu de paiement Stripe qui vous a été envoyé dans le second mail tient lieu de confirmation de paiement officielle. Nous vous conseillons de le conserver précieusement car cela pourrait être demandé pour le suivi du colis.
         </p>
 
         <p>
@@ -129,7 +129,7 @@ export async function sendPaymentConfirmationEmail(order: Order) {
         </p>
 
         <p>
-          Avec reconnaissance 🙏<br />
+          Avec notre reconnaissance 🙏<br />
           <strong>Solidarité Cœur Actif</strong><br />
           Email : solidaritecoeuractif@gmail.com<br />
           Téléphone : 0033745224124
