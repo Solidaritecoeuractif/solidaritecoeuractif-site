@@ -3,6 +3,8 @@ import type { Order } from "@/lib/types";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 
+let logoBytesPromise: Promise<Uint8Array> | null = null;
+
 function formatAmount(amountInCents: number, currency: string) {
   return new Intl.NumberFormat("fr-FR", {
     style: "currency",
@@ -14,9 +16,17 @@ function hasPhysicalDelivery(order: Order) {
   return Boolean(order.shippingAddress);
 }
 
+async function getLogoBytes() {
+  if (!logoBytesPromise) {
+    const logoPath = path.join(process.cwd(), "public", "logo-association.png");
+    logoBytesPromise = readFile(logoPath);
+  }
+
+  return logoBytesPromise;
+}
+
 async function embedLogo(pdf: PDFDocument) {
-  const logoPath = path.join(process.cwd(), "public", "logo-association.png");
-  const bytes = await readFile(logoPath);
+  const bytes = await getLogoBytes();
   return pdf.embedPng(bytes);
 }
 
