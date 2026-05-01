@@ -64,6 +64,8 @@ export async function POST(request: Request) {
 
     const reference = orderReference();
     const now = new Date().toISOString();
+    const fullName =
+      `${parsed.data.customer.firstName} ${parsed.data.customer.lastName}`.trim();
 
     const order: Order = {
       id: uniqueId("ord"),
@@ -100,6 +102,11 @@ export async function POST(request: Request) {
       cancel_url: `${baseUrl}/annulation?reference=${reference}`,
       billing_address_collection: "auto",
       phone_number_collection: { enabled: true },
+
+      payment_intent_data: {
+        description: `Commande ${reference} — ${fullName}`,
+      },
+
       line_items: [
         ...order.items.map((item) => ({
           quantity: item.quantity,
@@ -146,7 +153,7 @@ export async function POST(request: Request) {
       metadata: {
         orderReference: reference,
         customerEmail: order.customer.email,
-        customerName: `${order.customer.firstName} ${order.customer.lastName}`.trim(),
+        customerName: fullName,
         totalAmount: String(order.totalAmount),
         supportAmount: String(supportAmount),
         destinationCode,
