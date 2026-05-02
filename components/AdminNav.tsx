@@ -30,6 +30,15 @@ export function AdminNav() {
         Offres
       </Link>
 
+      <Link
+        href="/admin/import-commandes-privees"
+        className={adminLinkClass(
+          pathname.startsWith("/admin/import-commandes-privees")
+        )}
+      >
+        Importer des commandes privées
+      </Link>
+
       <form action="/api/auth/logout" method="post">
         <button className="button secondary" type="submit">
           Déconnexion

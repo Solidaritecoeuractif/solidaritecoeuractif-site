@@ -437,23 +437,64 @@ export class PostgresStorageAdapter implements StorageAdapter {
     const client = await pool().connect();
 
     try {
+      await client.query("begin");
+
+      const existingOrderRes = await client.query(
+        "select id from orders where reference = $1 limit 1",
+        [reference]
+      );
+
+      const existingOrderId = existingOrderRes.rows[0]?.id;
+
+      if (!existingOrderId) {
+        throw new Error(`Commande introuvable pour la référence ${reference}`);
+      }
+
       await client.query(
         `update orders
-         set payment_status = $2,
-             logistics_status = $3,
-             stripe_session_id = $4,
-             stripe_payment_intent_id = $5,
-             updated_at = $6,
-             exported_at = $7,
-             email_sent_at = $8,
-             payment_receipt_sent_at = $9
+         set customer_first_name = $2,
+             customer_last_name = $3,
+             customer_email = $4,
+             customer_phone = $5,
+             shipping_country = $6,
+             shipping_address1 = $7,
+             shipping_address2 = $8,
+             shipping_postal_code = $9,
+             shipping_city = $10,
+             shipping_notes = $11,
+             subtotal_amount = $12,
+             shipping_amount = $13,
+             total_amount = $14,
+             payment_status = $15,
+             logistics_status = $16,
+             stripe_session_id = $17,
+             stripe_payment_intent_id = $18,
+             currency = $19,
+             updated_at = $20,
+             exported_at = $21,
+             email_sent_at = $22,
+             payment_receipt_sent_at = $23
          where reference = $1`,
         [
           reference,
+          order.customer.firstName,
+          order.customer.lastName,
+          order.customer.email,
+          order.customer.phone ?? null,
+          order.shippingAddress?.country ?? null,
+          order.shippingAddress?.address1 ?? null,
+          order.shippingAddress?.address2 ?? null,
+          order.shippingAddress?.postalCode ?? null,
+          order.shippingAddress?.city ?? null,
+          order.shippingAddress?.notes ?? null,
+          order.subtotalAmount,
+          order.shippingAmount,
+          order.totalAmount,
           order.paymentStatus,
           order.logisticsStatus,
           order.stripeSessionId ?? null,
           order.stripePaymentIntentId ?? null,
+          order.currency,
           order.updatedAt,
           order.exportedAt ?? null,
           order.emailSentAt ?? null,
@@ -461,7 +502,46 @@ export class PostgresStorageAdapter implements StorageAdapter {
         ]
       );
 
+      await client.query("delete from order_items where order_id = $1", [
+        existingOrderId,
+      ]);
+
+      for (const item of order.items) {
+        await client.query(
+          `insert into order_items (
+            id,
+            order_id,
+            product_id,
+            product_title,
+            offer_type,
+            pricing_mode,
+            unit_amount,
+            quantity,
+            custom_amount,
+            created_at
+          ) values (
+            $1,$2,$3,$4,$5,$6,$7,$8,$9,$10
+          )`,
+          [
+            item.id,
+            existingOrderId,
+            item.productId ?? null,
+            item.productTitle,
+            item.offerType,
+            item.pricingMode,
+            item.unitAmount,
+            item.quantity,
+            item.customAmount ?? null,
+            order.updatedAt,
+          ]
+        );
+      }
+
+      await client.query("commit");
       return order;
+    } catch (error) {
+      await client.query("rollback");
+      throw error;
     } finally {
       client.release();
     }

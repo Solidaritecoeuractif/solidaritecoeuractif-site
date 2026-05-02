@@ -65,6 +65,9 @@ export default async function AdminDashboardPage() {
           <Link href="/admin/products" className="button secondary">
             Gérer les offres
           </Link>
+          <Link href="/admin/import-commandes-privees" className="button secondary">
+            Importer des commandes privées
+          </Link>
           <a href="/api/orders/export/csv" className="button secondary">
             Exporter CSV
           </a>

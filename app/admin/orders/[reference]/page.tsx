@@ -1,7 +1,10 @@
+export const dynamic = "force-dynamic";
+
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { storage } from "@/lib/storage";
 import { euros } from "@/lib/utils";
+import AdminOrderDetailClient from "@/components/AdminOrderDetailClient";
 
 function formatDate(value: string) {
   return new Date(value).toLocaleString("fr-FR");
@@ -38,110 +41,7 @@ export default async function AdminOrderDetailPage({
         </p>
       </section>
 
-      <section className="panel" style={{ marginBottom: 16 }}>
-        <h2>Informations client</h2>
-        <div className="form-grid">
-          <label>
-            <span>Prénom</span>
-            <input value={order.customer.firstName || ""} readOnly />
-          </label>
-
-          <label>
-            <span>Nom</span>
-            <input value={order.customer.lastName || ""} readOnly />
-          </label>
-
-          <label>
-            <span>Email</span>
-            <input value={order.customer.email || ""} readOnly />
-          </label>
-
-          <label>
-            <span>Téléphone</span>
-            <input value={order.customer.phone || ""} readOnly />
-          </label>
-        </div>
-      </section>
-
-      <section className="panel" style={{ marginBottom: 16 }}>
-        <h2>Données saisies pour la livraison</h2>
-        <div className="form-grid">
-          <label>
-            <span>Pays</span>
-            <input value={order.shippingAddress?.country || ""} readOnly />
-          </label>
-
-          <label>
-            <span>Ville</span>
-            <input value={order.shippingAddress?.city || ""} readOnly />
-          </label>
-
-          <label>
-            <span>Code postal</span>
-            <input value={order.shippingAddress?.postalCode || ""} readOnly />
-          </label>
-
-          <label className="full">
-            <span>Adresse</span>
-            <input value={order.shippingAddress?.address1 || ""} readOnly />
-          </label>
-
-          <label className="full">
-            <span>Complément d’adresse</span>
-            <input value={order.shippingAddress?.address2 || ""} readOnly />
-          </label>
-
-          <label className="full">
-            <span>Informations complémentaires</span>
-            <textarea value={order.shippingAddress?.notes || ""} readOnly />
-          </label>
-        </div>
-      </section>
-
-      <section className="panel" style={{ marginBottom: 16 }}>
-        <h2>Commande</h2>
-        <div className="form-grid">
-          <label>
-            <span>Statut de paiement</span>
-            <input value={order.paymentStatus || ""} readOnly />
-          </label>
-
-          <label>
-            <span>Statut logistique</span>
-            <input value={order.logisticsStatus || ""} readOnly />
-          </label>
-
-          <label>
-            <span>Sous-total</span>
-            <input value={euros(order.subtotalAmount || 0)} readOnly />
-          </label>
-
-          <label>
-            <span>Livraison</span>
-            <input value={euros(order.shippingAmount || 0)} readOnly />
-          </label>
-
-          <label>
-            <span>Total payé</span>
-            <input value={euros(order.totalAmount || 0)} readOnly />
-          </label>
-
-          <label>
-            <span>Devise</span>
-            <input value={order.currency || ""} readOnly />
-          </label>
-
-          <label className="full">
-            <span>Référence Stripe session</span>
-            <input value={order.stripeSessionId || ""} readOnly />
-          </label>
-
-          <label className="full">
-            <span>Référence Stripe payment intent</span>
-            <input value={order.stripePaymentIntentId || ""} readOnly />
-          </label>
-        </div>
-      </section>
+      <AdminOrderDetailClient order={order} />
 
       <section className="panel" style={{ marginBottom: 16 }}>
         <h2>Détail des lignes</h2>

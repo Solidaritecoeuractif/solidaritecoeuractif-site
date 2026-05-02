@@ -299,15 +299,22 @@ async function drawInvoiceCopy(
     SENDER_PHONE,
   ];
 
-  const recipientLines = [
-    `${safeText(order.customer.firstName)} ${safeText(order.customer.lastName)}`.trim(),
-    safeText(order.shippingAddress?.city),
-    safeText(order.shippingAddress?.address1),
-    cleanAddressLine(order.shippingAddress?.address2),
-    safeText(order.shippingAddress?.postalCode),
-    safeText(order.shippingAddress?.country),
-    safeText(order.customer.phone),
-  ];
+  const postalCity = [
+  safeText(order.shippingAddress?.postalCode),
+  safeText(order.shippingAddress?.city),
+]
+  .filter(Boolean)
+  .join(" ")
+  .trim();
+
+const recipientLines = [
+  `${safeText(order.customer.firstName)} ${safeText(order.customer.lastName)}`.trim(),
+  safeText(order.shippingAddress?.address1),
+  cleanAddressLine(order.shippingAddress?.address2),
+  postalCity,
+  safeText(order.shippingAddress?.country),
+  safeText(order.customer.phone),
+];
 
   let y1 = y;
   for (const line of senderLines.filter(Boolean)) {

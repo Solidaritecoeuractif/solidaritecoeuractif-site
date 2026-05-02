@@ -76,7 +76,7 @@ function zoneLabel(countryCode?: string) {
 
   const zone = getDestinationZone(countryCode);
 
-  if (zone === "france_metropolitaine") return "France métropolitaine";
+  if (zone === "france_metropolitaine") return "France métro.";
   if (zone === "outre_mer") return "Outre-Mer";
   if (zone === "afrique") return "Afrique";
   return "International";
@@ -118,6 +118,43 @@ function sectionTitleStyle() {
   } as const;
 }
 
+const headerCellStyle = {
+  padding: "8px 6px",
+  fontSize: "12px",
+  lineHeight: 1.2,
+  whiteSpace: "nowrap" as const,
+  verticalAlign: "middle" as const,
+};
+
+const bodyCellStyle = {
+  padding: "9px 6px",
+  verticalAlign: "top" as const,
+  fontSize: "12px",
+  lineHeight: 1.3,
+};
+
+const compactTextStyle = {
+  overflowWrap: "anywhere" as const,
+  wordBreak: "break-word" as const,
+};
+
+const mutedSmallStyle = {
+  fontSize: "11px",
+  lineHeight: 1.25,
+  color: "#64748b",
+};
+
+const compactBadgeStyle = {
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  minHeight: "24px",
+  padding: "4px 7px",
+  fontSize: "11px",
+  lineHeight: 1,
+  whiteSpace: "nowrap" as const,
+};
+
 export default function OrdersTableClient({ orders }: { orders: Order[] }) {
   const [selected, setSelected] = useState<string[]>([]);
   const [logisticsFilter, setLogisticsFilter] = useState("all");
@@ -127,6 +164,7 @@ export default function OrdersTableClient({ orders }: { orders: Order[] }) {
   const [dateTo, setDateTo] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
   const [busy, setBusy] = useState(false);
+  const [deletingReference, setDeletingReference] = useState<string | null>(null);
 
   const filteredOrders = useMemo(() => {
     const normalizedSearch = normalizeSearchText(searchTerm);
@@ -322,6 +360,45 @@ export default function OrdersTableClient({ orders }: { orders: Order[] }) {
     }
   }
 
+  async function deleteOrder(reference: string) {
+    const confirmed = window.confirm(
+      `Voulez-vous vraiment supprimer la commande ${reference} ?`
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    setDeletingReference(reference);
+
+    try {
+      const response = await fetch("/api/admin/orders/delete", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ reference }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        alert(
+          typeof data?.error === "string"
+            ? data.error
+            : "Impossible de supprimer la commande."
+        );
+        return;
+      }
+
+      window.location.reload();
+    } catch {
+      alert("Impossible de supprimer la commande.");
+    } finally {
+      setDeletingReference(null);
+    }
+  }
+
   const customsEligibleSelectedCount = orders.filter(
     (order) =>
       selected.includes(order.reference) &&
@@ -329,7 +406,7 @@ export default function OrdersTableClient({ orders }: { orders: Order[] }) {
   ).length;
 
   return (
-    <section className="panel table-wrap">
+    <section className="panel table-wrap" style={{ overflowX: "auto" }}>
       <div
         style={{
           display: "flex",
@@ -590,90 +667,198 @@ export default function OrdersTableClient({ orders }: { orders: Order[] }) {
         </div>
       </div>
 
-      <table className="table">
+      <table
+        className="table"
+        style={{
+          width: "100%",
+          minWidth: "1080px",
+          tableLayout: "fixed",
+          borderCollapse: "collapse",
+        }}
+      >
+        <colgroup>
+          <col style={{ width: "34px" }} />
+          <col style={{ width: "126px" }} />
+          <col style={{ width: "190px" }} />
+          <col style={{ width: "112px" }} />
+          <col style={{ width: "250px" }} />
+          <col style={{ width: "78px" }} />
+          <col style={{ width: "82px" }} />
+          <col style={{ width: "94px" }} />
+          <col style={{ width: "100px" }} />
+          <col style={{ width: "96px" }} />
+        </colgroup>
+
         <thead>
           <tr>
-            <th style={{ width: "48px" }}>
+            <th style={{ ...headerCellStyle, textAlign: "center" }}>
               <input
                 type="checkbox"
                 checked={allVisibleSelected}
                 onChange={toggleAll}
+                aria-label="Sélectionner toutes les commandes visibles"
               />
             </th>
-            <th>Référence</th>
-            <th>Client</th>
-            <th>Zone</th>
-            <th>Produits</th>
-            <th>Montant</th>
-            <th>Paiement</th>
-            <th>Logistique</th>
-            <th>Export</th>
+            <th style={headerCellStyle}>Référence</th>
+            <th style={headerCellStyle}>Client</th>
+            <th style={headerCellStyle}>Zone</th>
+            <th style={headerCellStyle}>Produits</th>
+            <th style={headerCellStyle}>Montant</th>
+            <th style={headerCellStyle}>Paiement</th>
+            <th style={headerCellStyle}>Logistique</th>
+            <th style={headerCellStyle}>Export</th>
+            <th style={headerCellStyle}>Action</th>
           </tr>
         </thead>
+
         <tbody>
-          {filteredOrders.map((order) => (
-            <tr key={order.reference}>
-              <td>
-                <input
-                  type="checkbox"
-                  checked={selected.includes(order.reference)}
-                  onChange={() => toggleOne(order.reference)}
-                />
-              </td>
-              <td>
-                <a
-                  href={`/admin/orders/${order.reference}`}
-                  target="_blank"
-                  rel="noreferrer"
-                >
-                  {order.reference}
-                </a>
-                <br />
-                <small>{toDateTimeLocalValue(order.createdAt).replace("T", " ")}</small>
-              </td>
-              <td>
-                {order.customer.firstName} {order.customer.lastName}
-                <br />
-                <small>{order.customer.email}</small>
-                {order.customer.phone ? (
-                  <>
-                    <br />
-                    <small>{order.customer.phone}</small>
-                  </>
-                ) : null}
-              </td>
-              <td>
-                <strong>{zoneLabel(order.shippingAddress?.country)}</strong>
-                {order.shippingAddress?.city ? (
-                  <>
-                    <br />
-                    <small>{order.shippingAddress.city}</small>
-                  </>
-                ) : null}
-              </td>
-              <td>
-                {order.items
-                  .map((item) => `${item.productTitle} x${item.quantity}`)
-                  .join(" | ")}
-              </td>
-              <td>{euros(order.totalAmount)}</td>
-              <td>
-                <span className={badgeClass(order.paymentStatus)}>
-                  {paymentLabel()}
-                </span>
-              </td>
-              <td>
-                <span className={badgeClass(order.logisticsStatus)}>
-                  {logisticsLabel(order.logisticsStatus)}
-                </span>
-              </td>
-              <td>
-                <span className={exportBadgeClass(order)}>
-                  {exportLabel(order)}
-                </span>
+          {filteredOrders.length === 0 ? (
+            <tr>
+              <td
+                colSpan={10}
+                style={{
+                  padding: "18px 10px",
+                  textAlign: "center",
+                  color: "#64748b",
+                  fontSize: "14px",
+                }}
+              >
+                Aucune commande ne correspond aux filtres actuels.
               </td>
             </tr>
-          ))}
+          ) : (
+            filteredOrders.map((order) => (
+              <tr key={order.reference}>
+                <td style={{ ...bodyCellStyle, textAlign: "center" }}>
+                  <input
+                    type="checkbox"
+                    checked={selected.includes(order.reference)}
+                    onChange={() => toggleOne(order.reference)}
+                    aria-label={`Sélectionner la commande ${order.reference}`}
+                  />
+                </td>
+
+                <td style={bodyCellStyle}>
+                  <a
+                    href={`/admin/orders/${order.reference}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    style={{
+                      display: "inline-block",
+                      maxWidth: "100%",
+                      fontWeight: 700,
+                      fontSize: "12px",
+                      lineHeight: 1.2,
+                      ...compactTextStyle,
+                    }}
+                  >
+                    {order.reference}
+                  </a>
+                  <div style={{ marginTop: "4px", ...mutedSmallStyle }}>
+                    {toDateTimeLocalValue(order.createdAt).replace("T", " ")}
+                  </div>
+                </td>
+
+                <td style={bodyCellStyle}>
+                  <div
+                    style={{
+                      fontWeight: 700,
+                      fontSize: "12px",
+                      ...compactTextStyle,
+                    }}
+                  >
+                    {order.customer.firstName} {order.customer.lastName}
+                  </div>
+
+                  <div style={{ marginTop: "3px", ...mutedSmallStyle, ...compactTextStyle }}>
+                    {order.customer.email}
+                  </div>
+
+                  {order.customer.phone ? (
+                    <div style={{ marginTop: "3px", ...mutedSmallStyle }}>
+                      {order.customer.phone}
+                    </div>
+                  ) : null}
+                </td>
+
+                <td style={bodyCellStyle}>
+                  <div
+                    style={{
+                      fontWeight: 700,
+                      fontSize: "12px",
+                      ...compactTextStyle,
+                    }}
+                  >
+                    {zoneLabel(order.shippingAddress?.country)}
+                  </div>
+
+                  {order.shippingAddress?.city ? (
+                    <div style={{ marginTop: "3px", ...mutedSmallStyle, ...compactTextStyle }}>
+                      {order.shippingAddress.city}
+                    </div>
+                  ) : null}
+                </td>
+
+                <td style={{ ...bodyCellStyle, ...compactTextStyle }}>
+                  {order.items
+                    .map((item) => `${item.productTitle} x${item.quantity}`)
+                    .join(" | ")}
+                </td>
+
+                <td style={{ ...bodyCellStyle, whiteSpace: "nowrap", fontWeight: 700 }}>
+                  {euros(order.totalAmount)}
+                </td>
+
+                <td style={bodyCellStyle}>
+                  <span
+                    className={badgeClass(order.paymentStatus)}
+                    style={compactBadgeStyle}
+                  >
+                    {paymentLabel()}
+                  </span>
+                </td>
+
+                <td style={bodyCellStyle}>
+                  <span
+                    className={badgeClass(order.logisticsStatus)}
+                    style={compactBadgeStyle}
+                  >
+                    {logisticsLabel(order.logisticsStatus)}
+                  </span>
+                </td>
+
+                <td style={bodyCellStyle}>
+                  <span
+                    className={exportBadgeClass(order)}
+                    style={compactBadgeStyle}
+                  >
+                    {exportLabel(order)}
+                  </span>
+                </td>
+
+                <td style={bodyCellStyle}>
+                  <button
+                    type="button"
+                    className="button secondary small"
+                    onClick={() => deleteOrder(order.reference)}
+                    disabled={deletingReference === order.reference}
+                    style={{
+                      width: "100%",
+                      minWidth: 0,
+                      padding: "6px 8px",
+                      fontSize: "11px",
+                      lineHeight: 1.1,
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    {deletingReference === order.reference
+                      ? "Suppression..."
+                      : "Supprimer"}
+                  </button>
+                </td>
+              </tr>
+            ))
+          )}
         </tbody>
       </table>
     </section>
