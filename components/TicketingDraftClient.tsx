@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useMemo, useState } from "react";
 import type { TicketingEvent } from "@/lib/ticketing/types";
 
@@ -199,26 +200,35 @@ export default function TicketingDraftClient({
               className="table"
               style={{
                 width: "100%",
-                minWidth: "760px",
+                minWidth: "820px",
                 tableLayout: "fixed",
               }}
             >
               <thead>
                 <tr>
-                  <th style={{ width: "230px" }}>Nom</th>
+                  <th style={{ width: "260px" }}>Nom</th>
                   <th style={{ width: "120px" }}>Statut</th>
                   <th style={{ width: "180px" }}>Lieu</th>
                   <th style={{ width: "150px" }}>Créée le</th>
-                  <th style={{ width: "160px" }}>Lien public</th>
+                  <th style={{ width: "110px" }}>Détail</th>
                 </tr>
               </thead>
               <tbody>
                 {events.map((event) => (
                   <tr key={event.id}>
                     <td>
-                      <strong>{event.title}</strong>
+                      <Link
+                        href={`/admin/billetteries/${event.slug}`}
+                        style={{
+                          fontWeight: 800,
+                          color: "#111827",
+                          textDecoration: "none",
+                        }}
+                      >
+                        {event.title}
+                      </Link>
                       <br />
-                      <small>{event.slug}</small>
+                      <small style={{ color: "#64748b" }}>{event.slug}</small>
                     </td>
                     <td>{statusLabel(event)}</td>
                     <td>
@@ -228,13 +238,18 @@ export default function TicketingDraftClient({
                     </td>
                     <td>{formatDate(event.createdAt)}</td>
                     <td>
-                      {event.isVisible ? (
-                        <span style={{ color: "#166534", fontWeight: 700 }}>
-                          /evenements/{event.slug}
-                        </span>
-                      ) : (
-                        <span style={{ color: "#64748b" }}>Non publié</span>
-                      )}
+                      <Link
+                        href={`/admin/billetteries/${event.slug}`}
+                        className="button secondary small"
+                        style={{
+                          display: "inline-flex",
+                          justifyContent: "center",
+                          width: "100%",
+                          textDecoration: "none",
+                        }}
+                      >
+                        Ouvrir
+                      </Link>
                     </td>
                   </tr>
                 ))}
