@@ -2,11 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { euros } from "@/lib/utils";
-import {
-  getDestinationZone,
-  isAfricaDestination,
-  isOverseasDestination,
-} from "@/lib/destinations";
+import { getDestinationZone } from "@/lib/destinations";
 
 type OrderItem = {
   productTitle: string;
@@ -37,6 +33,18 @@ type Order = {
   };
   items: OrderItem[];
 };
+
+type QuantityFilter = "all" | "single" | "multiple";
+
+type ZoneFilter =
+  | "all"
+  | "france"
+  | "overseas"
+  | "africa"
+  | "international"
+  | "without_overseas"
+  | "without_africa"
+  | "without_international";
 
 function badgeClass(status: string) {
   if (status === "paid" || status === "delivered") return `badge ${status}`;
@@ -159,18 +167,6 @@ const compactBadgeStyle = {
   whiteSpace: "nowrap" as const,
 };
 
-type QuantityFilter = "all" | "single" | "multiple";
-
-type ZoneFilter =
-  | "all"
-  | "france"
-  | "overseas"
-  | "africa"
-  | "international"
-  | "without_overseas"
-  | "without_africa"
-  | "without_international";
-
 export default function OrdersTableClient({ orders }: { orders: Order[] }) {
   const [selected, setSelected] = useState<string[]>([]);
   const [logisticsFilter, setLogisticsFilter] = useState("all");
@@ -218,14 +214,14 @@ export default function OrdersTableClient({ orders }: { orders: Order[] }) {
       const zoneOk =
         zoneFilter === "all"
           ? true
-          : zoneFilter === "overseas"
-            ? zone === "outre_mer"
-            : zoneFilter === "africa"
-              ? zone === "afrique"
-              : zoneFilter === "international"
-                ? zone === "international"
-                : zoneFilter === "france"
-                  ? zone === "france_metropolitaine"
+          : zoneFilter === "france"
+            ? zone === "france_metropolitaine"
+            : zoneFilter === "overseas"
+              ? zone === "outre_mer"
+              : zoneFilter === "africa"
+                ? zone === "afrique"
+                : zoneFilter === "international"
+                  ? zone === "international"
                   : zoneFilter === "without_overseas"
                     ? zone !== "outre_mer"
                     : zoneFilter === "without_africa"
@@ -283,7 +279,7 @@ export default function OrdersTableClient({ orders }: { orders: Order[] }) {
     );
   }
 
-  function toggleAll() {
+  function toggleAllVisible() {
     if (allVisibleSelected) {
       setSelected((prev) =>
         prev.filter(
@@ -298,45 +294,21 @@ export default function OrdersTableClient({ orders }: { orders: Order[] }) {
     setSelected((prev) => Array.from(new Set([...prev, ...visibleRefs])));
   }
 
-  function selectByPredicate(predicate: (order: Order) => boolean) {
-    const refs = filteredOrders.filter(predicate).map((order) => order.reference);
-    setSelected(refs);
-  }
-
   function selectAllVisible() {
     setSelected(filteredOrders.map((order) => order.reference));
   }
 
+  function deselectVisible() {
+    setSelected((prev) =>
+      prev.filter(
+        (reference) =>
+          !filteredOrders.some((order) => order.reference === reference)
+      )
+    );
+  }
+
   function clearSelection() {
     setSelected([]);
-  }
-
-  function selectMultipleVisible() {
-    selectByPredicate((order) => getOrderTotalQuantity(order) >= 2);
-  }
-
-  function selectWithoutOverseas() {
-    selectByPredicate(
-      (order) => !isOverseasDestination(order.shippingAddress?.country || "")
-    );
-  }
-
-  function selectWithoutAfrica() {
-    selectByPredicate(
-      (order) => !isAfricaDestination(order.shippingAddress?.country || "")
-    );
-  }
-
-  function selectOverseas() {
-    selectByPredicate((order) =>
-      isOverseasDestination(order.shippingAddress?.country || "")
-    );
-  }
-
-  function selectAfrica() {
-    selectByPredicate((order) =>
-      isAfricaDestination(order.shippingAddress?.country || "")
-    );
   }
 
   function resetFilters() {
@@ -450,14 +422,10 @@ export default function OrdersTableClient({ orders }: { orders: Order[] }) {
   }
 
   function handleSelectionAction(value: string) {
+    if (value === "toggle_visible") toggleAllVisible();
     if (value === "select_visible") selectAllVisible();
-    if (value === "toggle_visible") toggleAll();
+    if (value === "deselect_visible") deselectVisible();
     if (value === "clear") clearSelection();
-    if (value === "select_multiple") selectMultipleVisible();
-    if (value === "select_without_overseas") selectWithoutOverseas();
-    if (value === "select_without_africa") selectWithoutAfrica();
-    if (value === "select_overseas") selectOverseas();
-    if (value === "select_africa") selectAfrica();
   }
 
   function handleExportAction(value: string) {
@@ -643,15 +611,15 @@ export default function OrdersTableClient({ orders }: { orders: Order[] }) {
                 Choisir une action
               </option>
               <option value="toggle_visible">
-                {allVisibleSelected ? "Tout désélectionner" : "Tout sélectionner"}
+                {allVisibleSelected
+                  ? "Désélectionner la liste affichée"
+                  : "Sélectionner la liste affichée"}
               </option>
-              <option value="select_visible">Sélectionner tout le filtre courant</option>
-              <option value="select_multiple">Sélectionner commandes multiples</option>
-              <option value="select_without_overseas">Tout sans Outre-Mer</option>
-              <option value="select_without_africa">Tout sans l’Afrique</option>
-              <option value="select_overseas">Sélectionner Outre-Mer</option>
-              <option value="select_africa">Sélectionner Afrique</option>
-              <option value="clear">Vider la sélection</option>
+              <option value="select_visible">Sélectionner toute la liste affichée</option>
+              <option value="deselect_visible">
+                Désélectionner toute la liste affichée
+              </option>
+              <option value="clear">Vider toute la sélection</option>
             </select>
           </div>
 
@@ -751,7 +719,7 @@ export default function OrdersTableClient({ orders }: { orders: Order[] }) {
               <input
                 type="checkbox"
                 checked={allVisibleSelected}
-                onChange={toggleAll}
+                onChange={toggleAllVisible}
                 aria-label="Sélectionner toutes les commandes visibles"
               />
             </th>
@@ -826,7 +794,13 @@ export default function OrdersTableClient({ orders }: { orders: Order[] }) {
                     {order.customer.firstName} {order.customer.lastName}
                   </div>
 
-                  <div style={{ marginTop: "3px", ...mutedSmallStyle, ...compactTextStyle }}>
+                  <div
+                    style={{
+                      marginTop: "3px",
+                      ...mutedSmallStyle,
+                      ...compactTextStyle,
+                    }}
+                  >
                     {order.customer.email}
                   </div>
 
@@ -849,7 +823,13 @@ export default function OrdersTableClient({ orders }: { orders: Order[] }) {
                   </div>
 
                   {order.shippingAddress?.city ? (
-                    <div style={{ marginTop: "3px", ...mutedSmallStyle, ...compactTextStyle }}>
+                    <div
+                      style={{
+                        marginTop: "3px",
+                        ...mutedSmallStyle,
+                        ...compactTextStyle,
+                      }}
+                    >
                       {order.shippingAddress.city}
                     </div>
                   ) : null}
@@ -874,7 +854,13 @@ export default function OrdersTableClient({ orders }: { orders: Order[] }) {
                     .join(" | ")}
                 </td>
 
-                <td style={{ ...bodyCellStyle, whiteSpace: "nowrap", fontWeight: 700 }}>
+                <td
+                  style={{
+                    ...bodyCellStyle,
+                    whiteSpace: "nowrap",
+                    fontWeight: 700,
+                  }}
+                >
                   {euros(order.totalAmount)}
                 </td>
 
