@@ -68,9 +68,16 @@ export default async function Page({
           maxWidth: "1180px",
         }}
       >
-        <div>
+        <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
           <Link href="/admin/billetteries" className="button secondary">
             Retour aux billetteries
+          </Link>
+
+          <Link
+            href={`/admin/billetteries/${event.slug}/modifier`}
+            className="button"
+          >
+            Modifier
           </Link>
         </div>
 
@@ -96,8 +103,7 @@ export default async function Page({
           <h1 style={{ margin: 0 }}>{event.title}</h1>
 
           <p style={{ color: "#64748b", marginBottom: 0 }}>
-            Cette page affiche les paramètres enregistrés de la billetterie. La
-            modification viendra dans une étape suivante.
+            Cette page affiche les paramètres enregistrés de la billetterie.
           </p>
         </section>
 
@@ -330,9 +336,9 @@ export default async function Page({
             fontWeight: 600,
           }}
         >
-          Cette page est en lecture seule. Elle ne modifie aucune donnée et ne
-          touche pas aux commandes, aux offres, au panier, à Stripe ou aux
-          exports existants.
+          Le bouton Modifier agit uniquement sur les informations générales de
+          cette billetterie. Les commandes, offres, panier, Stripe et exports
+          existants ne sont pas modifiés.
         </section>
       </div>
     </main>
