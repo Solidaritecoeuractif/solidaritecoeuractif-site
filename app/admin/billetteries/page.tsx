@@ -1,6 +1,9 @@
 import TicketingDraftClient from "@/components/TicketingDraftClient";
+import { ticketingStorage } from "@/lib/ticketing";
 
-export default function Page() {
+export default async function Page() {
+  const events = await ticketingStorage().getTicketingEvents();
+
   return (
     <main className="panel">
       <div
@@ -25,13 +28,12 @@ export default function Page() {
           <h1 style={{ margin: 0 }}>Billetteries</h1>
 
           <p style={{ color: "#64748b", maxWidth: "760px" }}>
-            Première maquette locale de configuration d’une billetterie. Cette
-            étape prépare l’interface sans encore enregistrer les données en base
-            et sans toucher aux commandes existantes.
+            Configuration des billetteries du site. Ce module reste séparé des
+            commandes, offres, exports et paiements existants du livre.
           </p>
         </div>
 
-        <TicketingDraftClient />
+        <TicketingDraftClient initialEvents={events} />
       </div>
     </main>
   );

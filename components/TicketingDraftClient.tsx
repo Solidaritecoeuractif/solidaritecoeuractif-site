@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import type { TicketingEvent } from "@/lib/ticketing/types";
 
 type RateType = "fixed" | "free_amount" | "free";
 
@@ -42,9 +43,36 @@ function parseDonationAmounts(value: string) {
     .map((amount) => Math.round(amount * 100));
 }
 
-export default function TicketingDraftClient() {
+function formatDate(value?: string) {
+  if (!value) return "—";
+
+  try {
+    return new Intl.DateTimeFormat("fr-FR", {
+      dateStyle: "short",
+      timeStyle: "short",
+    }).format(new Date(value));
+  } catch {
+    return value;
+  }
+}
+
+function statusLabel(event: TicketingEvent) {
+  if (event.status === "published" && event.isVisible) return "Visible";
+  if (event.status === "archived") return "Archivée";
+  if (event.status === "hidden") return "Masquée";
+  return "Brouillon";
+}
+
+export default function TicketingDraftClient({
+  initialEvents,
+}: {
+  initialEvents: TicketingEvent[];
+}) {
+  const [events, setEvents] = useState<TicketingEvent[]>(initialEvents);
   const [title, setTitle] = useState("Week-end de Ressourcement");
-  const [formTypeLabel, setFormTypeLabel] = useState("Séjour, week-end, séminaire");
+  const [formTypeLabel, setFormTypeLabel] = useState(
+    "Séjour, week-end, séminaire"
+  );
   const [isVisible, setIsVisible] = useState(false);
   const [locationName, setLocationName] = useState("22 rue de Triqueti");
   const [addressLine, setAddressLine] = useState("");
@@ -96,7 +124,7 @@ export default function TicketingDraftClient() {
     setRates((current) => current.filter((rate) => rate.id !== id));
   }
 
-  async function saveLocalDraft() {
+  async function saveTicketingEvent() {
     if (saving) return;
 
     setSaving(true);
@@ -122,7 +150,9 @@ export default function TicketingDraftClient() {
           organizerPhone,
           shortDescription,
           allowExtraDonation,
-          suggestedDonationAmounts: parseDonationAmounts(suggestedDonationAmounts),
+          suggestedDonationAmounts: parseDonationAmounts(
+            suggestedDonationAmounts
+          ),
           rates,
         }),
       });
@@ -133,16 +163,15 @@ export default function TicketingDraftClient() {
         setSaveMessage(
           typeof data?.error === "string"
             ? data.error
-            : "Impossible de sauvegarder cette maquette."
+            : "Impossible d’enregistrer cette billetterie."
         );
         return;
       }
 
-      setSaveMessage(
-        `Maquette sauvegardée en local : ${data.event?.title || title}`
-      );
+      setEvents((current) => [data.event, ...current]);
+      setSaveMessage(`Billetterie enregistrée : ${data.event?.title || title}`);
     } catch {
-      setSaveMessage("Erreur pendant la sauvegarde locale de la maquette.");
+      setSaveMessage("Erreur pendant l’enregistrement de la billetterie.");
     } finally {
       setSaving(false);
     }
@@ -150,6 +179,71 @@ export default function TicketingDraftClient() {
 
   return (
     <div style={{ display: "grid", gap: "18px" }}>
+      <section
+        style={{
+          border: "1px solid #dbe3ee",
+          borderRadius: "16px",
+          padding: "18px",
+          background: "#ffffff",
+        }}
+      >
+        <h2 style={{ marginTop: 0 }}>Billetteries enregistrées</h2>
+
+        {events.length === 0 ? (
+          <p style={{ color: "#64748b", marginBottom: 0 }}>
+            Aucune billetterie enregistrée pour le moment.
+          </p>
+        ) : (
+          <div style={{ overflowX: "auto" }}>
+            <table
+              className="table"
+              style={{
+                width: "100%",
+                minWidth: "760px",
+                tableLayout: "fixed",
+              }}
+            >
+              <thead>
+                <tr>
+                  <th style={{ width: "230px" }}>Nom</th>
+                  <th style={{ width: "120px" }}>Statut</th>
+                  <th style={{ width: "180px" }}>Lieu</th>
+                  <th style={{ width: "150px" }}>Créée le</th>
+                  <th style={{ width: "160px" }}>Lien public</th>
+                </tr>
+              </thead>
+              <tbody>
+                {events.map((event) => (
+                  <tr key={event.id}>
+                    <td>
+                      <strong>{event.title}</strong>
+                      <br />
+                      <small>{event.slug}</small>
+                    </td>
+                    <td>{statusLabel(event)}</td>
+                    <td>
+                      {[event.locationName, event.city, event.country]
+                        .filter(Boolean)
+                        .join(", ") || "—"}
+                    </td>
+                    <td>{formatDate(event.createdAt)}</td>
+                    <td>
+                      {event.isVisible ? (
+                        <span style={{ color: "#166534", fontWeight: 700 }}>
+                          /evenements/{event.slug}
+                        </span>
+                      ) : (
+                        <span style={{ color: "#64748b" }}>Non publié</span>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </section>
+
       <div
         style={{
           border: "1px solid #facc15",
@@ -160,8 +254,9 @@ export default function TicketingDraftClient() {
           fontWeight: 600,
         }}
       >
-        Maquette sécurisée : cette interface ne touche pas aux commandes, au
-        panier, aux offres actuelles, aux exports ou au paiement du livre.
+        Enregistrement isolé : cette billetterie est sauvegardée dans les tables
+        dédiées <code>ticketing_*</code>. Les commandes, offres, exports, panier
+        et paiements existants du livre ne sont pas modifiés.
       </div>
 
       {saveMessage ? (
@@ -171,9 +266,11 @@ export default function TicketingDraftClient() {
             borderRadius: "14px",
             padding: "12px",
             background: "#f8fafc",
-            color: saveMessage.includes("Impossible") || saveMessage.includes("Erreur")
-              ? "#991b1b"
-              : "#166534",
+            color:
+              saveMessage.includes("Impossible") ||
+              saveMessage.includes("Erreur")
+                ? "#991b1b"
+                : "#166534",
             fontWeight: 600,
           }}
         >
@@ -189,7 +286,7 @@ export default function TicketingDraftClient() {
           background: "#ffffff",
         }}
       >
-        <h2 style={{ marginTop: 0 }}>Informations générales</h2>
+        <h2 style={{ marginTop: 0 }}>Nouvelle billetterie</h2>
 
         <div
           style={{
@@ -628,10 +725,10 @@ export default function TicketingDraftClient() {
           <button
             type="button"
             className="button"
-            onClick={saveLocalDraft}
+            onClick={saveTicketingEvent}
             disabled={saving}
           >
-            {saving ? "Sauvegarde..." : "Sauvegarder la maquette en local"}
+            {saving ? "Enregistrement..." : "Enregistrer la billetterie"}
           </button>
         </div>
       </section>
