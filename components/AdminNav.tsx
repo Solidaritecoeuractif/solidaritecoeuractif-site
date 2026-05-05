@@ -31,6 +31,13 @@ export function AdminNav() {
       </Link>
 
       <Link
+        href="/admin/billetteries"
+        className={adminLinkClass(pathname.startsWith("/admin/billetteries"))}
+      >
+        Billetteries
+      </Link>
+
+      <Link
         href="/admin/import-commandes-privees"
         className={adminLinkClass(
           pathname.startsWith("/admin/import-commandes-privees")
