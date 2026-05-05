@@ -71,6 +71,18 @@ function toDateTimeLocalValue(iso: string) {
   return local.toISOString().slice(0, 16);
 }
 
+function getOrderTotalQuantity(order: Order) {
+  return order.items.reduce((sum, item) => sum + Number(item.quantity || 0), 0);
+}
+
+function isSingleQuantityOrder(order: Order) {
+  return getOrderTotalQuantity(order) === 1;
+}
+
+function isMultipleQuantityOrder(order: Order) {
+  return getOrderTotalQuantity(order) >= 2;
+}
+
 function zoneLabel(countryCode?: string) {
   if (!countryCode) return "Sans adresse";
 
@@ -188,19 +200,31 @@ export default function OrdersTableClient({ orders }: { orders: Order[] }) {
 
       const countryCode = order.shippingAddress?.country || "";
       const zone = getDestinationZone(countryCode);
+      const isSingle = isSingleQuantityOrder(order);
+      const isMultiple = isMultipleQuantityOrder(order);
 
       const zoneOk =
         zoneFilter === "all"
           ? true
-          : zoneFilter === "overseas"
-            ? zone === "outre_mer"
-            : zoneFilter === "africa"
-              ? zone === "afrique"
-              : zoneFilter === "international"
-                ? zone === "international"
-                : zoneFilter === "france"
-                  ? zone === "france_metropolitaine"
-                  : true;
+          : zoneFilter === "multiple"
+            ? isMultiple
+            : !isSingle
+              ? false
+              : zoneFilter === "overseas"
+                ? zone === "outre_mer"
+                : zoneFilter === "africa"
+                  ? zone === "afrique"
+                  : zoneFilter === "international"
+                    ? zone === "international"
+                    : zoneFilter === "france"
+                      ? zone === "france_metropolitaine"
+                      : zoneFilter === "without_overseas"
+                        ? zone !== "outre_mer"
+                        : zoneFilter === "without_africa"
+                          ? zone !== "afrique"
+                          : zoneFilter === "without_international"
+                            ? zone !== "international"
+                            : true;
 
       const searchSource = normalizeSearchText(
         [
@@ -268,26 +292,38 @@ export default function OrdersTableClient({ orders }: { orders: Order[] }) {
 
   function selectWithoutOverseas() {
     selectByPredicate(
-      (order) => !isOverseasDestination(order.shippingAddress?.country || "")
+      (order) =>
+        isSingleQuantityOrder(order) &&
+        !isOverseasDestination(order.shippingAddress?.country || "")
     );
   }
 
   function selectWithoutAfrica() {
     selectByPredicate(
-      (order) => !isAfricaDestination(order.shippingAddress?.country || "")
+      (order) =>
+        isSingleQuantityOrder(order) &&
+        !isAfricaDestination(order.shippingAddress?.country || "")
     );
   }
 
   function selectOverseas() {
-    selectByPredicate((order) =>
-      isOverseasDestination(order.shippingAddress?.country || "")
+    selectByPredicate(
+      (order) =>
+        isSingleQuantityOrder(order) &&
+        isOverseasDestination(order.shippingAddress?.country || "")
     );
   }
 
   function selectAfrica() {
-    selectByPredicate((order) =>
-      isAfricaDestination(order.shippingAddress?.country || "")
+    selectByPredicate(
+      (order) =>
+        isSingleQuantityOrder(order) &&
+        isAfricaDestination(order.shippingAddress?.country || "")
     );
+  }
+
+  function selectMultipleOrders() {
+    selectByPredicate((order) => isMultipleQuantityOrder(order));
   }
 
   function resetFilters() {
@@ -483,17 +519,25 @@ export default function OrdersTableClient({ orders }: { orders: Order[] }) {
           </label>
 
           <label style={{ display: "grid", gap: "6px" }}>
-            <span style={{ fontSize: "14px", fontWeight: 600 }}>Zone</span>
+            <span style={{ fontSize: "14px", fontWeight: 600 }}>Zone / type</span>
             <select
               className="input"
               value={zoneFilter}
               onChange={(e) => setZoneFilter(e.target.value)}
             >
-              <option value="all">Toutes</option>
-              <option value="france">France métropolitaine</option>
-              <option value="overseas">Outre-Mer / DOM</option>
-              <option value="africa">Afrique</option>
-              <option value="international">International hors Afrique et DOM</option>
+              <option value="all">Toutes les commandes</option>
+              <option value="multiple">Commandes multiples, quantité 2 et plus</option>
+              <option value="france">France métropolitaine, quantité 1</option>
+              <option value="overseas">Outre-Mer / DOM, quantité 1</option>
+              <option value="africa">Afrique, quantité 1</option>
+              <option value="international">
+                International hors Afrique et DOM, quantité 1
+              </option>
+              <option value="without_overseas">Tout sauf Outre-Mer, quantité 1</option>
+              <option value="without_africa">Tout sauf Afrique, quantité 1</option>
+              <option value="without_international">
+                Tout sauf International, quantité 1
+              </option>
             </select>
           </label>
 
@@ -547,6 +591,14 @@ export default function OrdersTableClient({ orders }: { orders: Order[] }) {
                 onClick={selectAllVisible}
               >
                 Sélectionner tout le filtre courant
+              </button>
+
+              <button
+                type="button"
+                className="button secondary"
+                onClick={selectMultipleOrders}
+              >
+                Sélectionner commandes multiples
               </button>
 
               <button
@@ -795,6 +847,19 @@ export default function OrdersTableClient({ orders }: { orders: Order[] }) {
                   {order.shippingAddress?.city ? (
                     <div style={{ marginTop: "3px", ...mutedSmallStyle, ...compactTextStyle }}>
                       {order.shippingAddress.city}
+                    </div>
+                  ) : null}
+
+                  {isMultipleQuantityOrder(order) ? (
+                    <div
+                      style={{
+                        marginTop: "5px",
+                        fontSize: "11px",
+                        fontWeight: 700,
+                        color: "#92400e",
+                      }}
+                    >
+                      Multiple : {getOrderTotalQuantity(order)} ex.
                     </div>
                   ) : null}
                 </td>
