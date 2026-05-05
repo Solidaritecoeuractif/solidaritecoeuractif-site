@@ -34,11 +34,20 @@ function newRate(): DraftRate {
   };
 }
 
+function parseDonationAmounts(value: string) {
+  return String(value || "")
+    .split(",")
+    .map((item) => Number(item.trim().replace(",", ".")))
+    .filter((amount) => Number.isFinite(amount) && amount > 0)
+    .map((amount) => Math.round(amount * 100));
+}
+
 export default function TicketingDraftClient() {
   const [title, setTitle] = useState("Week-end de Ressourcement");
   const [formTypeLabel, setFormTypeLabel] = useState("Séjour, week-end, séminaire");
   const [isVisible, setIsVisible] = useState(false);
   const [locationName, setLocationName] = useState("22 rue de Triqueti");
+  const [addressLine, setAddressLine] = useState("");
   const [postalCode, setPostalCode] = useState("45200");
   const [city, setCity] = useState("Montargis");
   const [country, setCountry] = useState("France");
@@ -65,6 +74,8 @@ export default function TicketingDraftClient() {
       isActive: true,
     },
   ]);
+  const [saving, setSaving] = useState(false);
+  const [saveMessage, setSaveMessage] = useState("");
 
   const activeRatesCount = useMemo(
     () => rates.filter((rate) => rate.isActive).length,
@@ -85,6 +96,58 @@ export default function TicketingDraftClient() {
     setRates((current) => current.filter((rate) => rate.id !== id));
   }
 
+  async function saveLocalDraft() {
+    if (saving) return;
+
+    setSaving(true);
+    setSaveMessage("");
+
+    try {
+      const response = await fetch("/api/admin/ticketing/draft", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title,
+          formTypeLabel,
+          isVisible,
+          locationName,
+          addressLine,
+          postalCode,
+          city,
+          country,
+          durationType,
+          startsAt,
+          endsAt,
+          organizerEmail,
+          organizerPhone,
+          shortDescription,
+          allowExtraDonation,
+          suggestedDonationAmounts: parseDonationAmounts(suggestedDonationAmounts),
+          rates,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        setSaveMessage(
+          typeof data?.error === "string"
+            ? data.error
+            : "Impossible de sauvegarder cette maquette."
+        );
+        return;
+      }
+
+      setSaveMessage(
+        `Maquette sauvegardée en local : ${data.event?.title || title}`
+      );
+    } catch {
+      setSaveMessage("Erreur pendant la sauvegarde locale de la maquette.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
   return (
     <div style={{ display: "grid", gap: "18px" }}>
       <div
@@ -97,9 +160,26 @@ export default function TicketingDraftClient() {
           fontWeight: 600,
         }}
       >
-        Maquette sans enregistrement : cette interface ne modifie aucune commande,
-        aucun produit, aucun paiement et aucune donnée en base.
+        Maquette sécurisée : cette interface ne touche pas aux commandes, au
+        panier, aux offres actuelles, aux exports ou au paiement du livre.
       </div>
+
+      {saveMessage ? (
+        <div
+          style={{
+            border: "1px solid #dbe3ee",
+            borderRadius: "14px",
+            padding: "12px",
+            background: "#f8fafc",
+            color: saveMessage.includes("Impossible") || saveMessage.includes("Erreur")
+              ? "#991b1b"
+              : "#166534",
+            fontWeight: 600,
+          }}
+        >
+          {saveMessage}
+        </div>
+      ) : null}
 
       <section
         style={{
@@ -173,6 +253,16 @@ export default function TicketingDraftClient() {
               className="input"
               value={locationName}
               onChange={(event) => setLocationName(event.target.value)}
+            />
+          </label>
+
+          <label style={{ display: "grid", gap: "6px" }}>
+            <span style={{ fontWeight: 700 }}>Adresse</span>
+            <input
+              className="input"
+              value={addressLine}
+              onChange={(event) => setAddressLine(event.target.value)}
+              placeholder="Adresse complète ou complément"
             />
           </label>
 
@@ -514,7 +604,9 @@ export default function TicketingDraftClient() {
           </div>
           <div>
             <strong>Lieu :</strong>{" "}
-            {[locationName, postalCode, city, country].filter(Boolean).join(", ")}
+            {[locationName, addressLine, postalCode, city, country]
+              .filter(Boolean)
+              .join(", ")}
           </div>
           <div>
             <strong>Durée :</strong>{" "}
@@ -528,10 +620,19 @@ export default function TicketingDraftClient() {
             <strong>Tarifs :</strong>{" "}
             {rates.length === 0
               ? "Aucun tarif"
-              : rates
-                  .map((rate) => rate.name || "Tarif sans nom")
-                  .join(", ")}
+              : rates.map((rate) => rate.name || "Tarif sans nom").join(", ")}
           </div>
+        </div>
+
+        <div style={{ marginTop: "18px" }}>
+          <button
+            type="button"
+            className="button"
+            onClick={saveLocalDraft}
+            disabled={saving}
+          >
+            {saving ? "Sauvegarde..." : "Sauvegarder la maquette en local"}
+          </button>
         </div>
       </section>
     </div>
