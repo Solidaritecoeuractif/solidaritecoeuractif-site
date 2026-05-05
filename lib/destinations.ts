@@ -313,16 +313,201 @@ export const FORCED_POSTAL_CODES: Record<string, string> = {
   ZW: "00000",
 };
 
+function normalizeDestinationInput(value: string) {
+  return String(value || "")
+    .trim()
+    .toUpperCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[’']/g, " ")
+    .replace(/[^A-Z0-9]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+const DESTINATION_ALIASES: Record<string, string> = {
+  FRANCE: "FR",
+  FRANCE METROPOLITAINE: "FR",
+  METROPOLE: "FR",
+  FRANCE METRO: "FR",
+  FRANCE METROPOLE: "FR",
+
+  GP: "FR-GP",
+  GUADELOUPE: "FR-GP",
+  FRANCE GUADELOUPE: "FR-GP",
+  FR GP: "FR-GP",
+  FRGUADELOUPE: "FR-GP",
+
+  MQ: "FR-MQ",
+  MARTINIQUE: "FR-MQ",
+  FRANCE MARTINIQUE: "FR-MQ",
+  FR MQ: "FR-MQ",
+  FRMARTINIQUE: "FR-MQ",
+
+  GF: "FR-GF",
+  GUYANE: "FR-GF",
+  GUYANE FRANCAISE: "FR-GF",
+  FRANCE GUYANE: "FR-GF",
+  FRANCE GUYANE FRANCAISE: "FR-GF",
+  FR GF: "FR-GF",
+  FRGUYANE: "FR-GF",
+
+  RE: "FR-RE",
+  REUNION: "FR-RE",
+  LA REUNION: "FR-RE",
+  ILE DE LA REUNION: "FR-RE",
+  FRANCE REUNION: "FR-RE",
+  FRANCE LA REUNION: "FR-RE",
+  FR RE: "FR-RE",
+  FRREUNION: "FR-RE",
+
+  YT: "FR-YT",
+  MAYOTTE: "FR-YT",
+  FRANCE MAYOTTE: "FR-YT",
+  FR YT: "FR-YT",
+  FRMAYOTTE: "FR-YT",
+
+  BL: "FR-BL",
+  SAINT BARTHELEMY: "FR-BL",
+  ST BARTHELEMY: "FR-BL",
+  SAINT BARTH: "FR-BL",
+  ST BARTH: "FR-BL",
+  FRANCE SAINT BARTHELEMY: "FR-BL",
+  FR BL: "FR-BL",
+
+  MF: "FR-MF",
+  SAINT MARTIN: "FR-MF",
+  ST MARTIN: "FR-MF",
+  FRANCE SAINT MARTIN: "FR-MF",
+  FR MF: "FR-MF",
+
+  PM: "FR-PM",
+  SAINT PIERRE ET MIQUELON: "FR-PM",
+  ST PIERRE ET MIQUELON: "FR-PM",
+  FRANCE SAINT PIERRE ET MIQUELON: "FR-PM",
+  FR PM: "FR-PM",
+
+  WF: "FR-WF",
+  WALLIS ET FUTUNA: "FR-WF",
+  WALLIS FUTUNA: "FR-WF",
+  FRANCE WALLIS ET FUTUNA: "FR-WF",
+  FR WF: "FR-WF",
+
+  PF: "FR-PF",
+  POLYNESIE FRANCAISE: "FR-PF",
+  POLYNESIE: "FR-PF",
+  TAHITI: "FR-PF",
+  FRANCE POLYNESIE FRANCAISE: "FR-PF",
+  FR PF: "FR-PF",
+
+  NC: "FR-NC",
+  NOUVELLE CALEDONIE: "FR-NC",
+  NOUVELLE CALEDONIE FRANCAISE: "FR-NC",
+  FRANCE NOUVELLE CALEDONIE: "FR-NC",
+  FR NC: "FR-NC",
+
+  USA: "US",
+  ETATS UNIS: "US",
+  ETATS UNIS AMERIQUE: "US",
+  ETATS UNIS D AMERIQUE: "US",
+  UNITED STATES: "US",
+  UNITED STATES OF AMERICA: "US",
+  AMERIQUE: "US",
+
+  COTE D IVOIRE: "CI",
+  COTE IVOIRE: "CI",
+  IVORY COAST: "CI",
+
+  CONGO BRAZZAVILLE: "CG",
+  REPUBLIQUE DU CONGO: "CG",
+
+  CONGO KINSHASA: "CD",
+  RDC: "CD",
+  REPUBLIQUE DEMOCRATIQUE DU CONGO: "CD",
+
+  BENIN: "BJ",
+  CAMEROUN: "CM",
+  CANADA: "CA",
+  SUISSE: "CH",
+  BELGIQUE: "BE",
+  ALLEMAGNE: "DE",
+  ESPAGNE: "ES",
+  ITALIE: "IT",
+  ROYAUME UNI: "GB",
+  ANGLETERRE: "GB",
+  PORTUGAL: "PT",
+  PAYS BAS: "NL",
+  SENEGAL: "SN",
+  TOGO: "TG",
+  GABON: "GA",
+  MAROC: "MA",
+  ALGERIE: "DZ",
+  TUNISIE: "TN",
+  NIGERIA: "NG",
+  GHANA: "GH",
+  MALI: "ML",
+  BURKINA FASO: "BF",
+  MADAGASCAR: "MG",
+  MAURICE: "MU",
+  AFRIQUE DU SUD: "ZA",
+};
+
+function resolveDestinationCode(value: string) {
+  const raw = String(value || "").trim();
+
+  if (!raw) {
+    return "";
+  }
+
+  const exactMatch = DESTINATION_OPTIONS.find(
+    (item) => item.code.toUpperCase() === raw.toUpperCase()
+  );
+
+  if (exactMatch) {
+    return exactMatch.code;
+  }
+
+  const normalized = normalizeDestinationInput(raw);
+
+  if (DESTINATION_ALIASES[normalized]) {
+    return DESTINATION_ALIASES[normalized];
+  }
+
+  const labelMatch = DESTINATION_OPTIONS.find(
+    (item) => normalizeDestinationInput(item.label) === normalized
+  );
+
+  if (labelMatch) {
+    return labelMatch.code;
+  }
+
+  const countryCodeMatch = DESTINATION_OPTIONS.find(
+    (item) => item.countryCode.toUpperCase() === raw.toUpperCase()
+  );
+
+  if (countryCodeMatch) {
+    return countryCodeMatch.code;
+  }
+
+  return raw;
+}
+
 export function getDestinationZone(code: string): DestinationZone {
+  const resolvedCode = resolveDestinationCode(code);
+
   return (
-    DESTINATION_OPTIONS.find((item) => item.code === code)?.zone ||
+    DESTINATION_OPTIONS.find((item) => item.code === resolvedCode)?.zone ||
     "international"
   );
 }
 
 export function getDestinationCountryCode(code: string) {
+  const resolvedCode = resolveDestinationCode(code);
+
   return (
-    DESTINATION_OPTIONS.find((item) => item.code === code)?.countryCode || code
+    DESTINATION_OPTIONS.find((item) => item.code === resolvedCode)?.countryCode ||
+    resolvedCode ||
+    code
   );
 }
 
