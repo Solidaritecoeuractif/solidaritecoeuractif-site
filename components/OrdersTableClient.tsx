@@ -75,14 +75,6 @@ function getOrderTotalQuantity(order: Order) {
   return order.items.reduce((sum, item) => sum + Number(item.quantity || 0), 0);
 }
 
-function isSingleQuantityOrder(order: Order) {
-  return getOrderTotalQuantity(order) === 1;
-}
-
-function isMultipleQuantityOrder(order: Order) {
-  return getOrderTotalQuantity(order) >= 2;
-}
-
 function zoneLabel(countryCode?: string) {
   if (!countryCode) return "Sans adresse";
 
@@ -117,8 +109,8 @@ function sectionCardStyle() {
     borderRadius: "14px",
     padding: "14px",
     background: "#ffffff",
-    minWidth: "260px",
-    flex: "1 1 260px",
+    minWidth: "230px",
+    flex: "1 1 230px",
   } as const;
 }
 
@@ -126,7 +118,7 @@ function sectionTitleStyle() {
   return {
     fontSize: "14px",
     fontWeight: 700,
-    marginBottom: "10px",
+    marginBottom: "8px",
   } as const;
 }
 
@@ -167,11 +159,24 @@ const compactBadgeStyle = {
   whiteSpace: "nowrap" as const,
 };
 
+type QuantityFilter = "all" | "single" | "multiple";
+
+type ZoneFilter =
+  | "all"
+  | "france"
+  | "overseas"
+  | "africa"
+  | "international"
+  | "without_overseas"
+  | "without_africa"
+  | "without_international";
+
 export default function OrdersTableClient({ orders }: { orders: Order[] }) {
   const [selected, setSelected] = useState<string[]>([]);
   const [logisticsFilter, setLogisticsFilter] = useState("all");
   const [exportFilter, setExportFilter] = useState("all");
-  const [zoneFilter, setZoneFilter] = useState("all");
+  const [quantityFilter, setQuantityFilter] = useState<QuantityFilter>("all");
+  const [zoneFilter, setZoneFilter] = useState<ZoneFilter>("all");
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
@@ -198,33 +203,36 @@ export default function OrdersTableClient({ orders }: { orders: Order[] }) {
       const fromOk = dateFrom ? orderDate >= new Date(dateFrom).getTime() : true;
       const toOk = dateTo ? orderDate <= new Date(dateTo).getTime() : true;
 
+      const totalQuantity = getOrderTotalQuantity(order);
+
+      const quantityOk =
+        quantityFilter === "all"
+          ? true
+          : quantityFilter === "single"
+            ? totalQuantity === 1
+            : totalQuantity >= 2;
+
       const countryCode = order.shippingAddress?.country || "";
       const zone = getDestinationZone(countryCode);
-      const isSingle = isSingleQuantityOrder(order);
-      const isMultiple = isMultipleQuantityOrder(order);
 
       const zoneOk =
         zoneFilter === "all"
           ? true
-          : zoneFilter === "multiple"
-            ? isMultiple
-            : !isSingle
-              ? false
-              : zoneFilter === "overseas"
-                ? zone === "outre_mer"
-                : zoneFilter === "africa"
-                  ? zone === "afrique"
-                  : zoneFilter === "international"
-                    ? zone === "international"
-                    : zoneFilter === "france"
-                      ? zone === "france_metropolitaine"
-                      : zoneFilter === "without_overseas"
-                        ? zone !== "outre_mer"
-                        : zoneFilter === "without_africa"
-                          ? zone !== "afrique"
-                          : zoneFilter === "without_international"
-                            ? zone !== "international"
-                            : true;
+          : zoneFilter === "overseas"
+            ? zone === "outre_mer"
+            : zoneFilter === "africa"
+              ? zone === "afrique"
+              : zoneFilter === "international"
+                ? zone === "international"
+                : zoneFilter === "france"
+                  ? zone === "france_metropolitaine"
+                  : zoneFilter === "without_overseas"
+                    ? zone !== "outre_mer"
+                    : zoneFilter === "without_africa"
+                      ? zone !== "afrique"
+                      : zoneFilter === "without_international"
+                        ? zone !== "international"
+                        : true;
 
       const searchSource = normalizeSearchText(
         [
@@ -239,12 +247,21 @@ export default function OrdersTableClient({ orders }: { orders: Order[] }) {
       const searchOk =
         normalizedSearch === "" || searchSource.includes(normalizedSearch);
 
-      return logisticsOk && exportOk && fromOk && toOk && zoneOk && searchOk;
+      return (
+        logisticsOk &&
+        exportOk &&
+        fromOk &&
+        toOk &&
+        quantityOk &&
+        zoneOk &&
+        searchOk
+      );
     });
   }, [
     orders,
     logisticsFilter,
     exportFilter,
+    quantityFilter,
     zoneFilter,
     dateFrom,
     dateTo,
@@ -290,45 +307,42 @@ export default function OrdersTableClient({ orders }: { orders: Order[] }) {
     setSelected(filteredOrders.map((order) => order.reference));
   }
 
+  function clearSelection() {
+    setSelected([]);
+  }
+
+  function selectMultipleVisible() {
+    selectByPredicate((order) => getOrderTotalQuantity(order) >= 2);
+  }
+
   function selectWithoutOverseas() {
     selectByPredicate(
-      (order) =>
-        isSingleQuantityOrder(order) &&
-        !isOverseasDestination(order.shippingAddress?.country || "")
+      (order) => !isOverseasDestination(order.shippingAddress?.country || "")
     );
   }
 
   function selectWithoutAfrica() {
     selectByPredicate(
-      (order) =>
-        isSingleQuantityOrder(order) &&
-        !isAfricaDestination(order.shippingAddress?.country || "")
+      (order) => !isAfricaDestination(order.shippingAddress?.country || "")
     );
   }
 
   function selectOverseas() {
-    selectByPredicate(
-      (order) =>
-        isSingleQuantityOrder(order) &&
-        isOverseasDestination(order.shippingAddress?.country || "")
+    selectByPredicate((order) =>
+      isOverseasDestination(order.shippingAddress?.country || "")
     );
   }
 
   function selectAfrica() {
-    selectByPredicate(
-      (order) =>
-        isSingleQuantityOrder(order) &&
-        isAfricaDestination(order.shippingAddress?.country || "")
+    selectByPredicate((order) =>
+      isAfricaDestination(order.shippingAddress?.country || "")
     );
-  }
-
-  function selectMultipleOrders() {
-    selectByPredicate((order) => isMultipleQuantityOrder(order));
   }
 
   function resetFilters() {
     setLogisticsFilter("all");
     setExportFilter("all");
+    setQuantityFilter("all");
     setZoneFilter("all");
     setDateFrom("");
     setDateTo("");
@@ -435,6 +449,35 @@ export default function OrdersTableClient({ orders }: { orders: Order[] }) {
     }
   }
 
+  function handleSelectionAction(value: string) {
+    if (value === "select_visible") selectAllVisible();
+    if (value === "toggle_visible") toggleAll();
+    if (value === "clear") clearSelection();
+    if (value === "select_multiple") selectMultipleVisible();
+    if (value === "select_without_overseas") selectWithoutOverseas();
+    if (value === "select_without_africa") selectWithoutAfrica();
+    if (value === "select_overseas") selectOverseas();
+    if (value === "select_africa") selectAfrica();
+  }
+
+  function handleExportAction(value: string) {
+    if (value === "csv") exportSelection("csv");
+    if (value === "xlsx") exportSelection("xlsx");
+    if (value === "chronopost") exportSelection("chronopost");
+    if (value === "word") exportSelection("word");
+  }
+
+  function handleCustomsAction(value: string) {
+    if (value === "customs-pdf") exportSelection("customs-pdf");
+    if (value === "customs-pdf-chronopost") {
+      exportSelection("customs-pdf-chronopost");
+    }
+  }
+
+  function handleGlobalAction(value: string) {
+    if (value === "mark_exported") markSelectedAsExported();
+  }
+
   const customsEligibleSelectedCount = orders.filter(
     (order) =>
       selected.includes(order.reference) &&
@@ -519,25 +562,33 @@ export default function OrdersTableClient({ orders }: { orders: Order[] }) {
           </label>
 
           <label style={{ display: "grid", gap: "6px" }}>
-            <span style={{ fontSize: "14px", fontWeight: 600 }}>Zone / type</span>
+            <span style={{ fontSize: "14px", fontWeight: 600 }}>Quantité</span>
+            <select
+              className="input"
+              value={quantityFilter}
+              onChange={(e) => setQuantityFilter(e.target.value as QuantityFilter)}
+            >
+              <option value="all">Toutes les quantités</option>
+              <option value="single">Quantité 1 uniquement</option>
+              <option value="multiple">Commandes multiples, quantité 2 et plus</option>
+            </select>
+          </label>
+
+          <label style={{ display: "grid", gap: "6px", minWidth: "280px" }}>
+            <span style={{ fontSize: "14px", fontWeight: 600 }}>Zone</span>
             <select
               className="input"
               value={zoneFilter}
-              onChange={(e) => setZoneFilter(e.target.value)}
+              onChange={(e) => setZoneFilter(e.target.value as ZoneFilter)}
             >
-              <option value="all">Toutes les commandes</option>
-              <option value="multiple">Commandes multiples, quantité 2 et plus</option>
-              <option value="france">France métropolitaine, quantité 1</option>
-              <option value="overseas">Outre-Mer / DOM, quantité 1</option>
-              <option value="africa">Afrique, quantité 1</option>
-              <option value="international">
-                International hors Afrique et DOM, quantité 1
-              </option>
-              <option value="without_overseas">Tout sauf Outre-Mer, quantité 1</option>
-              <option value="without_africa">Tout sauf Afrique, quantité 1</option>
-              <option value="without_international">
-                Tout sauf International, quantité 1
-              </option>
+              <option value="all">Toutes zones</option>
+              <option value="france">France métropolitaine</option>
+              <option value="overseas">Outre-Mer / DOM</option>
+              <option value="africa">Afrique</option>
+              <option value="international">International hors Afrique et DOM</option>
+              <option value="without_overseas">Tout sauf Outre-Mer</option>
+              <option value="without_africa">Tout sauf Afrique</option>
+              <option value="without_international">Tout sauf International</option>
             </select>
           </label>
 
@@ -580,137 +631,90 @@ export default function OrdersTableClient({ orders }: { orders: Order[] }) {
         >
           <div style={sectionCardStyle()}>
             <div style={sectionTitleStyle()}>Sélection</div>
-            <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
-              <button type="button" className="button secondary" onClick={toggleAll}>
+            <select
+              className="input"
+              defaultValue=""
+              onChange={(e) => {
+                handleSelectionAction(e.target.value);
+                e.currentTarget.value = "";
+              }}
+            >
+              <option value="" disabled>
+                Choisir une action
+              </option>
+              <option value="toggle_visible">
                 {allVisibleSelected ? "Tout désélectionner" : "Tout sélectionner"}
-              </button>
-
-              <button
-                type="button"
-                className="button secondary"
-                onClick={selectAllVisible}
-              >
-                Sélectionner tout le filtre courant
-              </button>
-
-              <button
-                type="button"
-                className="button secondary"
-                onClick={selectMultipleOrders}
-              >
-                Sélectionner commandes multiples
-              </button>
-
-              <button
-                type="button"
-                className="button secondary"
-                onClick={selectWithoutOverseas}
-              >
-                Tout sans Outre-Mer
-              </button>
-
-              <button
-                type="button"
-                className="button secondary"
-                onClick={selectWithoutAfrica}
-              >
-                Tout sans l’Afrique
-              </button>
-
-              <button
-                type="button"
-                className="button secondary"
-                onClick={selectOverseas}
-              >
-                Sélectionner Outre-Mer
-              </button>
-
-              <button
-                type="button"
-                className="button secondary"
-                onClick={selectAfrica}
-              >
-                Sélectionner Afrique
-              </button>
-            </div>
+              </option>
+              <option value="select_visible">Sélectionner tout le filtre courant</option>
+              <option value="select_multiple">Sélectionner commandes multiples</option>
+              <option value="select_without_overseas">Tout sans Outre-Mer</option>
+              <option value="select_without_africa">Tout sans l’Afrique</option>
+              <option value="select_overseas">Sélectionner Outre-Mer</option>
+              <option value="select_africa">Sélectionner Afrique</option>
+              <option value="clear">Vider la sélection</option>
+            </select>
           </div>
 
           <div style={sectionCardStyle()}>
             <div style={sectionTitleStyle()}>Exports commandes</div>
-            <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
-              <button
-                type="button"
-                className="button secondary"
-                disabled={selected.length === 0}
-                onClick={() => exportSelection("csv")}
-              >
-                Exporter CSV
-              </button>
-
-              <button
-                type="button"
-                className="button secondary"
-                disabled={selected.length === 0}
-                onClick={() => exportSelection("xlsx")}
-              >
-                Exporter Excel
-              </button>
-
-              <button
-                type="button"
-                className="button secondary"
-                disabled={selected.length === 0}
-                onClick={() => exportSelection("chronopost")}
-              >
-                Exporter Chronopost
-              </button>
-
-              <button
-                type="button"
-                className="button secondary"
-                disabled={selected.length === 0}
-                onClick={() => exportSelection("word")}
-              >
-                Exporter Word
-              </button>
-            </div>
+            <select
+              className="input"
+              defaultValue=""
+              disabled={selected.length === 0}
+              onChange={(e) => {
+                handleExportAction(e.target.value);
+                e.currentTarget.value = "";
+              }}
+            >
+              <option value="" disabled>
+                Choisir un export
+              </option>
+              <option value="csv">Exporter CSV</option>
+              <option value="xlsx">Exporter Excel</option>
+              <option value="chronopost">Exporter Chronopost</option>
+              <option value="word">Exporter Word</option>
+            </select>
           </div>
 
           <div style={sectionCardStyle()}>
             <div style={sectionTitleStyle()}>Fiches douanières</div>
-            <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
-              <button
-                type="button"
-                className="button secondary"
-                disabled={customsEligibleSelectedCount === 0}
-                onClick={() => exportSelection("customs-pdf")}
-              >
-                Fiches douanières PDF
-              </button>
-
-              <button
-                type="button"
-                className="button secondary"
-                disabled={customsEligibleSelectedCount === 0}
-                onClick={() => exportSelection("customs-pdf-chronopost")}
-              >
+            <select
+              className="input"
+              defaultValue=""
+              disabled={customsEligibleSelectedCount === 0}
+              onChange={(e) => {
+                handleCustomsAction(e.target.value);
+                e.currentTarget.value = "";
+              }}
+            >
+              <option value="" disabled>
+                Choisir une fiche
+              </option>
+              <option value="customs-pdf">Fiches douanières PDF</option>
+              <option value="customs-pdf-chronopost">
                 Fiches douanières Chronopost PDF
-              </button>
-            </div>
+              </option>
+            </select>
           </div>
 
           <div style={sectionCardStyle()}>
             <div style={sectionTitleStyle()}>Actions</div>
-            <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
-              <button
-                type="button"
-                className="button secondary"
-                disabled={selected.length === 0 || busy}
-                onClick={markSelectedAsExported}
-              >
+            <select
+              className="input"
+              defaultValue=""
+              disabled={selected.length === 0 || busy}
+              onChange={(e) => {
+                handleGlobalAction(e.target.value);
+                e.currentTarget.value = "";
+              }}
+            >
+              <option value="" disabled>
+                Choisir une action
+              </option>
+              <option value="mark_exported">
                 Marquer la sélection comme exportée
-              </button>
-            </div>
+              </option>
+            </select>
           </div>
         </div>
 
@@ -850,7 +854,7 @@ export default function OrdersTableClient({ orders }: { orders: Order[] }) {
                     </div>
                   ) : null}
 
-                  {isMultipleQuantityOrder(order) ? (
+                  {getOrderTotalQuantity(order) >= 2 ? (
                     <div
                       style={{
                         marginTop: "5px",
