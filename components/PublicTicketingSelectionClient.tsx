@@ -15,6 +15,34 @@ type PayerDraft = {
   phone: string;
 };
 
+type PreparedSummary = {
+  reference: string;
+  event: {
+    id: string;
+    slug: string;
+    title: string;
+  };
+  payer: PayerDraft;
+  lines: Array<{
+    rateId: string;
+    rateName: string;
+    rateType: string;
+    quantity: number;
+    unitAmount: number;
+    lineTotal: number;
+  }>;
+  participants: Array<{
+    rateId: string;
+    firstName: string;
+    lastName: string;
+  }>;
+  subtotalAmount: number;
+  extraDonationAmount: number;
+  totalAmount: number;
+  currency: string;
+  message: string;
+};
+
 function formatAmount(amount: number) {
   return new Intl.NumberFormat("fr-FR", {
     style: "currency",
@@ -69,14 +97,18 @@ export default function PublicTicketingSelectionClient({
     Record<string, ParticipantDraft>
   >({});
 
+  const [preparing, setPreparing] = useState(false);
+  const [prepareMessage, setPrepareMessage] = useState("");
+  const [preparedSummary, setPreparedSummary] =
+    useState<PreparedSummary | null>(null);
+
   function updatePayer(patch: Partial<PayerDraft>) {
     setPayer((current) => ({ ...current, ...patch }));
+    setPreparedSummary(null);
+    setPrepareMessage("");
   }
 
-  function updateParticipant(
-    key: string,
-    patch: Partial<ParticipantDraft>
-  ) {
+  function updateParticipant(key: string, patch: Partial<ParticipantDraft>) {
     setParticipants((current) => ({
       ...current,
       [key]: {
@@ -85,6 +117,8 @@ export default function PublicTicketingSelectionClient({
         ...patch,
       },
     }));
+    setPreparedSummary(null);
+    setPrepareMessage("");
   }
 
   function updateQuantity(rate: TicketingRate, nextQuantity: number) {
@@ -100,6 +134,9 @@ export default function PublicTicketingSelectionClient({
       ...current,
       [rate.id]: finalQuantity,
     }));
+
+    setPreparedSummary(null);
+    setPrepareMessage("");
   }
 
   function updateFreeAmount(rate: TicketingRate, value: string) {
@@ -107,6 +144,9 @@ export default function PublicTicketingSelectionClient({
       ...current,
       [rate.id]: value,
     }));
+
+    setPreparedSummary(null);
+    setPrepareMessage("");
   }
 
   const selectedLines = useMemo(() => {
@@ -175,6 +215,56 @@ export default function PublicTicketingSelectionClient({
   const formLooksReady = Boolean(
     hasSelection && payerComplete && participantsComplete
   );
+
+  async function prepareRegistration() {
+    if (!formLooksReady || preparing) return;
+
+    setPreparing(true);
+    setPrepareMessage("");
+    setPreparedSummary(null);
+
+    try {
+      const response = await fetch("/api/ticketing/prepare", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          eventSlug: event.slug,
+          payer,
+          lines: selectedLines.map((line) => ({
+            rateId: line.rate.id,
+            quantity: line.quantity,
+            unitAmount: line.unitAmount,
+          })),
+          participants: participantRows.map((row) => ({
+            rateId: row.rateId,
+            firstName: participants[row.key]?.firstName || "",
+            lastName: participants[row.key]?.lastName || "",
+          })),
+          extraDonationAmount,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        setPrepareMessage(
+          typeof data?.error === "string"
+            ? data.error
+            : "Impossible de valider cette inscription."
+        );
+        return;
+      }
+
+      setPreparedSummary(data);
+      setPrepareMessage(
+        "Validation serveur réussie. Aucun paiement n’a été lancé."
+      );
+    } catch {
+      setPrepareMessage("Erreur pendant la validation de l’inscription.");
+    } finally {
+      setPreparing(false);
+    }
+  }
 
   return (
     <section
@@ -302,8 +392,8 @@ export default function PublicTicketingSelectionClient({
                           freeAmounts[rate.id] ||
                           euroInputFromCents(rate.minimumAmount)
                         }
-                        onChange={(event) =>
-                          updateFreeAmount(rate, event.target.value)
+                        onChange={(inputEvent) =>
+                          updateFreeAmount(rate, inputEvent.target.value)
                         }
                         placeholder="Ex. 50"
                       />
@@ -315,15 +405,17 @@ export default function PublicTicketingSelectionClient({
                     <select
                       className="input"
                       value={quantity}
-                      onChange={(event) =>
-                        updateQuantity(rate, Number(event.target.value))
+                      onChange={(inputEvent) =>
+                        updateQuantity(rate, Number(inputEvent.target.value))
                       }
                     >
-                      {Array.from({ length: maxQuantity + 1 }).map((_, index) => (
-                        <option key={index} value={index}>
-                          {index}
-                        </option>
-                      ))}
+                      {Array.from({ length: maxQuantity + 1 }).map(
+                        (_, index) => (
+                          <option key={index} value={index}>
+                            {index}
+                          </option>
+                        )
+                      )}
                     </select>
                   </label>
                 </div>
@@ -377,8 +469,8 @@ export default function PublicTicketingSelectionClient({
               <input
                 className="input"
                 value={payer.firstName}
-                onChange={(event) =>
-                  updatePayer({ firstName: event.target.value })
+                onChange={(inputEvent) =>
+                  updatePayer({ firstName: inputEvent.target.value })
                 }
               />
             </label>
@@ -388,8 +480,8 @@ export default function PublicTicketingSelectionClient({
               <input
                 className="input"
                 value={payer.lastName}
-                onChange={(event) =>
-                  updatePayer({ lastName: event.target.value })
+                onChange={(inputEvent) =>
+                  updatePayer({ lastName: inputEvent.target.value })
                 }
               />
             </label>
@@ -400,7 +492,9 @@ export default function PublicTicketingSelectionClient({
                 className="input"
                 type="email"
                 value={payer.email}
-                onChange={(event) => updatePayer({ email: event.target.value })}
+                onChange={(inputEvent) =>
+                  updatePayer({ email: inputEvent.target.value })
+                }
               />
             </label>
 
@@ -409,7 +503,9 @@ export default function PublicTicketingSelectionClient({
               <input
                 className="input"
                 value={payer.phone}
-                onChange={(event) => updatePayer({ phone: event.target.value })}
+                onChange={(inputEvent) =>
+                  updatePayer({ phone: inputEvent.target.value })
+                }
               />
             </label>
           </div>
@@ -430,8 +526,8 @@ export default function PublicTicketingSelectionClient({
 
           <p style={{ color: "#64748b", lineHeight: 1.6 }}>
             Renseigne le prénom et le nom de chaque participant. Pour l’instant,
-            ces informations restent uniquement dans ce test et ne sont pas
-            enregistrées.
+            ces informations sont seulement validées par le serveur et aucune
+            inscription définitive n’est créée.
           </p>
 
           <div style={{ display: "grid", gap: "12px" }}>
@@ -463,9 +559,9 @@ export default function PublicTicketingSelectionClient({
                     <input
                       className="input"
                       value={participants[row.key]?.firstName || ""}
-                      onChange={(event) =>
+                      onChange={(inputEvent) =>
                         updateParticipant(row.key, {
-                          firstName: event.target.value,
+                          firstName: inputEvent.target.value,
                         })
                       }
                     />
@@ -476,9 +572,9 @@ export default function PublicTicketingSelectionClient({
                     <input
                       className="input"
                       value={participants[row.key]?.lastName || ""}
-                      onChange={(event) =>
+                      onChange={(inputEvent) =>
                         updateParticipant(row.key, {
-                          lastName: event.target.value,
+                          lastName: inputEvent.target.value,
                         })
                       }
                     />
@@ -512,7 +608,11 @@ export default function PublicTicketingSelectionClient({
                 key={amount}
                 type="button"
                 className="button secondary"
-                onClick={() => setExtraDonation(String(amount / 100))}
+                onClick={() => {
+                  setExtraDonation(String(amount / 100));
+                  setPreparedSummary(null);
+                  setPrepareMessage("");
+                }}
               >
                 {formatAmount(amount)}
               </button>
@@ -531,7 +631,11 @@ export default function PublicTicketingSelectionClient({
             <input
               className="input"
               value={extraDonation}
-              onChange={(event) => setExtraDonation(event.target.value)}
+              onChange={(inputEvent) => {
+                setExtraDonation(inputEvent.target.value);
+                setPreparedSummary(null);
+                setPrepareMessage("");
+              }}
               placeholder="Ex. 10"
             />
           </label>
@@ -602,26 +706,141 @@ export default function PublicTicketingSelectionClient({
             fontWeight: 800,
           }}
         >
-          <span>Total</span>
+          <span>Total estimé</span>
           <span>{formatAmount(totalAmount)}</span>
         </div>
 
         <button
           type="button"
           className="button"
-          disabled
-          style={{ marginTop: "8px", opacity: 0.65, cursor: "not-allowed" }}
+          disabled={!formLooksReady || preparing}
+          onClick={prepareRegistration}
+          style={{
+            marginTop: "8px",
+            opacity: !formLooksReady || preparing ? 0.65 : 1,
+            cursor: !formLooksReady || preparing ? "not-allowed" : "pointer",
+          }}
         >
-          {formLooksReady
-            ? "Paiement bientôt disponible"
-            : "Compléter les informations avant paiement"}
+          {preparing
+            ? "Validation en cours..."
+            : formLooksReady
+              ? "Valider le récapitulatif"
+              : "Compléter les informations"}
         </button>
 
         <p style={{ color: "#92400e", margin: 0, fontWeight: 700 }}>
-          Ce formulaire est encore en test : aucune inscription n’est enregistrée
-          et aucun paiement n’est lancé.
+          Cette étape valide les données côté serveur, mais ne lance aucun
+          paiement et ne crée encore aucune inscription.
         </p>
+
+        {prepareMessage ? (
+          <div
+            style={{
+              border: "1px solid #dbe3ee",
+              borderRadius: "14px",
+              padding: "12px",
+              background: "#f8fafc",
+              color:
+                prepareMessage.includes("Impossible") ||
+                prepareMessage.includes("Erreur") ||
+                prepareMessage.includes("obligatoire") ||
+                prepareMessage.includes("invalide")
+                  ? "#991b1b"
+                  : "#166534",
+              fontWeight: 700,
+            }}
+          >
+            {prepareMessage}
+          </div>
+        ) : null}
       </div>
+
+      {preparedSummary ? (
+        <section
+          style={{
+            marginTop: "18px",
+            border: "1px solid #bbf7d0",
+            borderRadius: "18px",
+            padding: "18px",
+            background: "#f0fdf4",
+            display: "grid",
+            gap: "12px",
+          }}
+        >
+          <h3 style={{ margin: 0 }}>Récapitulatif validé par le serveur</h3>
+
+          <div>
+            <strong>Référence provisoire :</strong>{" "}
+            {preparedSummary.reference}
+          </div>
+
+          <div>
+            <strong>Événement :</strong> {preparedSummary.event.title}
+          </div>
+
+          <div>
+            <strong>Payeur :</strong> {preparedSummary.payer.firstName}{" "}
+            {preparedSummary.payer.lastName} — {preparedSummary.payer.email}
+          </div>
+
+          <div style={{ display: "grid", gap: "8px" }}>
+            <strong>Billets validés :</strong>
+
+            {preparedSummary.lines.map((line) => (
+              <div
+                key={line.rateId}
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  gap: "12px",
+                  flexWrap: "wrap",
+                }}
+              >
+                <span>
+                  {line.rateName} × {line.quantity}
+                </span>
+                <strong>{formatAmount(line.lineTotal)}</strong>
+              </div>
+            ))}
+          </div>
+
+          <div>
+            <strong>Participants :</strong>{" "}
+            {preparedSummary.participants.length}
+          </div>
+
+          {preparedSummary.extraDonationAmount > 0 ? (
+            <div>
+              <strong>Contribution libre :</strong>{" "}
+              {formatAmount(preparedSummary.extraDonationAmount)}
+            </div>
+          ) : null}
+
+          <div
+            style={{
+              borderTop: "1px solid #bbf7d0",
+              paddingTop: "12px",
+              fontSize: "20px",
+              fontWeight: 800,
+            }}
+          >
+            Total validé : {formatAmount(preparedSummary.totalAmount)}
+          </div>
+
+          <button
+            type="button"
+            className="button"
+            disabled
+            style={{ opacity: 0.65, cursor: "not-allowed" }}
+          >
+            Paiement Stripe bientôt disponible
+          </button>
+
+          <p style={{ margin: 0, color: "#166534", fontWeight: 700 }}>
+            Validation réussie : aucune inscription n’a encore été enregistrée.
+          </p>
+        </section>
+      ) : null}
     </section>
   );
 }
