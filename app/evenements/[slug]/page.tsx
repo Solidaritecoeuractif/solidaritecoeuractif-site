@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import PublicTicketingSelectionClient from "@/components/PublicTicketingSelectionClient";
 import { ticketingStorage } from "@/lib/ticketing";
 
 function formatDate(value?: string) {
@@ -14,33 +15,10 @@ function formatDate(value?: string) {
   }
 }
 
-function formatAmount(amount?: number) {
-  if (typeof amount !== "number") return "—";
-
-  return new Intl.NumberFormat("fr-FR", {
-    style: "currency",
-    currency: "EUR",
-  }).format(amount / 100);
-}
-
 function durationLabel(value: string) {
   if (value === "one_day") return "Sur une journée";
   if (value === "several_days") return "Sur plusieurs jours";
   return "Durée à préciser";
-}
-
-function ratePriceLabel(rate: {
-  type: string;
-  amount?: number;
-  minimumAmount?: number;
-}) {
-  if (rate.type === "free") return "Gratuit";
-
-  if (rate.type === "free_amount") {
-    return `À partir de ${formatAmount(rate.minimumAmount)}`;
-  }
-
-  return formatAmount(rate.amount);
 }
 
 export default async function Page({
@@ -150,7 +128,13 @@ export default async function Page({
         >
           <h2 style={{ margin: "0 0 10px", fontSize: "18px" }}>Lieu</h2>
           <p style={{ margin: 0, color: "#334155", lineHeight: 1.6 }}>
-            {[event.locationName, event.addressLine, event.postalCode, event.city, event.country]
+            {[
+              event.locationName,
+              event.addressLine,
+              event.postalCode,
+              event.city,
+              event.country,
+            ]
               .filter(Boolean)
               .join(", ") || "Lieu à préciser"}
           </p>
@@ -204,164 +188,7 @@ export default async function Page({
         </div>
       </section>
 
-      <section
-        style={{
-          border: "1px solid #dbe3ee",
-          borderRadius: "22px",
-          padding: "24px",
-          background: "#ffffff",
-        }}
-      >
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            gap: "14px",
-            alignItems: "end",
-            flexWrap: "wrap",
-            marginBottom: "18px",
-          }}
-        >
-          <div>
-            <p
-              style={{
-                margin: "0 0 6px",
-                color: "#64748b",
-                fontSize: "14px",
-                fontWeight: 700,
-              }}
-            >
-              Tarifs disponibles
-            </p>
-            <h2 style={{ margin: 0, fontSize: "28px" }}>Choisir un billet</h2>
-          </div>
-
-          <span
-            style={{
-              border: "1px solid #e5e7eb",
-              borderRadius: "999px",
-              padding: "8px 12px",
-              color: "#64748b",
-              fontSize: "13px",
-              fontWeight: 700,
-              background: "#f8fafc",
-            }}
-          >
-            Lecture seule pour le moment
-          </span>
-        </div>
-
-        {activeRates.length === 0 ? (
-          <p style={{ color: "#64748b", marginBottom: 0 }}>
-            Aucun tarif actif n’est disponible pour le moment.
-          </p>
-        ) : (
-          <div style={{ display: "grid", gap: "12px" }}>
-            {activeRates.map((rate) => (
-              <article
-                key={rate.id}
-                style={{
-                  border: "1px solid #e5e7eb",
-                  borderRadius: "18px",
-                  padding: "18px",
-                  background: "#f8fafc",
-                  display: "grid",
-                  gap: "8px",
-                }}
-              >
-                <div
-                  style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    gap: "12px",
-                    alignItems: "start",
-                    flexWrap: "wrap",
-                  }}
-                >
-                  <div>
-                    <h3 style={{ margin: 0, fontSize: "20px" }}>
-                      {rate.name}
-                    </h3>
-                    {rate.description ? (
-                      <p
-                        style={{
-                          margin: "8px 0 0",
-                          color: "#475569",
-                          lineHeight: 1.6,
-                          whiteSpace: "pre-wrap",
-                        }}
-                      >
-                        {rate.description}
-                      </p>
-                    ) : null}
-                  </div>
-
-                  <strong
-                    style={{
-                      fontSize: "20px",
-                      whiteSpace: "nowrap",
-                    }}
-                  >
-                    {ratePriceLabel(rate)}
-                  </strong>
-                </div>
-
-                <div
-                  style={{
-                    display: "flex",
-                    gap: "8px",
-                    flexWrap: "wrap",
-                    color: "#64748b",
-                    fontSize: "13px",
-                  }}
-                >
-                  {rate.totalQuantityLimit ? (
-                    <span>Places limitées : {rate.totalQuantityLimit}</span>
-                  ) : null}
-
-                  {rate.quantityPerOrderLimit ? (
-                    <span>
-                      Limite par commande : {rate.quantityPerOrderLimit}
-                    </span>
-                  ) : null}
-                </div>
-              </article>
-            ))}
-          </div>
-        )}
-      </section>
-
-      {event.allowExtraDonation ? (
-        <section
-          style={{
-            border: "1px solid #e5e7eb",
-            borderRadius: "18px",
-            padding: "18px",
-            background: "#f8fafc",
-            color: "#334155",
-            lineHeight: 1.6,
-          }}
-        >
-          <strong>Contribution libre</strong>
-          <br />
-          Une contribution libre pourra être proposée lors de l’ouverture du
-          module d’inscription.
-        </section>
-      ) : null}
-
-      <section
-        style={{
-          border: "1px solid #facc15",
-          borderRadius: "18px",
-          padding: "16px",
-          background: "#fffbeb",
-          color: "#92400e",
-          fontWeight: 700,
-        }}
-      >
-        Cette page publique est en lecture seule pour le moment. L’inscription
-        et le paiement seront ajoutés dans une étape suivante.
-      </section>
+      <PublicTicketingSelectionClient event={event} rates={activeRates} />
     </main>
   );
 }
