@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import TicketingEditClient from "@/components/TicketingEditClient";
+import TicketingFieldsEditorClient from "@/components/TicketingFieldsEditorClient";
 import { ticketingStorage } from "@/lib/ticketing";
 
 export default async function Page({
@@ -17,7 +18,10 @@ export default async function Page({
     notFound();
   }
 
-  const rates = await storage.getTicketingRates(event.id);
+  const [rates, customFields] = await Promise.all([
+    storage.getTicketingRates(event.id),
+    storage.getTicketingCustomFields(event.id),
+  ]);
 
   return (
     <main className="panel">
@@ -56,13 +60,15 @@ export default async function Page({
           <h1 style={{ margin: 0 }}>{event.title}</h1>
 
           <p style={{ color: "#64748b", marginBottom: 0 }}>
-            Modification des informations générales et des tarifs. Cette étape
-            reste séparée du paiement, des inscriptions, des commandes, du panier
-            et des exports existants.
+            Modification des informations générales, des tarifs et des
+            informations complémentaires. Les paiements, commandes classiques,
+            offres, panier, Stripe et exports existants ne sont pas modifiés.
           </p>
         </section>
 
         <TicketingEditClient event={event} rates={rates} />
+
+        <TicketingFieldsEditorClient event={event} fields={customFields} />
       </div>
     </main>
   );
