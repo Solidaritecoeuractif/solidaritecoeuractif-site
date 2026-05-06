@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import TicketingDeleteEventButton from "@/components/TicketingDeleteEventButton";
 import { ticketingStorage } from "@/lib/ticketing";
 
 function formatDate(value?: string) {
@@ -61,7 +62,11 @@ export default async function Page({
     notFound();
   }
 
-  const rates = await storage.getTicketingRates(event.id);
+  const [rates, orders] = await Promise.all([
+    storage.getTicketingRates(event.id),
+    storage.getTicketingOrders(event.id),
+  ]);
+
   const publicVisible = isPubliclyVisible(event.status, event.isVisible);
 
   return (
@@ -131,6 +136,59 @@ export default async function Page({
 
         <section
           style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+            gap: "12px",
+          }}
+        >
+          <div
+            style={{
+              border: "1px solid #dbe3ee",
+              borderRadius: "16px",
+              padding: "16px",
+              background: "#ffffff",
+            }}
+          >
+            <strong>Statut</strong>
+            <div style={{ marginTop: "6px" }}>
+              {statusLabel(event.status, event.isVisible)}
+            </div>
+          </div>
+
+          <div
+            style={{
+              border: "1px solid #dbe3ee",
+              borderRadius: "16px",
+              padding: "16px",
+              background: "#ffffff",
+            }}
+          >
+            <strong>Inscriptions</strong>
+            <div style={{ fontSize: "28px", fontWeight: 800, marginTop: "6px" }}>
+              {orders.length}
+            </div>
+          </div>
+
+          <div
+            style={{
+              border: "1px solid #dbe3ee",
+              borderRadius: "16px",
+              padding: "16px",
+              background: "#ffffff",
+            }}
+          >
+            <strong>Participants</strong>
+            <div style={{ fontSize: "28px", fontWeight: 800, marginTop: "6px" }}>
+              {orders.reduce(
+                (sum, order) => sum + order.participants.length,
+                0
+              )}
+            </div>
+          </div>
+        </section>
+
+        <section
+          style={{
             border: "1px solid #dbe3ee",
             borderRadius: "16px",
             padding: "18px",
@@ -146,12 +204,6 @@ export default async function Page({
               gap: "14px",
             }}
           >
-            <div>
-              <strong>Statut</strong>
-              <br />
-              {statusLabel(event.status, event.isVisible)}
-            </div>
-
             <div>
               <strong>Slug</strong>
               <br />
@@ -352,6 +404,8 @@ export default async function Page({
           </div>
         </section>
 
+        <TicketingDeleteEventButton event={event} ordersCount={orders.length} />
+
         <section
           style={{
             border: "1px solid #facc15",
@@ -362,9 +416,9 @@ export default async function Page({
             fontWeight: 600,
           }}
         >
-          Le bouton Inscriptions ouvre uniquement les inscriptions de cette
-          billetterie. Les commandes classiques, offres, panier, Stripe et
-          exports existants ne sont pas modifiés.
+          La suppression définitive est disponible uniquement si la billetterie
+          ne contient aucune inscription. Les commandes classiques, offres,
+          panier, Stripe et exports existants ne sont pas modifiés.
         </section>
       </div>
     </main>
