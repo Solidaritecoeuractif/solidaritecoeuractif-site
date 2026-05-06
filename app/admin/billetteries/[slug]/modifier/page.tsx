@@ -10,11 +10,14 @@ export default async function Page({
 }) {
   const { slug } = await params;
 
-  const event = await ticketingStorage().getTicketingEventBySlug(slug);
+  const storage = ticketingStorage();
+  const event = await storage.getTicketingEventBySlug(slug);
 
   if (!event) {
     notFound();
   }
+
+  const rates = await storage.getTicketingRates(event.id);
 
   return (
     <main className="panel">
@@ -53,12 +56,13 @@ export default async function Page({
           <h1 style={{ margin: 0 }}>{event.title}</h1>
 
           <p style={{ color: "#64748b", marginBottom: 0 }}>
-            Modification limitée aux informations générales. Les tarifs et les
-            inscriptions seront traités dans une étape séparée.
+            Modification des informations générales et des tarifs. Cette étape
+            reste séparée du paiement, des inscriptions, des commandes, du panier
+            et des exports existants.
           </p>
         </section>
 
-        <TicketingEditClient event={event} />
+        <TicketingEditClient event={event} rates={rates} />
       </div>
     </main>
   );

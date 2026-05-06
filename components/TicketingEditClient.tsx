@@ -1,7 +1,22 @@
 "use client";
 
 import { useState } from "react";
-import type { TicketingEvent } from "@/lib/ticketing/types";
+import type { TicketingEvent, TicketingRate } from "@/lib/ticketing/types";
+
+type DraftRateType = "fixed" | "free_amount" | "free";
+
+type DraftRate = {
+  id: string;
+  name: string;
+  description: string;
+  type: DraftRateType;
+  amount: string;
+  minimumAmount: string;
+  totalLimit: string;
+  perOrderLimit: string;
+  isActive: boolean;
+  createdAt?: string;
+};
 
 function toDateTimeLocalValue(value?: string) {
   if (!value) return "";
@@ -25,10 +40,58 @@ function formatDonationAmounts(amounts: number[]) {
   return amounts.map((amount) => String(amount / 100)).join(", ");
 }
 
+function centsToEuros(value?: number) {
+  if (typeof value !== "number") return "";
+  return String(value / 100);
+}
+
+function optionalNumberToString(value?: number) {
+  if (typeof value !== "number") return "";
+  return String(value);
+}
+
+function rateTypeLabel(type: DraftRateType) {
+  if (type === "fixed") return "Prix fixe";
+  if (type === "free_amount") return "Prix libre";
+  return "Gratuit";
+}
+
+function toDraftRate(rate: TicketingRate): DraftRate {
+  return {
+    id: rate.id,
+    name: rate.name,
+    description: rate.description || "",
+    type: rate.type,
+    amount: centsToEuros(rate.amount),
+    minimumAmount: centsToEuros(rate.minimumAmount),
+    totalLimit: optionalNumberToString(rate.totalQuantityLimit),
+    perOrderLimit: optionalNumberToString(rate.quantityPerOrderLimit),
+    isActive: rate.isActive,
+    createdAt: rate.createdAt,
+  };
+}
+
+function newDraftRate(): DraftRate {
+  return {
+    id: crypto.randomUUID(),
+    name: "",
+    description: "",
+    type: "fixed",
+    amount: "",
+    minimumAmount: "",
+    totalLimit: "",
+    perOrderLimit: "",
+    isActive: true,
+    createdAt: new Date().toISOString(),
+  };
+}
+
 export default function TicketingEditClient({
   event,
+  rates,
 }: {
   event: TicketingEvent;
+  rates: TicketingRate[];
 }) {
   const [title, setTitle] = useState(event.title);
   const [formTypeLabel, setFormTypeLabel] = useState(event.formTypeLabel || "");
@@ -57,8 +120,48 @@ export default function TicketingEditClient({
     formatDonationAmounts(event.suggestedDonationAmounts || [])
   );
 
+  const [draftRates, setDraftRates] = useState<DraftRate[]>(
+    rates.length > 0 ? rates.map(toDraftRate) : [newDraftRate()]
+  );
+
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
+
+  function addRate() {
+    setDraftRates((current) => [...current, newDraftRate()]);
+  }
+
+  function updateRate(id: string, patch: Partial<DraftRate>) {
+    setDraftRates((current) =>
+      current.map((rate) => (rate.id === id ? { ...rate, ...patch } : rate))
+    );
+  }
+
+  function duplicateRate(id: string) {
+    const rate = draftRates.find((entry) => entry.id === id);
+
+    if (!rate) return;
+
+    setDraftRates((current) => [
+      ...current,
+      {
+        ...rate,
+        id: crypto.randomUUID(),
+        name: `${rate.name || "Tarif"} copie`,
+        createdAt: new Date().toISOString(),
+      },
+    ]);
+  }
+
+  function removeRate(id: string) {
+    const confirmed = window.confirm(
+      "Voulez-vous vraiment supprimer ce tarif de la billetterie ?"
+    );
+
+    if (!confirmed) return;
+
+    setDraftRates((current) => current.filter((rate) => rate.id !== id));
+  }
 
   async function saveChanges() {
     if (saving) return;
@@ -67,7 +170,7 @@ export default function TicketingEditClient({
     setMessage("");
 
     try {
-      const response = await fetch(`/api/admin/ticketing/events/${event.id}`, {
+      const eventResponse = await fetch(`/api/admin/ticketing/events/${event.id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -92,13 +195,35 @@ export default function TicketingEditClient({
         }),
       });
 
-      const data = await response.json();
+      const eventData = await eventResponse.json();
 
-      if (!response.ok) {
+      if (!eventResponse.ok) {
         setMessage(
-          typeof data?.error === "string"
-            ? data.error
-            : "Impossible d’enregistrer les modifications."
+          typeof eventData?.error === "string"
+            ? eventData.error
+            : "Impossible d’enregistrer les informations générales."
+        );
+        return;
+      }
+
+      const ratesResponse = await fetch(
+        `/api/admin/ticketing/events/${event.id}/rates`,
+        {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            rates: draftRates,
+          }),
+        }
+      );
+
+      const ratesData = await ratesResponse.json();
+
+      if (!ratesResponse.ok) {
+        setMessage(
+          typeof ratesData?.error === "string"
+            ? ratesData.error
+            : "Les informations générales ont été enregistrées, mais les tarifs n’ont pas pu être modifiés."
         );
         return;
       }
@@ -294,6 +419,219 @@ export default function TicketingEditClient({
           background: "#ffffff",
         }}
       >
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            gap: "12px",
+            alignItems: "center",
+            flexWrap: "wrap",
+            marginBottom: "14px",
+          }}
+        >
+          <div>
+            <h2 style={{ margin: 0 }}>Tarifs</h2>
+            <p style={{ margin: "6px 0 0", color: "#64748b" }}>
+              {draftRates.filter((rate) => rate.isActive).length} tarif(s)
+              actif(s)
+            </p>
+          </div>
+
+          <button type="button" className="button" onClick={addRate}>
+            Ajouter un tarif
+          </button>
+        </div>
+
+        <div style={{ display: "grid", gap: "12px" }}>
+          {draftRates.length === 0 ? (
+            <p style={{ color: "#64748b", marginBottom: 0 }}>
+              Aucun tarif. Ajoute au moins un tarif avant de publier la
+              billetterie.
+            </p>
+          ) : (
+            draftRates.map((rate, index) => (
+              <div
+                key={rate.id}
+                style={{
+                  border: "1px solid #e5e7eb",
+                  borderRadius: "14px",
+                  padding: "14px",
+                  background: "#f8fafc",
+                  display: "grid",
+                  gap: "12px",
+                }}
+              >
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    gap: "12px",
+                    alignItems: "center",
+                    flexWrap: "wrap",
+                  }}
+                >
+                  <strong>Tarif {index + 1}</strong>
+
+                  <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+                    <button
+                      type="button"
+                      className="button secondary"
+                      onClick={() =>
+                        updateRate(rate.id, { isActive: !rate.isActive })
+                      }
+                    >
+                      {rate.isActive ? "Désactiver" : "Activer"}
+                    </button>
+
+                    <button
+                      type="button"
+                      className="button secondary"
+                      onClick={() => duplicateRate(rate.id)}
+                    >
+                      Dupliquer
+                    </button>
+
+                    <button
+                      type="button"
+                      className="button secondary"
+                      onClick={() => removeRate(rate.id)}
+                    >
+                      Supprimer
+                    </button>
+                  </div>
+                </div>
+
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+                    gap: "12px",
+                  }}
+                >
+                  <label style={{ display: "grid", gap: "6px" }}>
+                    <span style={{ fontWeight: 700 }}>Nom du tarif</span>
+                    <input
+                      className="input"
+                      value={rate.name}
+                      onChange={(event) =>
+                        updateRate(rate.id, { name: event.target.value })
+                      }
+                      placeholder="Ex. Pass week-end"
+                    />
+                  </label>
+
+                  <label style={{ display: "grid", gap: "6px" }}>
+                    <span style={{ fontWeight: 700 }}>Type</span>
+                    <select
+                      className="input"
+                      value={rate.type}
+                      onChange={(event) =>
+                        updateRate(rate.id, {
+                          type: event.target.value as DraftRateType,
+                        })
+                      }
+                    >
+                      <option value="fixed">Prix fixe</option>
+                      <option value="free_amount">Prix libre</option>
+                      <option value="free">Gratuit</option>
+                    </select>
+                  </label>
+
+                  {rate.type === "fixed" ? (
+                    <label style={{ display: "grid", gap: "6px" }}>
+                      <span style={{ fontWeight: 700 }}>Montant (€)</span>
+                      <input
+                        className="input"
+                        value={rate.amount}
+                        onChange={(event) =>
+                          updateRate(rate.id, { amount: event.target.value })
+                        }
+                        placeholder="Ex. 50"
+                      />
+                    </label>
+                  ) : null}
+
+                  {rate.type === "free_amount" ? (
+                    <label style={{ display: "grid", gap: "6px" }}>
+                      <span style={{ fontWeight: 700 }}>Minimum (€)</span>
+                      <input
+                        className="input"
+                        value={rate.minimumAmount}
+                        onChange={(event) =>
+                          updateRate(rate.id, {
+                            minimumAmount: event.target.value,
+                          })
+                        }
+                        placeholder="Ex. 50"
+                      />
+                    </label>
+                  ) : null}
+
+                  <label style={{ display: "grid", gap: "6px" }}>
+                    <span style={{ fontWeight: 700 }}>Limite totale</span>
+                    <input
+                      className="input"
+                      value={rate.totalLimit}
+                      onChange={(event) =>
+                        updateRate(rate.id, { totalLimit: event.target.value })
+                      }
+                      placeholder="Optionnel"
+                    />
+                  </label>
+
+                  <label style={{ display: "grid", gap: "6px" }}>
+                    <span style={{ fontWeight: 700 }}>Limite par commande</span>
+                    <input
+                      className="input"
+                      value={rate.perOrderLimit}
+                      onChange={(event) =>
+                        updateRate(rate.id, {
+                          perOrderLimit: event.target.value,
+                        })
+                      }
+                      placeholder="Optionnel"
+                    />
+                  </label>
+                </div>
+
+                <label style={{ display: "grid", gap: "6px" }}>
+                  <span style={{ fontWeight: 700 }}>Description du tarif</span>
+                  <textarea
+                    className="input"
+                    value={rate.description}
+                    onChange={(event) =>
+                      updateRate(rate.id, { description: event.target.value })
+                    }
+                    rows={3}
+                    placeholder="Texte facultatif pour expliquer ce tarif."
+                  />
+                </label>
+
+                <div style={{ color: "#64748b", fontSize: "13px" }}>
+                  Aperçu : {rate.name || "Tarif sans nom"} —{" "}
+                  {rateTypeLabel(rate.type)}
+                  {rate.type === "fixed" && rate.amount
+                    ? ` — ${rate.amount} €`
+                    : ""}
+                  {rate.type === "free_amount" && rate.minimumAmount
+                    ? ` — à partir de ${rate.minimumAmount} €`
+                    : ""}
+                  {!rate.isActive ? " — désactivé" : ""}
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+      </section>
+
+      <section
+        style={{
+          border: "1px solid #dbe3ee",
+          borderRadius: "16px",
+          padding: "18px",
+          background: "#ffffff",
+        }}
+      >
         <h2 style={{ marginTop: 0 }}>Contact, description et contribution</h2>
 
         <div
@@ -370,8 +708,8 @@ export default function TicketingEditClient({
           fontWeight: 600,
         }}
       >
-        Cette étape modifie uniquement les informations générales de cette
-        billetterie. Les tarifs, inscriptions, paiements, commandes, offres,
+        Cette étape modifie uniquement les informations générales et les tarifs
+        de cette billetterie. Les inscriptions, paiements, commandes, offres,
         panier, Stripe et exports existants ne sont pas modifiés.
       </section>
 
