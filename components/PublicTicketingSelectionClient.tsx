@@ -3,6 +3,18 @@
 import { useMemo, useState } from "react";
 import type { TicketingEvent, TicketingRate } from "@/lib/ticketing/types";
 
+type ParticipantDraft = {
+  firstName: string;
+  lastName: string;
+};
+
+type PayerDraft = {
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone: string;
+};
+
 function formatAmount(amount: number) {
   return new Intl.NumberFormat("fr-FR", {
     style: "currency",
@@ -45,6 +57,35 @@ export default function PublicTicketingSelectionClient({
   const [quantities, setQuantities] = useState<Record<string, number>>({});
   const [freeAmounts, setFreeAmounts] = useState<Record<string, string>>({});
   const [extraDonation, setExtraDonation] = useState("");
+
+  const [payer, setPayer] = useState<PayerDraft>({
+    firstName: "",
+    lastName: "",
+    email: "",
+    phone: "",
+  });
+
+  const [participants, setParticipants] = useState<
+    Record<string, ParticipantDraft>
+  >({});
+
+  function updatePayer(patch: Partial<PayerDraft>) {
+    setPayer((current) => ({ ...current, ...patch }));
+  }
+
+  function updateParticipant(
+    key: string,
+    patch: Partial<ParticipantDraft>
+  ) {
+    setParticipants((current) => ({
+      ...current,
+      [key]: {
+        firstName: current[key]?.firstName || "",
+        lastName: current[key]?.lastName || "",
+        ...patch,
+      },
+    }));
+  }
 
   function updateQuantity(rate: TicketingRate, nextQuantity: number) {
     const safeQuantity = Math.max(0, Math.floor(nextQuantity || 0));
@@ -95,6 +136,17 @@ export default function PublicTicketingSelectionClient({
       .filter((line) => line.quantity > 0);
   }, [rates, quantities, freeAmounts]);
 
+  const participantRows = useMemo(() => {
+    return selectedLines.flatMap((line) =>
+      Array.from({ length: line.quantity }).map((_, index) => ({
+        key: `${line.rate.id}-${index}`,
+        rateId: line.rate.id,
+        rateName: line.rate.name,
+        number: index + 1,
+      }))
+    );
+  }, [selectedLines]);
+
   const ticketsTotal = selectedLines.reduce(
     (sum, line) => sum + line.lineTotal,
     0
@@ -105,8 +157,24 @@ export default function PublicTicketingSelectionClient({
     : 0;
 
   const totalAmount = ticketsTotal + extraDonationAmount;
-
   const hasSelection = selectedLines.length > 0;
+
+  const payerComplete =
+    payer.firstName.trim() &&
+    payer.lastName.trim() &&
+    payer.email.trim() &&
+    payer.phone.trim();
+
+  const participantsComplete =
+    participantRows.length > 0 &&
+    participantRows.every((row) => {
+      const participant = participants[row.key];
+      return participant?.firstName?.trim() && participant?.lastName?.trim();
+    });
+
+  const formLooksReady = Boolean(
+    hasSelection && payerComplete && participantsComplete
+  );
 
   return (
     <section
@@ -285,6 +353,143 @@ export default function PublicTicketingSelectionClient({
         </div>
       )}
 
+      {hasSelection ? (
+        <section
+          style={{
+            marginTop: "18px",
+            border: "1px solid #dbe3ee",
+            borderRadius: "18px",
+            padding: "18px",
+            background: "#ffffff",
+          }}
+        >
+          <h3 style={{ marginTop: 0 }}>Informations du payeur</h3>
+
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+              gap: "12px",
+            }}
+          >
+            <label style={{ display: "grid", gap: "6px" }}>
+              <span style={{ fontWeight: 700 }}>Prénom</span>
+              <input
+                className="input"
+                value={payer.firstName}
+                onChange={(event) =>
+                  updatePayer({ firstName: event.target.value })
+                }
+              />
+            </label>
+
+            <label style={{ display: "grid", gap: "6px" }}>
+              <span style={{ fontWeight: 700 }}>Nom</span>
+              <input
+                className="input"
+                value={payer.lastName}
+                onChange={(event) =>
+                  updatePayer({ lastName: event.target.value })
+                }
+              />
+            </label>
+
+            <label style={{ display: "grid", gap: "6px" }}>
+              <span style={{ fontWeight: 700 }}>Email</span>
+              <input
+                className="input"
+                type="email"
+                value={payer.email}
+                onChange={(event) => updatePayer({ email: event.target.value })}
+              />
+            </label>
+
+            <label style={{ display: "grid", gap: "6px" }}>
+              <span style={{ fontWeight: 700 }}>Téléphone</span>
+              <input
+                className="input"
+                value={payer.phone}
+                onChange={(event) => updatePayer({ phone: event.target.value })}
+              />
+            </label>
+          </div>
+        </section>
+      ) : null}
+
+      {participantRows.length > 0 ? (
+        <section
+          style={{
+            marginTop: "18px",
+            border: "1px solid #dbe3ee",
+            borderRadius: "18px",
+            padding: "18px",
+            background: "#ffffff",
+          }}
+        >
+          <h3 style={{ marginTop: 0 }}>Participants</h3>
+
+          <p style={{ color: "#64748b", lineHeight: 1.6 }}>
+            Renseigne le prénom et le nom de chaque participant. Pour l’instant,
+            ces informations restent uniquement dans ce test et ne sont pas
+            enregistrées.
+          </p>
+
+          <div style={{ display: "grid", gap: "12px" }}>
+            {participantRows.map((row, index) => (
+              <div
+                key={row.key}
+                style={{
+                  border: "1px solid #e5e7eb",
+                  borderRadius: "14px",
+                  padding: "14px",
+                  background: "#f8fafc",
+                  display: "grid",
+                  gap: "12px",
+                }}
+              >
+                <strong>
+                  Participant {index + 1} — {row.rateName}
+                </strong>
+
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+                    gap: "12px",
+                  }}
+                >
+                  <label style={{ display: "grid", gap: "6px" }}>
+                    <span style={{ fontWeight: 700 }}>Prénom</span>
+                    <input
+                      className="input"
+                      value={participants[row.key]?.firstName || ""}
+                      onChange={(event) =>
+                        updateParticipant(row.key, {
+                          firstName: event.target.value,
+                        })
+                      }
+                    />
+                  </label>
+
+                  <label style={{ display: "grid", gap: "6px" }}>
+                    <span style={{ fontWeight: 700 }}>Nom</span>
+                    <input
+                      className="input"
+                      value={participants[row.key]?.lastName || ""}
+                      onChange={(event) =>
+                        updateParticipant(row.key, {
+                          lastName: event.target.value,
+                        })
+                      }
+                    />
+                  </label>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      ) : null}
+
       {event.allowExtraDonation ? (
         <div
           style={{
@@ -407,7 +612,9 @@ export default function PublicTicketingSelectionClient({
           disabled
           style={{ marginTop: "8px", opacity: 0.65, cursor: "not-allowed" }}
         >
-          Paiement bientôt disponible
+          {formLooksReady
+            ? "Paiement bientôt disponible"
+            : "Compléter les informations avant paiement"}
         </button>
 
         <p style={{ color: "#92400e", margin: 0, fontWeight: 700 }}>
