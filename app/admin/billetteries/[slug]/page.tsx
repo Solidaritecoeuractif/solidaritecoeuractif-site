@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import TicketingDeleteEventButton from "@/components/TicketingDeleteEventButton";
+import TicketingEventStatusActions from "@/components/TicketingEventStatusActions";
 import { ticketingStorage } from "@/lib/ticketing";
 
 function formatDate(value?: string) {
@@ -186,6 +187,8 @@ export default async function Page({
             </div>
           </div>
         </section>
+
+        <TicketingEventStatusActions event={event} />
 
         <section
           style={{
@@ -416,9 +419,9 @@ export default async function Page({
             fontWeight: 600,
           }}
         >
-          La suppression définitive est disponible uniquement si la billetterie
-          ne contient aucune inscription. Les commandes classiques, offres,
-          panier, Stripe et exports existants ne sont pas modifiés.
+          Masquer ou archiver ne supprime aucune donnée. La suppression
+          définitive reste disponible uniquement si la billetterie ne contient
+          aucune inscription.
         </section>
       </div>
     </main>
