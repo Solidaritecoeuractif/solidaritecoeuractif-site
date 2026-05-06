@@ -2,7 +2,6 @@ import { NextResponse } from "next/server";
 import { ticketingStorage } from "@/lib/ticketing";
 import type {
   TicketingCustomField,
-  TicketingCustomFieldTarget,
   TicketingCustomFieldType,
 } from "@/lib/ticketing/types";
 
@@ -31,16 +30,9 @@ function normalizeFieldType(value: unknown): TicketingCustomFieldType {
   return "short_text";
 }
 
-function normalizeTarget(value: unknown): TicketingCustomFieldTarget {
-  if (value === "payer") return "payer";
-  return "participant";
-}
-
 function parseOptions(value: unknown) {
   if (Array.isArray(value)) {
-    return value
-      .map((item) => cleanString(item))
-      .filter(Boolean);
+    return value.map((item) => cleanString(item)).filter(Boolean);
   }
 
   return String(value || "")
@@ -91,15 +83,21 @@ export async function PUT(
           label,
           fieldKey,
           type: normalizeFieldType(entry.type),
-          target: normalizeTarget(entry.target),
+
+          // Toutes les informations complémentaires concernent les participants.
+          target: "participant",
+
           isRequired: Boolean(entry.isRequired),
           isActive:
             typeof entry.isActive === "boolean" ? entry.isActive : true,
+
           appliesToRateIds: undefined,
           options: parseOptions(entry.options),
+
           position: Number.isFinite(Number(entry.position))
             ? Number(entry.position)
             : index,
+
           createdAt: cleanString(entry.createdAt) || now,
           updatedAt: now,
         };

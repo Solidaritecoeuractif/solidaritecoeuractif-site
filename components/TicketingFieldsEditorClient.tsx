@@ -3,7 +3,6 @@
 import { useState } from "react";
 import type {
   TicketingCustomField,
-  TicketingCustomFieldTarget,
   TicketingCustomFieldType,
   TicketingEvent,
 } from "@/lib/ticketing/types";
@@ -13,7 +12,6 @@ type DraftField = {
   label: string;
   fieldKey: string;
   type: TicketingCustomFieldType;
-  target: TicketingCustomFieldTarget;
   isRequired: boolean;
   isActive: boolean;
   options: string;
@@ -43,18 +41,12 @@ function fieldTypeLabel(type: TicketingCustomFieldType) {
   return "Texte court";
 }
 
-function targetLabel(target: TicketingCustomFieldTarget) {
-  if (target === "payer") return "Payeur";
-  return "Participant";
-}
-
 function toDraftField(field: TicketingCustomField): DraftField {
   return {
     id: field.id,
     label: field.label,
     fieldKey: field.fieldKey,
     type: field.type,
-    target: field.target,
     isRequired: field.isRequired,
     isActive: field.isActive,
     options: (field.options || []).join(", "),
@@ -69,7 +61,6 @@ function newDraftField(position: number): DraftField {
     label: "",
     fieldKey: "",
     type: "short_text",
-    target: "participant",
     isRequired: false,
     isActive: true,
     options: "",
@@ -86,9 +77,7 @@ export default function TicketingFieldsEditorClient({
   fields: TicketingCustomField[];
 }) {
   const [draftFields, setDraftFields] = useState<DraftField[]>(
-    fields.length > 0
-      ? fields.map(toDraftField)
-      : []
+    fields.length > 0 ? fields.map(toDraftField) : []
   );
 
   const [saving, setSaving] = useState(false);
@@ -138,6 +127,8 @@ export default function TicketingFieldsEditorClient({
         createdAt: new Date().toISOString(),
       },
     ]);
+
+    setMessage("");
   }
 
   function removeField(id: string) {
@@ -148,6 +139,7 @@ export default function TicketingFieldsEditorClient({
     if (!confirmed) return;
 
     setDraftFields((current) => current.filter((field) => field.id !== id));
+    setMessage("");
   }
 
   async function saveFields() {
@@ -157,24 +149,30 @@ export default function TicketingFieldsEditorClient({
     setMessage("");
 
     try {
-      const response = await fetch(`/api/admin/ticketing/events/${event.id}/fields`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          fields: draftFields.map((field, index) => ({
-            ...field,
-            label: field.label.trim() || "Champ sans nom",
-            fieldKey:
-              field.fieldKey.trim() ||
-              slugifyFieldKey(field.label) ||
-              `champ_${crypto.randomUUID().slice(0, 8)}`,
-            position: Number.isFinite(Number(field.position))
-              ? Number(field.position)
-              : index,
-            options: field.options,
-          })),
-        }),
-      });
+      const response = await fetch(
+        `/api/admin/ticketing/events/${event.id}/fields`,
+        {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            fields: draftFields.map((field, index) => ({
+              ...field,
+              label: field.label.trim() || "Champ sans nom",
+              fieldKey:
+                field.fieldKey.trim() ||
+                slugifyFieldKey(field.label) ||
+                `champ_${crypto.randomUUID().slice(0, 8)}`,
+              position: Number.isFinite(Number(field.position))
+                ? Number(field.position)
+                : index,
+              options: field.options,
+
+              // Forcé côté serveur aussi, mais on le garde ici par clarté.
+              target: "participant",
+            })),
+          }),
+        }
+      );
 
       const data = await response.json();
 
@@ -218,14 +216,29 @@ export default function TicketingFieldsEditorClient({
         <div>
           <h2 style={{ margin: 0 }}>Informations complémentaires</h2>
           <p style={{ margin: "6px 0 0", color: "#64748b" }}>
-            Ajoute des champs demandés au payeur ou à chaque participant, avec
-            le choix obligatoire ou facultatif.
+            Ajoute des informations demandées à chaque participant. Tu peux les
+            rendre obligatoires ou facultatives selon la billetterie.
           </p>
         </div>
 
         <button type="button" className="button" onClick={addField}>
           Ajouter une information
         </button>
+      </div>
+
+      <div
+        style={{
+          border: "1px solid #fde68a",
+          borderRadius: "14px",
+          padding: "12px",
+          background: "#fffbeb",
+          color: "#92400e",
+          fontWeight: 700,
+          marginBottom: "14px",
+        }}
+      >
+        Les champs de base restent toujours obligatoires pour chaque participant :
+        nom, prénom, âge, email, téléphone et ville d’origine.
       </div>
 
       {message ? (
@@ -330,7 +343,7 @@ export default function TicketingFieldsEditorClient({
                     onChange={(event) =>
                       updateField(field.id, { label: event.target.value })
                     }
-                    placeholder="Ex. Âge, Régime alimentaire, Atelier..."
+                    placeholder="Ex. Régime alimentaire, Allergies, Atelier..."
                   />
                 </label>
 
@@ -344,24 +357,8 @@ export default function TicketingFieldsEditorClient({
                         fieldKey: slugifyFieldKey(event.target.value),
                       })
                     }
-                    placeholder="age, regime_alimentaire..."
+                    placeholder="regime_alimentaire, allergies..."
                   />
-                </label>
-
-                <label style={{ display: "grid", gap: "6px" }}>
-                  <span style={{ fontWeight: 700 }}>Demandé à</span>
-                  <select
-                    className="input"
-                    value={field.target}
-                    onChange={(event) =>
-                      updateField(field.id, {
-                        target: event.target.value as TicketingCustomFieldTarget,
-                      })
-                    }
-                  >
-                    <option value="participant">Participant</option>
-                    <option value="payer">Payeur</option>
-                  </select>
                 </label>
 
                 <label style={{ display: "grid", gap: "6px" }}>
@@ -417,7 +414,7 @@ export default function TicketingFieldsEditorClient({
 
               <div style={{ color: "#64748b", fontSize: "13px" }}>
                 Aperçu : {field.label || "Champ sans nom"} —{" "}
-                {targetLabel(field.target)} — {fieldTypeLabel(field.type)} —{" "}
+                {fieldTypeLabel(field.type)} —{" "}
                 {field.isRequired ? "obligatoire" : "facultatif"} —{" "}
                 {field.isActive ? "actif" : "inactif"}
               </div>
