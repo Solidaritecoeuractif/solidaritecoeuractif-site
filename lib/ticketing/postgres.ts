@@ -2,6 +2,8 @@ import { Pool } from "pg";
 import type {
   TicketingCollaboratorAccess,
   TicketingCustomField,
+  TicketingCustomFieldTarget,
+  TicketingCustomFieldType,
   TicketingEvent,
   TicketingOrder,
   TicketingParticipant,
@@ -22,6 +24,22 @@ function toIso(value: unknown) {
   if (!value) return undefined;
   if (value instanceof Date) return value.toISOString();
   return new Date(String(value)).toISOString();
+}
+
+function normalizeFieldType(value: unknown): TicketingCustomFieldType {
+  if (value === "long_text") return "long_text";
+  if (value === "email") return "email";
+  if (value === "phone") return "phone";
+  if (value === "number") return "number";
+  if (value === "date") return "date";
+  if (value === "select") return "select";
+  if (value === "checkbox") return "checkbox";
+  return "short_text";
+}
+
+function normalizeFieldTarget(value: unknown): TicketingCustomFieldTarget {
+  if (value === "payer") return "payer";
+  return "participant";
 }
 
 function rowToTicketingEvent(row: any): TicketingEvent {
@@ -81,13 +99,14 @@ function rowToTicketingCustomField(row: any): TicketingCustomField {
     id: row.id,
     eventId: row.event_id,
     label: row.label,
-    type: row.type,
-    isRequired: row.is_required,
-    appliesToRateIds: Array.isArray(row.applies_to_rate_ids)
-      ? row.applies_to_rate_ids
-      : undefined,
-    options: Array.isArray(row.options) ? row.options : undefined,
-    position: row.position,
+    fieldKey: row.field_key,
+    type: normalizeFieldType(row.field_type),
+    target: normalizeFieldTarget(row.target),
+    isRequired: Boolean(row.is_required),
+    isActive: Boolean(row.is_active),
+    appliesToRateIds: undefined,
+    options: Array.isArray(row.options_json) ? row.options_json : [],
+    position: row.position ?? 0,
     createdAt: toIso(row.created_at) || new Date().toISOString(),
     updatedAt: toIso(row.updated_at) || new Date().toISOString(),
   };
@@ -436,7 +455,9 @@ export async function getPostgresTicketingCustomFields(eventId: string) {
 
   try {
     const result = await client.query(
-      "select * from ticketing_custom_fields where event_id = $1 order by position asc",
+      `select * from ticketing_form_fields
+       where event_id = $1
+       order by position asc, created_at asc`,
       [eventId]
     );
 
@@ -455,35 +476,38 @@ export async function replacePostgresTicketingCustomFields(
   try {
     await client.query("begin");
 
-    await client.query(
-      "delete from ticketing_custom_fields where event_id = $1",
-      [eventId]
-    );
+    await client.query("delete from ticketing_form_fields where event_id = $1", [
+      eventId,
+    ]);
 
     for (const field of fields) {
       await client.query(
-        `insert into ticketing_custom_fields (
+        `insert into ticketing_form_fields (
           id,
           event_id,
           label,
-          type,
+          field_key,
+          field_type,
+          target,
           is_required,
-          applies_to_rate_ids,
-          options,
+          is_active,
+          options_json,
           position,
           created_at,
           updated_at
         ) values (
-          $1,$2,$3,$4,$5,$6,$7,$8,$9,$10
+          $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12
         )`,
         [
           field.id,
           eventId,
           field.label,
+          field.fieldKey,
           field.type,
+          field.target,
           field.isRequired,
-          field.appliesToRateIds ?? null,
-          field.options ?? null,
+          field.isActive,
+          JSON.stringify(field.options ?? []),
           field.position,
           field.createdAt,
           field.updatedAt,

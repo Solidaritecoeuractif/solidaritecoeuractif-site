@@ -14,6 +14,8 @@ export type TicketingCustomFieldType =
   | "select"
   | "checkbox";
 
+export type TicketingCustomFieldTarget = "payer" | "participant";
+
 export type TicketingAccessStatus =
   | "pending_validation"
   | "active"
@@ -87,9 +89,13 @@ export type TicketingCustomField = {
   eventId: string;
 
   label: string;
+  fieldKey: string;
+
   type: TicketingCustomFieldType;
+  target: TicketingCustomFieldTarget;
 
   isRequired: boolean;
+  isActive: boolean;
 
   appliesToRateIds?: string[];
   options?: string[];

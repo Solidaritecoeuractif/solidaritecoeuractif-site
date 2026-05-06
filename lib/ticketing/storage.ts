@@ -27,6 +27,59 @@ const EMPTY_TICKETING_STORE: TicketingStoreData = {
   collaboratorAccesses: [],
 };
 
+function slugifyFieldKey(value: string) {
+  return String(value || "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, "_")
+    .replace(/^_+|_+$/g, "")
+    .slice(0, 80);
+}
+
+function normalizeCustomField(field: any): TicketingCustomField {
+  const label = String(field?.label || "").trim() || "Champ sans nom";
+
+  return {
+    id: String(field?.id || crypto.randomUUID()),
+    eventId: String(field?.eventId || ""),
+    label,
+    fieldKey:
+      String(field?.fieldKey || "").trim() ||
+      slugifyFieldKey(label) ||
+      `champ_${crypto.randomUUID().slice(0, 8)}`,
+    type:
+      field?.type === "long_text" ||
+      field?.type === "email" ||
+      field?.type === "phone" ||
+      field?.type === "number" ||
+      field?.type === "date" ||
+      field?.type === "select" ||
+      field?.type === "checkbox"
+        ? field.type
+        : "short_text",
+    target: field?.target === "payer" ? "payer" : "participant",
+    isRequired: Boolean(field?.isRequired),
+    isActive:
+      typeof field?.isActive === "boolean" ? Boolean(field.isActive) : true,
+    appliesToRateIds: Array.isArray(field?.appliesToRateIds)
+      ? field.appliesToRateIds
+      : undefined,
+    options: Array.isArray(field?.options) ? field.options : [],
+    position: Number.isFinite(Number(field?.position))
+      ? Number(field.position)
+      : 0,
+    createdAt:
+      typeof field?.createdAt === "string"
+        ? field.createdAt
+        : new Date().toISOString(),
+    updatedAt:
+      typeof field?.updatedAt === "string"
+        ? field.updatedAt
+        : new Date().toISOString(),
+  };
+}
+
 async function ensureTicketingFile() {
   await fs.mkdir(DATA_DIR, { recursive: true });
 
@@ -51,7 +104,7 @@ async function readTicketingStore(): Promise<TicketingStoreData> {
     events: Array.isArray(parsed.events) ? parsed.events : [],
     rates: Array.isArray(parsed.rates) ? parsed.rates : [],
     customFields: Array.isArray(parsed.customFields)
-      ? parsed.customFields
+      ? parsed.customFields.map(normalizeCustomField)
       : [],
     orders: Array.isArray(parsed.orders) ? parsed.orders : [],
     collaboratorAccesses: Array.isArray(parsed.collaboratorAccesses)
@@ -161,7 +214,12 @@ export async function replaceTicketingCustomFields(
 
   store.customFields = [
     ...store.customFields.filter((field) => field.eventId !== eventId),
-    ...customFields,
+    ...customFields.map((field) =>
+      normalizeCustomField({
+        ...field,
+        eventId,
+      })
+    ),
   ];
 
   await writeTicketingStore(store);
