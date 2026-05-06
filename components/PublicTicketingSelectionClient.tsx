@@ -43,6 +43,16 @@ type PreparedSummary = {
   message: string;
 };
 
+type PendingOrderSummary = {
+  reference: string;
+  paymentStatus: string;
+  subtotalAmount: number;
+  extraDonationAmount: number;
+  totalAmount: number;
+  currency: string;
+  createdAt: string;
+};
+
 function formatAmount(amount: number) {
   return new Intl.NumberFormat("fr-FR", {
     style: "currency",
@@ -102,10 +112,22 @@ export default function PublicTicketingSelectionClient({
   const [preparedSummary, setPreparedSummary] =
     useState<PreparedSummary | null>(null);
 
-  function updatePayer(patch: Partial<PayerDraft>) {
-    setPayer((current) => ({ ...current, ...patch }));
+  const [creatingPending, setCreatingPending] = useState(false);
+  const [pendingMessage, setPendingMessage] = useState("");
+  const [pendingOrder, setPendingOrder] = useState<PendingOrderSummary | null>(
+    null
+  );
+
+  function resetServerState() {
     setPreparedSummary(null);
     setPrepareMessage("");
+    setPendingMessage("");
+    setPendingOrder(null);
+  }
+
+  function updatePayer(patch: Partial<PayerDraft>) {
+    setPayer((current) => ({ ...current, ...patch }));
+    resetServerState();
   }
 
   function updateParticipant(key: string, patch: Partial<ParticipantDraft>) {
@@ -117,8 +139,7 @@ export default function PublicTicketingSelectionClient({
         ...patch,
       },
     }));
-    setPreparedSummary(null);
-    setPrepareMessage("");
+    resetServerState();
   }
 
   function updateQuantity(rate: TicketingRate, nextQuantity: number) {
@@ -135,8 +156,7 @@ export default function PublicTicketingSelectionClient({
       [rate.id]: finalQuantity,
     }));
 
-    setPreparedSummary(null);
-    setPrepareMessage("");
+    resetServerState();
   }
 
   function updateFreeAmount(rate: TicketingRate, value: string) {
@@ -145,8 +165,7 @@ export default function PublicTicketingSelectionClient({
       [rate.id]: value,
     }));
 
-    setPreparedSummary(null);
-    setPrepareMessage("");
+    resetServerState();
   }
 
   const selectedLines = useMemo(() => {
@@ -216,32 +235,38 @@ export default function PublicTicketingSelectionClient({
     hasSelection && payerComplete && participantsComplete
   );
 
+  function buildPayload() {
+    return {
+      eventSlug: event.slug,
+      payer,
+      lines: selectedLines.map((line) => ({
+        rateId: line.rate.id,
+        quantity: line.quantity,
+        unitAmount: line.unitAmount,
+      })),
+      participants: participantRows.map((row) => ({
+        rateId: row.rateId,
+        firstName: participants[row.key]?.firstName || "",
+        lastName: participants[row.key]?.lastName || "",
+      })),
+      extraDonationAmount,
+    };
+  }
+
   async function prepareRegistration() {
     if (!formLooksReady || preparing) return;
 
     setPreparing(true);
     setPrepareMessage("");
     setPreparedSummary(null);
+    setPendingMessage("");
+    setPendingOrder(null);
 
     try {
       const response = await fetch("/api/ticketing/prepare", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          eventSlug: event.slug,
-          payer,
-          lines: selectedLines.map((line) => ({
-            rateId: line.rate.id,
-            quantity: line.quantity,
-            unitAmount: line.unitAmount,
-          })),
-          participants: participantRows.map((row) => ({
-            rateId: row.rateId,
-            firstName: participants[row.key]?.firstName || "",
-            lastName: participants[row.key]?.lastName || "",
-          })),
-          extraDonationAmount,
-        }),
+        body: JSON.stringify(buildPayload()),
       });
 
       const data = await response.json();
@@ -263,6 +288,47 @@ export default function PublicTicketingSelectionClient({
       setPrepareMessage("Erreur pendant la validation de l’inscription.");
     } finally {
       setPreparing(false);
+    }
+  }
+
+  async function createPendingRegistration() {
+    if (!preparedSummary || creatingPending || pendingOrder) return;
+
+    const confirmed = window.confirm(
+      "Créer une inscription test en statut pending ? Aucun paiement ne sera lancé."
+    );
+
+    if (!confirmed) return;
+
+    setCreatingPending(true);
+    setPendingMessage("");
+
+    try {
+      const response = await fetch("/api/ticketing/create-pending", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(buildPayload()),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        setPendingMessage(
+          typeof data?.error === "string"
+            ? data.error
+            : "Impossible de créer cette inscription test."
+        );
+        return;
+      }
+
+      setPendingOrder(data.order);
+      setPendingMessage(
+        "Inscription test créée en statut pending. Aucun paiement n’a été lancé."
+      );
+    } catch {
+      setPendingMessage("Erreur pendant la création de l’inscription test.");
+    } finally {
+      setCreatingPending(false);
     }
   }
 
@@ -419,26 +485,6 @@ export default function PublicTicketingSelectionClient({
                     </select>
                   </label>
                 </div>
-
-                <div
-                  style={{
-                    display: "flex",
-                    gap: "8px",
-                    flexWrap: "wrap",
-                    color: "#64748b",
-                    fontSize: "13px",
-                  }}
-                >
-                  {rate.totalQuantityLimit ? (
-                    <span>Places prévues : {rate.totalQuantityLimit}</span>
-                  ) : null}
-
-                  {rate.quantityPerOrderLimit ? (
-                    <span>
-                      Limite par commande : {rate.quantityPerOrderLimit}
-                    </span>
-                  ) : null}
-                </div>
               </article>
             );
           })}
@@ -524,12 +570,6 @@ export default function PublicTicketingSelectionClient({
         >
           <h3 style={{ marginTop: 0 }}>Participants</h3>
 
-          <p style={{ color: "#64748b", lineHeight: 1.6 }}>
-            Renseigne le prénom et le nom de chaque participant. Pour l’instant,
-            ces informations sont seulement validées par le serveur et aucune
-            inscription définitive n’est créée.
-          </p>
-
           <div style={{ display: "grid", gap: "12px" }}>
             {participantRows.map((row, index) => (
               <div
@@ -598,10 +638,6 @@ export default function PublicTicketingSelectionClient({
         >
           <h3 style={{ marginTop: 0 }}>Contribution libre</h3>
 
-          <p style={{ color: "#64748b", lineHeight: 1.6 }}>
-            Une contribution libre pourra être ajoutée en plus des billets.
-          </p>
-
           <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
             {event.suggestedDonationAmounts.map((amount) => (
               <button
@@ -610,8 +646,7 @@ export default function PublicTicketingSelectionClient({
                 className="button secondary"
                 onClick={() => {
                   setExtraDonation(String(amount / 100));
-                  setPreparedSummary(null);
-                  setPrepareMessage("");
+                  resetServerState();
                 }}
               >
                 {formatAmount(amount)}
@@ -633,8 +668,7 @@ export default function PublicTicketingSelectionClient({
               value={extraDonation}
               onChange={(inputEvent) => {
                 setExtraDonation(inputEvent.target.value);
-                setPreparedSummary(null);
-                setPrepareMessage("");
+                resetServerState();
               }}
               placeholder="Ex. 10"
             />
@@ -727,11 +761,6 @@ export default function PublicTicketingSelectionClient({
               ? "Valider le récapitulatif"
               : "Compléter les informations"}
         </button>
-
-        <p style={{ color: "#92400e", margin: 0, fontWeight: 700 }}>
-          Cette étape valide les données côté serveur, mais ne lance aucun
-          paiement et ne crée encore aucune inscription.
-        </p>
 
         {prepareMessage ? (
           <div
@@ -830,14 +859,73 @@ export default function PublicTicketingSelectionClient({
           <button
             type="button"
             className="button"
-            disabled
-            style={{ opacity: 0.65, cursor: "not-allowed" }}
+            disabled={creatingPending || Boolean(pendingOrder)}
+            onClick={createPendingRegistration}
+            style={{
+              opacity: creatingPending || pendingOrder ? 0.65 : 1,
+              cursor:
+                creatingPending || pendingOrder ? "not-allowed" : "pointer",
+            }}
           >
-            Paiement Stripe bientôt disponible
+            {pendingOrder
+              ? "Inscription test créée"
+              : creatingPending
+                ? "Création en cours..."
+                : "Créer l’inscription test pending"}
           </button>
 
           <p style={{ margin: 0, color: "#166534", fontWeight: 700 }}>
-            Validation réussie : aucune inscription n’a encore été enregistrée.
+            Cette action crée une inscription test sans paiement, uniquement dans
+            les tables billetterie.
+          </p>
+        </section>
+      ) : null}
+
+      {pendingMessage ? (
+        <section
+          style={{
+            marginTop: "18px",
+            border: "1px solid #dbe3ee",
+            borderRadius: "18px",
+            padding: "18px",
+            background: pendingOrder ? "#ecfdf5" : "#fef2f2",
+            color: pendingOrder ? "#166534" : "#991b1b",
+            fontWeight: 700,
+          }}
+        >
+          {pendingMessage}
+        </section>
+      ) : null}
+
+      {pendingOrder ? (
+        <section
+          style={{
+            marginTop: "18px",
+            border: "1px solid #bbf7d0",
+            borderRadius: "18px",
+            padding: "18px",
+            background: "#f0fdf4",
+            display: "grid",
+            gap: "8px",
+          }}
+        >
+          <h3 style={{ margin: 0 }}>Inscription test enregistrée</h3>
+
+          <div>
+            <strong>Référence :</strong> {pendingOrder.reference}
+          </div>
+
+          <div>
+            <strong>Statut :</strong> {pendingOrder.paymentStatus}
+          </div>
+
+          <div>
+            <strong>Total :</strong> {formatAmount(pendingOrder.totalAmount)}
+          </div>
+
+          <p style={{ margin: 0, color: "#166534", fontWeight: 700 }}>
+            Aucun paiement n’a été lancé. Cette inscription pourra ensuite être
+            reliée à Stripe.
           </p>
         </section>
       ) : null}
