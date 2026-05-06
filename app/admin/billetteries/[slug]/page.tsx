@@ -43,6 +43,10 @@ function rateTypeLabel(type: string) {
   return type;
 }
 
+function isPubliclyVisible(status: string, isVisible: boolean) {
+  return status === "published" && isVisible;
+}
+
 export default async function Page({
   params,
 }: {
@@ -58,6 +62,7 @@ export default async function Page({
   }
 
   const rates = await storage.getTicketingRates(event.id);
+  const publicVisible = isPubliclyVisible(event.status, event.isVisible);
 
   return (
     <main className="panel">
@@ -79,6 +84,16 @@ export default async function Page({
           >
             Modifier
           </Link>
+
+          {publicVisible ? (
+            <Link
+              href={`/evenements/${event.slug}`}
+              target="_blank"
+              className="button secondary"
+            >
+              Voir la page publique
+            </Link>
+          ) : null}
         </div>
 
         <section
@@ -145,10 +160,14 @@ export default async function Page({
             <div>
               <strong>Lien public prévu</strong>
               <br />
-              {event.isVisible ? (
-                <span style={{ color: "#166534", fontWeight: 700 }}>
+              {publicVisible ? (
+                <Link
+                  href={`/evenements/${event.slug}`}
+                  target="_blank"
+                  style={{ color: "#166534", fontWeight: 700 }}
+                >
                   /evenements/{event.slug}
-                </span>
+                </Link>
               ) : (
                 <span style={{ color: "#64748b" }}>Non publié</span>
               )}
@@ -336,9 +355,9 @@ export default async function Page({
             fontWeight: 600,
           }}
         >
-          Le bouton Modifier agit uniquement sur les informations générales de
-          cette billetterie. Les commandes, offres, panier, Stripe et exports
-          existants ne sont pas modifiés.
+          Le bouton Voir la page publique apparaît seulement si la billetterie
+          est publiée. Les commandes, offres, panier, Stripe et exports existants
+          ne sont pas modifiés.
         </section>
       </div>
     </main>

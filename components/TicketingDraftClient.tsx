@@ -64,6 +64,10 @@ function statusLabel(event: TicketingEvent) {
   return "Brouillon";
 }
 
+function isPubliclyVisible(event: TicketingEvent) {
+  return event.status === "published" && event.isVisible;
+}
+
 export default function TicketingDraftClient({
   initialEvents,
 }: {
@@ -200,17 +204,18 @@ export default function TicketingDraftClient({
               className="table"
               style={{
                 width: "100%",
-                minWidth: "820px",
+                minWidth: "940px",
                 tableLayout: "fixed",
               }}
             >
               <thead>
                 <tr>
-                  <th style={{ width: "260px" }}>Nom</th>
-                  <th style={{ width: "120px" }}>Statut</th>
-                  <th style={{ width: "180px" }}>Lieu</th>
-                  <th style={{ width: "150px" }}>Créée le</th>
-                  <th style={{ width: "110px" }}>Détail</th>
+                  <th style={{ width: "250px" }}>Nom</th>
+                  <th style={{ width: "110px" }}>Statut</th>
+                  <th style={{ width: "170px" }}>Lieu</th>
+                  <th style={{ width: "145px" }}>Créée le</th>
+                  <th style={{ width: "110px" }}>Admin</th>
+                  <th style={{ width: "140px" }}>Page publique</th>
                 </tr>
               </thead>
               <tbody>
@@ -230,13 +235,17 @@ export default function TicketingDraftClient({
                       <br />
                       <small style={{ color: "#64748b" }}>{event.slug}</small>
                     </td>
+
                     <td>{statusLabel(event)}</td>
+
                     <td>
                       {[event.locationName, event.city, event.country]
                         .filter(Boolean)
                         .join(", ") || "—"}
                     </td>
+
                     <td>{formatDate(event.createdAt)}</td>
+
                     <td>
                       <Link
                         href={`/admin/billetteries/${event.slug}`}
@@ -250,6 +259,28 @@ export default function TicketingDraftClient({
                       >
                         Ouvrir
                       </Link>
+                    </td>
+
+                    <td>
+                      {isPubliclyVisible(event) ? (
+                        <Link
+                          href={`/evenements/${event.slug}`}
+                          target="_blank"
+                          className="button secondary small"
+                          style={{
+                            display: "inline-flex",
+                            justifyContent: "center",
+                            width: "100%",
+                            textDecoration: "none",
+                          }}
+                        >
+                          Voir public
+                        </Link>
+                      ) : (
+                        <span style={{ color: "#64748b", fontSize: "13px" }}>
+                          Non publié
+                        </span>
+                      )}
                     </td>
                   </tr>
                 ))}
