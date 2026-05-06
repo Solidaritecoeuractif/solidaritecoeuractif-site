@@ -40,6 +40,14 @@ function safeFileName(value: string) {
     .slice(0, 80);
 }
 
+function answerValue(value: unknown) {
+  if (value === true) return "Oui";
+  if (value === false) return "Non";
+  if (value === null || typeof value === "undefined") return "";
+
+  return String(value).trim();
+}
+
 export async function GET(
   _request: Request,
   { params }: { params: Promise<{ id: string }> }
@@ -57,10 +65,15 @@ export async function GET(
       );
     }
 
-    const [orders, rates] = await Promise.all([
+    const [orders, rates, customFields] = await Promise.all([
       storage.getTicketingOrders(event.id),
       storage.getTicketingRates(event.id),
+      storage.getTicketingCustomFields(event.id),
     ]);
+
+    const activeParticipantFields = customFields.filter(
+      (field) => field.isActive && field.target === "participant"
+    );
 
     const rateNameById = new Map(
       rates.map((rate) => [rate.id, rate.name || "Tarif sans nom"])
@@ -77,7 +90,12 @@ export async function GET(
       "telephone_payeur",
       "prenom_participant",
       "nom_participant",
+      "age_participant",
+      "email_participant",
+      "telephone_participant",
+      "ville_origine_participant",
       "tarif",
+      ...activeParticipantFields.map((field) => field.label),
       "sous_total_billets_eur",
       "contribution_libre_eur",
       "total_eur",
@@ -100,6 +118,11 @@ export async function GET(
           "",
           "",
           "",
+          "",
+          "",
+          "",
+          "",
+          ...activeParticipantFields.map(() => ""),
           formatAmount(order.subtotalAmount),
           formatAmount(order.extraDonationAmount),
           formatAmount(order.totalAmount),
@@ -121,7 +144,14 @@ export async function GET(
           order.payerPhone ?? "",
           participant.firstName,
           participant.lastName,
+          answerValue(participant.answers?.age),
+          answerValue(participant.answers?.email),
+          answerValue(participant.answers?.phone),
+          answerValue(participant.answers?.origin_city),
           rateNameById.get(participant.rateId) || "Tarif introuvable",
+          ...activeParticipantFields.map((field) =>
+            answerValue(participant.answers?.[field.fieldKey])
+          ),
           formatAmount(order.subtotalAmount),
           formatAmount(order.extraDonationAmount),
           formatAmount(order.totalAmount),

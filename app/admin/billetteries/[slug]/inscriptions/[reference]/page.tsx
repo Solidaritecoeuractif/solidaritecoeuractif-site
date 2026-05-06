@@ -54,6 +54,15 @@ function paymentStatusStyle(status: string) {
   };
 }
 
+function answerValue(value: unknown) {
+  if (value === true) return "Oui";
+  if (value === false) return "Non";
+  if (value === null || typeof value === "undefined") return "—";
+
+  const text = String(value).trim();
+  return text || "—";
+}
+
 export default async function Page({
   params,
 }: {
@@ -75,7 +84,14 @@ export default async function Page({
     notFound();
   }
 
-  const rates = await storage.getTicketingRates(event.id);
+  const [rates, customFields] = await Promise.all([
+    storage.getTicketingRates(event.id),
+    storage.getTicketingCustomFields(event.id),
+  ]);
+
+  const activeParticipantFields = customFields.filter(
+    (field) => field.isActive && field.target === "participant"
+  );
 
   const rateNameById = new Map(
     rates.map((rate) => [rate.id, rate.name || "Tarif sans nom"])
@@ -102,7 +118,10 @@ export default async function Page({
             Retour aux inscriptions
           </Link>
 
-          <Link href={`/admin/billetteries/${event.slug}`} className="button secondary">
+          <Link
+            href={`/admin/billetteries/${event.slug}`}
+            className="button secondary"
+          >
             Retour à la billetterie
           </Link>
         </div>
@@ -278,7 +297,9 @@ export default async function Page({
             <div>
               <strong>Total</strong>
               <br />
-              <span style={{ fontWeight: 800 }}>{formatAmount(order.totalAmount)}</span>
+              <span style={{ fontWeight: 800 }}>
+                {formatAmount(order.totalAmount)}
+              </span>
             </div>
 
             <div>
@@ -304,42 +325,130 @@ export default async function Page({
               Aucun participant enregistré.
             </p>
           ) : (
-            <div style={{ overflowX: "auto" }}>
-              <table
-                className="table"
-                style={{
-                  width: "100%",
-                  minWidth: "720px",
-                  tableLayout: "fixed",
-                  borderCollapse: "collapse",
-                }}
-              >
-                <thead>
-                  <tr>
-                    <th style={{ width: "70px" }}>N°</th>
-                    <th style={{ width: "220px" }}>Prénom</th>
-                    <th style={{ width: "220px" }}>Nom</th>
-                    <th style={{ width: "260px" }}>Tarif</th>
-                  </tr>
-                </thead>
+            <div style={{ display: "grid", gap: "14px" }}>
+              {order.participants.map((participant, index) => (
+                <article
+                  key={participant.id}
+                  style={{
+                    border: "1px solid #e5e7eb",
+                    borderRadius: "16px",
+                    padding: "16px",
+                    background: "#f8fafc",
+                    display: "grid",
+                    gap: "14px",
+                  }}
+                >
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      gap: "12px",
+                      flexWrap: "wrap",
+                    }}
+                  >
+                    <div>
+                      <strong>
+                        Participant {index + 1} — {participant.firstName}{" "}
+                        {participant.lastName}
+                      </strong>
+                      <br />
+                      <small style={{ color: "#64748b" }}>
+                        Tarif : {getRateName(participant.rateId)}
+                      </small>
+                    </div>
 
-                <tbody>
-                  {order.participants.map((participant, index) => (
-                    <tr key={participant.id}>
-                      <td>{index + 1}</td>
-                      <td>{participant.firstName}</td>
-                      <td>{participant.lastName}</td>
-                      <td>
-                        <strong>{getRateName(participant.rateId)}</strong>
-                        <br />
-                        <small style={{ color: "#64748b" }}>
-                          ID : {participant.rateId}
-                        </small>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+                    <small style={{ color: "#64748b" }}>
+                      ID tarif : {participant.rateId}
+                    </small>
+                  </div>
+
+                  <div
+                    style={{
+                      display: "grid",
+                      gridTemplateColumns:
+                        "repeat(auto-fit, minmax(190px, 1fr))",
+                      gap: "12px",
+                    }}
+                  >
+                    <div>
+                      <strong>Prénom</strong>
+                      <br />
+                      {participant.firstName}
+                    </div>
+
+                    <div>
+                      <strong>Nom</strong>
+                      <br />
+                      {participant.lastName}
+                    </div>
+
+                    <div>
+                      <strong>Âge</strong>
+                      <br />
+                      {answerValue(participant.answers?.age)}
+                    </div>
+
+                    <div>
+                      <strong>Email</strong>
+                      <br />
+                      {participant.answers?.email ? (
+                        <a href={`mailto:${String(participant.answers.email)}`}>
+                          {String(participant.answers.email)}
+                        </a>
+                      ) : (
+                        "—"
+                      )}
+                    </div>
+
+                    <div>
+                      <strong>Téléphone</strong>
+                      <br />
+                      {answerValue(participant.answers?.phone)}
+                    </div>
+
+                    <div>
+                      <strong>Ville d’origine</strong>
+                      <br />
+                      {answerValue(participant.answers?.origin_city)}
+                    </div>
+                  </div>
+
+                  {activeParticipantFields.length > 0 ? (
+                    <div
+                      style={{
+                        borderTop: "1px solid #e5e7eb",
+                        paddingTop: "12px",
+                        display: "grid",
+                        gap: "10px",
+                      }}
+                    >
+                      <strong>Informations complémentaires</strong>
+
+                      <div
+                        style={{
+                          display: "grid",
+                          gridTemplateColumns:
+                            "repeat(auto-fit, minmax(190px, 1fr))",
+                          gap: "12px",
+                        }}
+                      >
+                        {activeParticipantFields.map((field) => (
+                          <div key={field.id}>
+                            <strong>
+                              {field.label}
+                              {field.isRequired ? " *" : ""}
+                            </strong>
+                            <br />
+                            {answerValue(
+                              participant.answers?.[field.fieldKey]
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ) : null}
+                </article>
+              ))}
             </div>
           )}
         </section>
@@ -354,9 +463,9 @@ export default async function Page({
             fontWeight: 600,
           }}
         >
-          Cette page reste en lecture seule. Elle affiche le nom lisible du tarif
-          pour chaque participant, sans modifier les commandes classiques, les
-          offres, le panier, Stripe ou les exports existants.
+          Cette page affiche les informations détaillées des participants
+          uniquement pour les inscriptions billetterie. Les commandes classiques,
+          offres, panier, Stripe et exports existants ne sont pas modifiés.
         </section>
       </div>
     </main>
