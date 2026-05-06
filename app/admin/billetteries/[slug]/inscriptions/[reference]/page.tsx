@@ -75,6 +75,16 @@ export default async function Page({
     notFound();
   }
 
+  const rates = await storage.getTicketingRates(event.id);
+
+  const rateNameById = new Map(
+    rates.map((rate) => [rate.id, rate.name || "Tarif sans nom"])
+  );
+
+  function getRateName(rateId: string) {
+    return rateNameById.get(rateId) || "Tarif introuvable";
+  }
+
   return (
     <main className="panel">
       <div
@@ -320,8 +330,10 @@ export default async function Page({
                       <td>{participant.firstName}</td>
                       <td>{participant.lastName}</td>
                       <td>
+                        <strong>{getRateName(participant.rateId)}</strong>
+                        <br />
                         <small style={{ color: "#64748b" }}>
-                          {participant.rateId}
+                          ID : {participant.rateId}
                         </small>
                       </td>
                     </tr>
@@ -342,10 +354,9 @@ export default async function Page({
             fontWeight: 600,
           }}
         >
-          Cette page est en lecture seule. Elle affiche uniquement une
-          inscription billetterie stockée dans les tables dédiées. Les commandes
-          classiques, offres, panier, Stripe et exports existants ne sont pas
-          modifiés.
+          Cette page reste en lecture seule. Elle affiche le nom lisible du tarif
+          pour chaque participant, sans modifier les commandes classiques, les
+          offres, le panier, Stripe ou les exports existants.
         </section>
       </div>
     </main>
