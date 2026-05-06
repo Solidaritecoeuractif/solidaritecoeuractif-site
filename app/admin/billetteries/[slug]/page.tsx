@@ -85,6 +85,13 @@ export default async function Page({
             Modifier
           </Link>
 
+          <Link
+            href={`/admin/billetteries/${event.slug}/inscriptions`}
+            className="button secondary"
+          >
+            Inscriptions
+          </Link>
+
           {publicVisible ? (
             <Link
               href={`/evenements/${event.slug}`}
@@ -355,9 +362,9 @@ export default async function Page({
             fontWeight: 600,
           }}
         >
-          Le bouton Voir la page publique apparaît seulement si la billetterie
-          est publiée. Les commandes, offres, panier, Stripe et exports existants
-          ne sont pas modifiés.
+          Le bouton Inscriptions ouvre uniquement les inscriptions de cette
+          billetterie. Les commandes classiques, offres, panier, Stripe et
+          exports existants ne sont pas modifiés.
         </section>
       </div>
     </main>
