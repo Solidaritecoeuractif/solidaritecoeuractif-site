@@ -1,6 +1,10 @@
 import { NextResponse } from "next/server";
 import { ticketingStorage } from "@/lib/ticketing";
-import type { TicketingOrder, TicketingParticipant } from "@/lib/ticketing/types";
+import type {
+  TicketingCustomField,
+  TicketingOrder,
+  TicketingParticipant,
+} from "@/lib/ticketing/types";
 
 type TicketingLineInput = {
   rateId: string;
@@ -12,6 +16,11 @@ type ParticipantInput = {
   rateId: string;
   firstName: string;
   lastName: string;
+  age?: string;
+  email?: string;
+  phone?: string;
+  originCity?: string;
+  answers?: Record<string, string | boolean | number | null>;
 };
 
 function cleanString(value: unknown) {
@@ -40,6 +49,11 @@ function toPositiveCents(value: unknown) {
 
 function isValidEmail(value: string) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
+}
+
+function fieldValueIsFilled(field: TicketingCustomField, value: unknown) {
+  if (field.type === "checkbox") return value === true;
+  return cleanString(value).length > 0;
 }
 
 function makeReference() {
@@ -125,8 +139,15 @@ export async function POST(request: Request) {
       );
     }
 
-    const rates = await storage.getTicketingRates(event.id);
+    const [rates, customFields] = await Promise.all([
+      storage.getTicketingRates(event.id),
+      storage.getTicketingCustomFields(event.id),
+    ]);
+
     const activeRates = rates.filter((rate) => rate.isActive);
+    const activeParticipantFields = customFields.filter(
+      (field) => field.isActive && field.target === "participant"
+    );
 
     const preparedLines = linesInput
       .map((line) => {
@@ -169,12 +190,12 @@ export async function POST(request: Request) {
         };
       })
       .filter(Boolean) as Array<{
-        rateId: string;
-        rateName: string;
-        quantity: number;
-        unitAmount: number;
-        lineTotal: number;
-      }>;
+      rateId: string;
+      rateName: string;
+      quantity: number;
+      unitAmount: number;
+      lineTotal: number;
+    }>;
 
     if (preparedLines.length === 0) {
       return NextResponse.json(
@@ -210,6 +231,14 @@ export async function POST(request: Request) {
       const rateId = cleanString(participant.rateId);
       const firstName = cleanString(participant.firstName);
       const lastName = cleanString(participant.lastName);
+      const age = cleanString(participant.age);
+      const email = cleanString(participant.email).toLowerCase();
+      const phone = cleanString(participant.phone);
+      const originCity = cleanString(participant.originCity);
+      const answers =
+        participant.answers && typeof participant.answers === "object"
+          ? participant.answers
+          : {};
 
       receivedCountByRateId.set(
         rateId,
@@ -220,6 +249,11 @@ export async function POST(request: Request) {
         rateId,
         firstName,
         lastName,
+        age,
+        email,
+        phone,
+        originCity,
+        answers,
       };
     });
 
@@ -231,7 +265,12 @@ export async function POST(request: Request) {
       return (
         !rateExists ||
         !participant.firstName ||
-        !participant.lastName
+        !participant.lastName ||
+        !participant.age ||
+        !participant.email ||
+        !isValidEmail(participant.email) ||
+        !participant.phone ||
+        !participant.originCity
       );
     });
 
@@ -239,7 +278,24 @@ export async function POST(request: Request) {
       return NextResponse.json(
         {
           error:
-            "Chaque participant doit avoir un prénom, un nom et un tarif valide.",
+            "Chaque participant doit avoir un prénom, un nom, un âge, un email valide, un téléphone et une ville d’origine.",
+        },
+        { status: 400 }
+      );
+    }
+
+    const missingRequiredField = cleanedParticipants.some((participant) =>
+      activeParticipantFields.some((field) => {
+        if (!field.isRequired) return false;
+        return !fieldValueIsFilled(field, participant.answers[field.fieldKey]);
+      })
+    );
+
+    if (missingRequiredField) {
+      return NextResponse.json(
+        {
+          error:
+            "Un ou plusieurs champs complémentaires obligatoires ne sont pas remplis.",
         },
         { status: 400 }
       );
@@ -281,7 +337,13 @@ export async function POST(request: Request) {
         rateId: participant.rateId,
         firstName: participant.firstName,
         lastName: participant.lastName,
-        answers: {},
+        answers: {
+          age: participant.age,
+          email: participant.email,
+          phone: participant.phone,
+          origin_city: participant.originCity,
+          ...participant.answers,
+        },
         createdAt: now,
         updatedAt: now,
       })
@@ -335,6 +397,7 @@ export async function POST(request: Request) {
         rateId: participant.rateId,
         firstName: participant.firstName,
         lastName: participant.lastName,
+        answers: participant.answers,
       })),
       message:
         "Inscription test créée en statut pending. Aucun paiement n’a été lancé.",

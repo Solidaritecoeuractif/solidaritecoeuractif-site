@@ -1,11 +1,20 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import type { TicketingEvent, TicketingRate } from "@/lib/ticketing/types";
+import type {
+  TicketingCustomField,
+  TicketingEvent,
+  TicketingRate,
+} from "@/lib/ticketing/types";
 
 type ParticipantDraft = {
   firstName: string;
   lastName: string;
+  age: string;
+  email: string;
+  phone: string;
+  originCity: string;
+  answers: Record<string, string | boolean>;
 };
 
 type PayerDraft = {
@@ -35,6 +44,11 @@ type PreparedSummary = {
     rateId: string;
     firstName: string;
     lastName: string;
+    age: string;
+    email: string;
+    phone: string;
+    originCity: string;
+    answers: Record<string, string | boolean>;
   }>;
   subtotalAmount: number;
   extraDonationAmount: number;
@@ -85,12 +99,38 @@ function ratePriceLabel(rate: TicketingRate) {
   return formatAmount(rate.amount || 0);
 }
 
+function emptyParticipant(): ParticipantDraft {
+  return {
+    firstName: "",
+    lastName: "",
+    age: "",
+    email: "",
+    phone: "",
+    originCity: "",
+    answers: {},
+  };
+}
+
+function isValidEmail(value: string) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
+}
+
+function fieldValueIsFilled(field: TicketingCustomField, value: unknown) {
+  if (field.type === "checkbox") {
+    return value === true;
+  }
+
+  return String(value ?? "").trim().length > 0;
+}
+
 export default function PublicTicketingSelectionClient({
   event,
   rates,
+  customFields,
 }: {
   event: TicketingEvent;
   rates: TicketingRate[];
+  customFields: TicketingCustomField[];
 }) {
   const [quantities, setQuantities] = useState<Record<string, number>>({});
   const [freeAmounts, setFreeAmounts] = useState<Record<string, string>>({});
@@ -134,11 +174,35 @@ export default function PublicTicketingSelectionClient({
     setParticipants((current) => ({
       ...current,
       [key]: {
-        firstName: current[key]?.firstName || "",
-        lastName: current[key]?.lastName || "",
+        ...emptyParticipant(),
+        ...(current[key] || {}),
         ...patch,
       },
     }));
+
+    resetServerState();
+  }
+
+  function updateParticipantAnswer(
+    key: string,
+    fieldKey: string,
+    value: string | boolean
+  ) {
+    setParticipants((current) => {
+      const existing = current[key] || emptyParticipant();
+
+      return {
+        ...current,
+        [key]: {
+          ...existing,
+          answers: {
+            ...existing.answers,
+            [fieldKey]: value,
+          },
+        },
+      };
+    });
+
     resetServerState();
   }
 
@@ -222,13 +286,31 @@ export default function PublicTicketingSelectionClient({
     payer.firstName.trim() &&
     payer.lastName.trim() &&
     payer.email.trim() &&
-    payer.phone.trim();
+    payer.phone.trim() &&
+    isValidEmail(payer.email);
 
   const participantsComplete =
     participantRows.length > 0 &&
     participantRows.every((row) => {
       const participant = participants[row.key];
-      return participant?.firstName?.trim() && participant?.lastName?.trim();
+
+      if (!participant) return false;
+
+      const baseOk =
+        participant.firstName.trim() &&
+        participant.lastName.trim() &&
+        participant.age.trim() &&
+        participant.email.trim() &&
+        isValidEmail(participant.email) &&
+        participant.phone.trim() &&
+        participant.originCity.trim();
+
+      if (!baseOk) return false;
+
+      return customFields.every((field) => {
+        if (!field.isRequired) return true;
+        return fieldValueIsFilled(field, participant.answers[field.fieldKey]);
+      });
     });
 
   const formLooksReady = Boolean(
@@ -244,11 +326,20 @@ export default function PublicTicketingSelectionClient({
         quantity: line.quantity,
         unitAmount: line.unitAmount,
       })),
-      participants: participantRows.map((row) => ({
-        rateId: row.rateId,
-        firstName: participants[row.key]?.firstName || "",
-        lastName: participants[row.key]?.lastName || "",
-      })),
+      participants: participantRows.map((row) => {
+        const participant = participants[row.key] || emptyParticipant();
+
+        return {
+          rateId: row.rateId,
+          firstName: participant.firstName,
+          lastName: participant.lastName,
+          age: participant.age,
+          email: participant.email,
+          phone: participant.phone,
+          originCity: participant.originCity,
+          answers: participant.answers,
+        };
+      }),
       extraDonationAmount,
     };
   }
@@ -330,6 +421,114 @@ export default function PublicTicketingSelectionClient({
     } finally {
       setCreatingPending(false);
     }
+  }
+
+  function renderCustomField(rowKey: string, field: TicketingCustomField) {
+    const participant = participants[rowKey] || emptyParticipant();
+    const value = participant.answers[field.fieldKey];
+    const label = `${field.label}${field.isRequired ? " *" : ""}`;
+
+    if (field.type === "long_text") {
+      return (
+        <label key={field.id} style={{ display: "grid", gap: "6px" }}>
+          <span style={{ fontWeight: 700 }}>{label}</span>
+          <textarea
+            className="input"
+            rows={3}
+            value={String(value || "")}
+            onChange={(inputEvent) =>
+              updateParticipantAnswer(
+                rowKey,
+                field.fieldKey,
+                inputEvent.target.value
+              )
+            }
+          />
+        </label>
+      );
+    }
+
+    if (field.type === "select") {
+      return (
+        <label key={field.id} style={{ display: "grid", gap: "6px" }}>
+          <span style={{ fontWeight: 700 }}>{label}</span>
+          <select
+            className="input"
+            value={String(value || "")}
+            onChange={(inputEvent) =>
+              updateParticipantAnswer(
+                rowKey,
+                field.fieldKey,
+                inputEvent.target.value
+              )
+            }
+          >
+            <option value="">Choisir</option>
+            {(field.options || []).map((option) => (
+              <option key={option} value={option}>
+                {option}
+              </option>
+            ))}
+          </select>
+        </label>
+      );
+    }
+
+    if (field.type === "checkbox") {
+      return (
+        <label
+          key={field.id}
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: "8px",
+            fontWeight: 700,
+          }}
+        >
+          <input
+            type="checkbox"
+            checked={value === true}
+            onChange={(inputEvent) =>
+              updateParticipantAnswer(
+                rowKey,
+                field.fieldKey,
+                inputEvent.target.checked
+              )
+            }
+          />
+          {label}
+        </label>
+      );
+    }
+
+    const inputType =
+      field.type === "email"
+        ? "email"
+        : field.type === "phone"
+          ? "tel"
+          : field.type === "number"
+            ? "number"
+            : field.type === "date"
+              ? "date"
+              : "text";
+
+    return (
+      <label key={field.id} style={{ display: "grid", gap: "6px" }}>
+        <span style={{ fontWeight: 700 }}>{label}</span>
+        <input
+          className="input"
+          type={inputType}
+          value={String(value || "")}
+          onChange={(inputEvent) =>
+            updateParticipantAnswer(
+              rowKey,
+              field.fieldKey,
+              inputEvent.target.value
+            )
+          }
+        />
+      </label>
+    );
   }
 
   return (
@@ -503,6 +702,11 @@ export default function PublicTicketingSelectionClient({
         >
           <h3 style={{ marginTop: 0 }}>Informations du payeur</h3>
 
+          <p style={{ color: "#64748b", lineHeight: 1.6 }}>
+            Ces informations servent à rattacher l’inscription au paiement. Les
+            informations détaillées sont demandées pour chaque participant.
+          </p>
+
           <div
             style={{
               display: "grid",
@@ -548,6 +752,7 @@ export default function PublicTicketingSelectionClient({
               <span style={{ fontWeight: 700 }}>Téléphone</span>
               <input
                 className="input"
+                type="tel"
                 value={payer.phone}
                 onChange={(inputEvent) =>
                   updatePayer({ phone: inputEvent.target.value })
@@ -570,58 +775,131 @@ export default function PublicTicketingSelectionClient({
         >
           <h3 style={{ marginTop: 0 }}>Participants</h3>
 
-          <div style={{ display: "grid", gap: "12px" }}>
-            {participantRows.map((row, index) => (
-              <div
-                key={row.key}
-                style={{
-                  border: "1px solid #e5e7eb",
-                  borderRadius: "14px",
-                  padding: "14px",
-                  background: "#f8fafc",
-                  display: "grid",
-                  gap: "12px",
-                }}
-              >
-                <strong>
-                  Participant {index + 1} — {row.rateName}
-                </strong>
+          <p style={{ color: "#64748b", lineHeight: 1.6 }}>
+            Pour chaque billet, renseigne les informations de la personne qui
+            participera réellement à l’événement. Les champs marqués d’un
+            astérisque sont obligatoires.
+          </p>
 
+          <div style={{ display: "grid", gap: "12px" }}>
+            {participantRows.map((row, index) => {
+              const participant = participants[row.key] || emptyParticipant();
+
+              return (
                 <div
+                  key={row.key}
                   style={{
+                    border: "1px solid #e5e7eb",
+                    borderRadius: "14px",
+                    padding: "14px",
+                    background: "#f8fafc",
                     display: "grid",
-                    gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
                     gap: "12px",
                   }}
                 >
-                  <label style={{ display: "grid", gap: "6px" }}>
-                    <span style={{ fontWeight: 700 }}>Prénom</span>
-                    <input
-                      className="input"
-                      value={participants[row.key]?.firstName || ""}
-                      onChange={(inputEvent) =>
-                        updateParticipant(row.key, {
-                          firstName: inputEvent.target.value,
-                        })
-                      }
-                    />
-                  </label>
+                  <strong>
+                    Participant {index + 1} — {row.rateName}
+                  </strong>
 
-                  <label style={{ display: "grid", gap: "6px" }}>
-                    <span style={{ fontWeight: 700 }}>Nom</span>
-                    <input
-                      className="input"
-                      value={participants[row.key]?.lastName || ""}
-                      onChange={(inputEvent) =>
-                        updateParticipant(row.key, {
-                          lastName: inputEvent.target.value,
-                        })
-                      }
-                    />
-                  </label>
+                  <div
+                    style={{
+                      display: "grid",
+                      gridTemplateColumns:
+                        "repeat(auto-fit, minmax(220px, 1fr))",
+                      gap: "12px",
+                    }}
+                  >
+                    <label style={{ display: "grid", gap: "6px" }}>
+                      <span style={{ fontWeight: 700 }}>Prénom *</span>
+                      <input
+                        className="input"
+                        value={participant.firstName}
+                        onChange={(inputEvent) =>
+                          updateParticipant(row.key, {
+                            firstName: inputEvent.target.value,
+                          })
+                        }
+                      />
+                    </label>
+
+                    <label style={{ display: "grid", gap: "6px" }}>
+                      <span style={{ fontWeight: 700 }}>Nom *</span>
+                      <input
+                        className="input"
+                        value={participant.lastName}
+                        onChange={(inputEvent) =>
+                          updateParticipant(row.key, {
+                            lastName: inputEvent.target.value,
+                          })
+                        }
+                      />
+                    </label>
+
+                    <label style={{ display: "grid", gap: "6px" }}>
+                      <span style={{ fontWeight: 700 }}>Âge *</span>
+                      <input
+                        className="input"
+                        type="number"
+                        min="0"
+                        value={participant.age}
+                        onChange={(inputEvent) =>
+                          updateParticipant(row.key, {
+                            age: inputEvent.target.value,
+                          })
+                        }
+                      />
+                    </label>
+
+                    <label style={{ display: "grid", gap: "6px" }}>
+                      <span style={{ fontWeight: 700 }}>Email *</span>
+                      <input
+                        className="input"
+                        type="email"
+                        value={participant.email}
+                        onChange={(inputEvent) =>
+                          updateParticipant(row.key, {
+                            email: inputEvent.target.value,
+                          })
+                        }
+                      />
+                    </label>
+
+                    <label style={{ display: "grid", gap: "6px" }}>
+                      <span style={{ fontWeight: 700 }}>Téléphone *</span>
+                      <input
+                        className="input"
+                        type="tel"
+                        value={participant.phone}
+                        onChange={(inputEvent) =>
+                          updateParticipant(row.key, {
+                            phone: inputEvent.target.value,
+                          })
+                        }
+                      />
+                    </label>
+
+                    <label style={{ display: "grid", gap: "6px" }}>
+                      <span style={{ fontWeight: 700 }}>
+                        Ville d’origine *
+                      </span>
+                      <input
+                        className="input"
+                        value={participant.originCity}
+                        onChange={(inputEvent) =>
+                          updateParticipant(row.key, {
+                            originCity: inputEvent.target.value,
+                          })
+                        }
+                      />
+                    </label>
+
+                    {customFields.map((field) =>
+                      renderCustomField(row.key, field)
+                    )}
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </section>
       ) : null}
@@ -759,7 +1037,7 @@ export default function PublicTicketingSelectionClient({
             ? "Validation en cours..."
             : formLooksReady
               ? "Valider le récapitulatif"
-              : "Compléter les informations"}
+              : "Compléter les informations obligatoires"}
         </button>
 
         {prepareMessage ? (
@@ -873,11 +1151,6 @@ export default function PublicTicketingSelectionClient({
                 ? "Création en cours..."
                 : "Créer l’inscription test pending"}
           </button>
-
-          <p style={{ margin: 0, color: "#166534", fontWeight: 700 }}>
-            Cette action crée une inscription test sans paiement, uniquement dans
-            les tables billetterie.
-          </p>
         </section>
       ) : null}
 

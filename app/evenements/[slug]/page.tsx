@@ -35,8 +35,15 @@ export default async function Page({
     notFound();
   }
 
-  const rates = await storage.getTicketingRates(event.id);
+  const [rates, customFields] = await Promise.all([
+    storage.getTicketingRates(event.id),
+    storage.getTicketingCustomFields(event.id),
+  ]);
+
   const activeRates = rates.filter((rate) => rate.isActive);
+  const activeParticipantFields = customFields.filter(
+    (field) => field.isActive && field.target === "participant"
+  );
 
   const startsAt = formatDate(event.startsAt);
   const endsAt = formatDate(event.endsAt);
@@ -188,7 +195,11 @@ export default async function Page({
         </div>
       </section>
 
-      <PublicTicketingSelectionClient event={event} rates={activeRates} />
+      <PublicTicketingSelectionClient
+        event={event}
+        rates={activeRates}
+        customFields={activeParticipantFields}
+      />
     </main>
   );
 }
