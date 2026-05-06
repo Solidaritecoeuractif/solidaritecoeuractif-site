@@ -75,10 +75,7 @@ export default async function Page({
     0
   );
 
-  const totalAmount = orders.reduce(
-    (sum, order) => sum + order.totalAmount,
-    0
-  );
+  const totalAmount = orders.reduce((sum, order) => sum + order.totalAmount, 0);
 
   return (
     <main className="panel">
@@ -196,7 +193,7 @@ export default async function Page({
                 className="table"
                 style={{
                   width: "100%",
-                  minWidth: "980px",
+                  minWidth: "1060px",
                   tableLayout: "fixed",
                   borderCollapse: "collapse",
                 }}
@@ -210,6 +207,7 @@ export default async function Page({
                     <th style={{ width: "130px" }}>Total</th>
                     <th style={{ width: "150px" }}>Créée le</th>
                     <th style={{ width: "260px" }}>Détail participants</th>
+                    <th style={{ width: "110px" }}>Action</th>
                   </tr>
                 </thead>
 
@@ -217,7 +215,16 @@ export default async function Page({
                   {orders.map((order) => (
                     <tr key={order.id}>
                       <td>
-                        <strong>{order.reference}</strong>
+                        <Link
+                          href={`/admin/billetteries/${event.slug}/inscriptions/${order.reference}`}
+                          style={{
+                            fontWeight: 800,
+                            color: "#111827",
+                            textDecoration: "none",
+                          }}
+                        >
+                          {order.reference}
+                        </Link>
                       </td>
 
                       <td>
@@ -274,7 +281,7 @@ export default async function Page({
                           <span style={{ color: "#64748b" }}>—</span>
                         ) : (
                           <div style={{ display: "grid", gap: "4px" }}>
-                            {order.participants.map((participant, index) => (
+                            {order.participants.slice(0, 4).map((participant, index) => (
                               <div key={participant.id}>
                                 <small>
                                   {index + 1}. {participant.firstName}{" "}
@@ -282,8 +289,29 @@ export default async function Page({
                                 </small>
                               </div>
                             ))}
+
+                            {order.participants.length > 4 ? (
+                              <small style={{ color: "#64748b" }}>
+                                + {order.participants.length - 4} autre(s)
+                              </small>
+                            ) : null}
                           </div>
                         )}
+                      </td>
+
+                      <td>
+                        <Link
+                          href={`/admin/billetteries/${event.slug}/inscriptions/${order.reference}`}
+                          className="button secondary small"
+                          style={{
+                            display: "inline-flex",
+                            justifyContent: "center",
+                            width: "100%",
+                            textDecoration: "none",
+                          }}
+                        >
+                          Ouvrir
+                        </Link>
                       </td>
                     </tr>
                   ))}
