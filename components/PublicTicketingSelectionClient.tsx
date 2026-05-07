@@ -39,8 +39,15 @@ type PreparedSummary = {
     rateName: string;
     rateType: string;
     quantity: number;
+    originalUnitAmount: number;
     unitAmount: number;
+    discountAmountPerUnit: number;
+    originalLineTotal: number;
     lineTotal: number;
+    discountTotal: number;
+    promoApplied: boolean;
+    promoCode: string;
+    promoDiscountPercent: number;
   }>;
   participants: Array<{
     rateId: string;
@@ -52,7 +59,9 @@ type PreparedSummary = {
     originCity: string;
     answers: Record<string, string | boolean>;
   }>;
+  originalSubtotalAmount: number;
   subtotalAmount: number;
+  discountAmount: number;
   extraDonationAmount: number;
   totalAmount: number;
   currency: string;
@@ -325,6 +334,10 @@ export default function PublicTicketingSelectionClient({
         }
 
         const promoApplied = promoStates[rate.id] === "valid";
+        const promoCode = promoApplied
+          ? normalizePromoCode(rate.promoCode || "")
+          : "";
+
         const discountedUnitAmount =
           promoApplied && canDisplayPromo(rate)
             ? applyPercentDiscount(
@@ -348,7 +361,7 @@ export default function PublicTicketingSelectionClient({
           lineTotal: discountedUnitAmount * quantity,
           discountTotal: discountAmountPerUnit * quantity,
           promoApplied,
-          promoCode: promoApplied ? normalizePromoCode(rate.promoCode || "") : "",
+          promoCode,
         };
       })
       .filter((line) => line.quantity > 0);
@@ -424,7 +437,13 @@ export default function PublicTicketingSelectionClient({
       lines: selectedLines.map((line) => ({
         rateId: line.rate.id,
         quantity: line.quantity,
+
+        // Le serveur se base sur ce montant original et recalcule la réduction.
+        originalUnitAmount: line.originalUnitAmount,
+
+        // Ce champ reste informatif ; le serveur ne lui fait pas confiance seul.
         unitAmount: line.unitAmount,
+
         promoCode: line.promoCode,
       })),
       participants: participantRows.map((row) => {
@@ -1313,16 +1332,30 @@ export default function PublicTicketingSelectionClient({
               <div
                 key={line.rateId}
                 style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  gap: "12px",
-                  flexWrap: "wrap",
+                  display: "grid",
+                  gap: "4px",
                 }}
               >
-                <span>
-                  {line.rateName} × {line.quantity}
-                </span>
-                <strong>{formatAmount(line.lineTotal)}</strong>
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    gap: "12px",
+                    flexWrap: "wrap",
+                  }}
+                >
+                  <span>
+                    {line.rateName} × {line.quantity}
+                  </span>
+                  <strong>{formatAmount(line.lineTotal)}</strong>
+                </div>
+
+                {line.discountTotal > 0 ? (
+                  <small style={{ color: "#166534", fontWeight: 700 }}>
+                    Réduction validée serveur : -
+                    {formatAmount(line.discountTotal)}
+                  </small>
+                ) : null}
               </div>
             ))}
           </div>
@@ -1331,6 +1364,13 @@ export default function PublicTicketingSelectionClient({
             <strong>Participants :</strong>{" "}
             {preparedSummary.participants.length}
           </div>
+
+          {preparedSummary.discountAmount > 0 ? (
+            <div>
+              <strong>Réduction totale :</strong> -
+              {formatAmount(preparedSummary.discountAmount)}
+            </div>
+          ) : null}
 
           {preparedSummary.extraDonationAmount > 0 ? (
             <div>

@@ -4,12 +4,15 @@ import type {
   TicketingCustomField,
   TicketingOrder,
   TicketingParticipant,
+  TicketingRate,
 } from "@/lib/ticketing/types";
 
 type TicketingLineInput = {
   rateId: string;
   quantity: number;
   unitAmount?: number;
+  originalUnitAmount?: number;
+  promoCode?: string;
 };
 
 type ParticipantInput = {
@@ -25,6 +28,10 @@ type ParticipantInput = {
 
 function cleanString(value: unknown) {
   return String(value || "").trim();
+}
+
+function normalizePromoCode(value: unknown) {
+  return cleanString(value).toUpperCase();
 }
 
 function toPositiveInteger(value: unknown) {
@@ -45,6 +52,22 @@ function toPositiveCents(value: unknown) {
   }
 
   return Math.round(number);
+}
+
+function normalizePercent(value: unknown) {
+  const number = Number(value);
+
+  if (!Number.isFinite(number)) return 0;
+
+  return Math.max(0, Math.min(100, Math.round(number)));
+}
+
+function applyPercentDiscount(amount: number, percent: number) {
+  const safePercent = normalizePercent(percent);
+
+  if (safePercent <= 0) return amount;
+
+  return Math.max(0, Math.round(amount * (1 - safePercent / 100)));
 }
 
 function isValidEmail(value: string) {
@@ -76,6 +99,56 @@ async function makeUniqueReference() {
   }
 
   return reference;
+}
+
+function getOriginalUnitAmount(rate: TicketingRate, line: TicketingLineInput) {
+  if (rate.type === "fixed") {
+    return rate.amount || 0;
+  }
+
+  if (rate.type === "free_amount") {
+    const requestedAmount = toPositiveCents(
+      typeof line.originalUnitAmount === "number"
+        ? line.originalUnitAmount
+        : line.unitAmount
+    );
+
+    const minimumAmount = rate.minimumAmount || 0;
+
+    return Math.max(requestedAmount, minimumAmount);
+  }
+
+  return 0;
+}
+
+function computePromoForLine(rate: TicketingRate, promoCodeInput: unknown) {
+  const submittedCode = normalizePromoCode(promoCodeInput);
+
+  if (!submittedCode) {
+    return {
+      promoApplied: false,
+      promoCode: "",
+      promoDiscountPercent: 0,
+    };
+  }
+
+  const promoEnabled = Boolean(rate.promoCodeEnabled);
+  const expectedCode = normalizePromoCode(rate.promoCode);
+  const discountPercent = normalizePercent(rate.promoDiscountPercent);
+
+  if (!promoEnabled || !expectedCode || discountPercent <= 0) {
+    throw new Error(`Aucun code promo n’est disponible pour le tarif "${rate.name}".`);
+  }
+
+  if (submittedCode !== expectedCode) {
+    throw new Error(`Le code promo saisi pour le tarif "${rate.name}" est invalide.`);
+  }
+
+  return {
+    promoApplied: true,
+    promoCode: expectedCode,
+    promoDiscountPercent: discountPercent,
+  };
 }
 
 export async function POST(request: Request) {
@@ -169,32 +242,43 @@ export async function POST(request: Request) {
           );
         }
 
-        let unitAmount = 0;
+        const originalUnitAmount = getOriginalUnitAmount(rate, line);
+        const promo = computePromoForLine(rate, line.promoCode);
 
-        if (rate.type === "fixed") {
-          unitAmount = rate.amount || 0;
-        }
+        const unitAmount = promo.promoApplied
+          ? applyPercentDiscount(originalUnitAmount, promo.promoDiscountPercent)
+          : originalUnitAmount;
 
-        if (rate.type === "free_amount") {
-          const requestedAmount = toPositiveCents(line.unitAmount);
-          const minimumAmount = rate.minimumAmount || 0;
-          unitAmount = Math.max(requestedAmount, minimumAmount);
-        }
+        const discountAmountPerUnit = Math.max(0, originalUnitAmount - unitAmount);
 
         return {
           rateId: rate.id,
           rateName: rate.name,
           quantity,
+          originalUnitAmount,
           unitAmount,
+          discountAmountPerUnit,
+          originalLineTotal: originalUnitAmount * quantity,
           lineTotal: unitAmount * quantity,
+          discountTotal: discountAmountPerUnit * quantity,
+          promoApplied: promo.promoApplied,
+          promoCode: promo.promoCode,
+          promoDiscountPercent: promo.promoDiscountPercent,
         };
       })
       .filter(Boolean) as Array<{
       rateId: string;
       rateName: string;
       quantity: number;
+      originalUnitAmount: number;
       unitAmount: number;
+      discountAmountPerUnit: number;
+      originalLineTotal: number;
       lineTotal: number;
+      discountTotal: number;
+      promoApplied: boolean;
+      promoCode: string;
+      promoDiscountPercent: number;
     }>;
 
     if (preparedLines.length === 0) {
