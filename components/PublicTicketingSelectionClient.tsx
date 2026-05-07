@@ -24,6 +24,8 @@ type PayerDraft = {
   phone: string;
 };
 
+type PromoState = "idle" | "valid" | "invalid";
+
 type PreparedSummary = {
   reference: string;
   event: {
@@ -123,6 +125,31 @@ function fieldValueIsFilled(field: TicketingCustomField, value: unknown) {
   return String(value ?? "").trim().length > 0;
 }
 
+function normalizePromoCode(value: string) {
+  return String(value || "").trim().toUpperCase();
+}
+
+function canDisplayPromo(rate: TicketingRate) {
+  return Boolean(
+    rate.promoCodeEnabled &&
+      rate.promoCodePublic &&
+      rate.promoCode &&
+      rate.promoDiscountPercent &&
+      rate.promoDiscountPercent > 0
+  );
+}
+
+function applyPercentDiscount(amount: number, percent?: number) {
+  const safePercent =
+    typeof percent === "number"
+      ? Math.max(0, Math.min(100, Math.round(percent)))
+      : 0;
+
+  if (safePercent <= 0) return amount;
+
+  return Math.max(0, Math.round(amount * (1 - safePercent / 100)));
+}
+
 export default function PublicTicketingSelectionClient({
   event,
   rates,
@@ -135,6 +162,12 @@ export default function PublicTicketingSelectionClient({
   const [quantities, setQuantities] = useState<Record<string, number>>({});
   const [freeAmounts, setFreeAmounts] = useState<Record<string, string>>({});
   const [extraDonation, setExtraDonation] = useState("");
+
+  const [promoOpen, setPromoOpen] = useState<Record<string, boolean>>({});
+  const [promoInputs, setPromoInputs] = useState<Record<string, string>>({});
+  const [promoStates, setPromoStates] = useState<Record<string, PromoState>>(
+    {}
+  );
 
   const [payer, setPayer] = useState<PayerDraft>({
     firstName: "",
@@ -232,32 +265,94 @@ export default function PublicTicketingSelectionClient({
     resetServerState();
   }
 
+  function togglePromo(rateId: string) {
+    setPromoOpen((current) => ({
+      ...current,
+      [rateId]: !current[rateId],
+    }));
+  }
+
+  function updatePromoInput(rateId: string, value: string) {
+    setPromoInputs((current) => ({
+      ...current,
+      [rateId]: value,
+    }));
+
+    setPromoStates((current) => ({
+      ...current,
+      [rateId]: "idle",
+    }));
+
+    resetServerState();
+  }
+
+  function applyPromoCode(rate: TicketingRate) {
+    const enteredCode = normalizePromoCode(promoInputs[rate.id] || "");
+    const expectedCode = normalizePromoCode(rate.promoCode || "");
+
+    if (!enteredCode || !expectedCode || enteredCode !== expectedCode) {
+      setPromoStates((current) => ({
+        ...current,
+        [rate.id]: "invalid",
+      }));
+      resetServerState();
+      return;
+    }
+
+    setPromoStates((current) => ({
+      ...current,
+      [rate.id]: "valid",
+    }));
+
+    resetServerState();
+  }
+
   const selectedLines = useMemo(() => {
     return rates
       .map((rate) => {
         const quantity = quantities[rate.id] || 0;
 
-        let unitAmount = 0;
+        let originalUnitAmount = 0;
 
         if (rate.type === "fixed") {
-          unitAmount = rate.amount || 0;
+          originalUnitAmount = rate.amount || 0;
         }
 
         if (rate.type === "free_amount") {
           const enteredAmount = centsFromEuroInput(freeAmounts[rate.id] || "");
           const minimumAmount = rate.minimumAmount || 0;
-          unitAmount = Math.max(enteredAmount, minimumAmount);
+          originalUnitAmount = Math.max(enteredAmount, minimumAmount);
         }
+
+        const promoApplied = promoStates[rate.id] === "valid";
+        const discountedUnitAmount =
+          promoApplied && canDisplayPromo(rate)
+            ? applyPercentDiscount(
+                originalUnitAmount,
+                rate.promoDiscountPercent
+              )
+            : originalUnitAmount;
+
+        const discountAmountPerUnit = Math.max(
+          0,
+          originalUnitAmount - discountedUnitAmount
+        );
 
         return {
           rate,
           quantity,
-          unitAmount,
-          lineTotal: unitAmount * quantity,
+          originalUnitAmount,
+          unitAmount: discountedUnitAmount,
+          discountAmountPerUnit,
+          originalLineTotal: originalUnitAmount * quantity,
+          lineTotal: discountedUnitAmount * quantity,
+          discountTotal: discountAmountPerUnit * quantity,
+          promoApplied,
+          promoCode: promoApplied ? normalizePromoCode(rate.promoCode || "") : "",
         };
       })
       .filter((line) => line.quantity > 0);
-  }, [rates, quantities, freeAmounts]);
+  }, [rates, quantities, freeAmounts, promoStates]);
 
   const participantRows = useMemo(() => {
     return selectedLines.flatMap((line) =>
@@ -272,6 +367,11 @@ export default function PublicTicketingSelectionClient({
 
   const ticketsTotal = selectedLines.reduce(
     (sum, line) => sum + line.lineTotal,
+    0
+  );
+
+  const totalDiscount = selectedLines.reduce(
+    (sum, line) => sum + line.discountTotal,
     0
   );
 
@@ -325,6 +425,7 @@ export default function PublicTicketingSelectionClient({
         rateId: line.rate.id,
         quantity: line.quantity,
         unitAmount: line.unitAmount,
+        promoCode: line.promoCode,
       })),
       participants: participantRows.map((row) => {
         const participant = participants[row.key] || emptyParticipant();
@@ -589,6 +690,8 @@ export default function PublicTicketingSelectionClient({
           {rates.map((rate) => {
             const quantity = quantities[rate.id] || 0;
             const maxQuantity = rate.quantityPerOrderLimit || 20;
+            const promoState = promoStates[rate.id] || "idle";
+            const promoVisible = canDisplayPromo(rate);
 
             return (
               <article
@@ -684,6 +787,90 @@ export default function PublicTicketingSelectionClient({
                     </select>
                   </label>
                 </div>
+
+                {promoVisible ? (
+                  <div style={{ display: "grid", gap: "10px" }}>
+                    <button
+                      type="button"
+                      className="button secondary"
+                      onClick={() => togglePromo(rate.id)}
+                      style={{ justifySelf: "start" }}
+                    >
+                      J’ai un code promo
+                    </button>
+
+                    {promoOpen[rate.id] ? (
+                      <div
+                        style={{
+                          border:
+                            promoState === "invalid"
+                              ? "1px solid #fca5a5"
+                              : promoState === "valid"
+                                ? "1px solid #86efac"
+                                : "1px solid #dbe3ee",
+                          borderRadius: "14px",
+                          padding: "12px",
+                          background:
+                            promoState === "invalid"
+                              ? "#fef2f2"
+                              : promoState === "valid"
+                                ? "#f0fdf4"
+                                : "#ffffff",
+                          display: "grid",
+                          gap: "10px",
+                        }}
+                      >
+                        <label style={{ display: "grid", gap: "6px" }}>
+                          <span style={{ fontWeight: 700 }}>Code promo</span>
+                          <input
+                            className="input"
+                            value={promoInputs[rate.id] || ""}
+                            onChange={(inputEvent) =>
+                              updatePromoInput(rate.id, inputEvent.target.value)
+                            }
+                            placeholder="Entrer le code"
+                          />
+                        </label>
+
+                        <button
+                          type="button"
+                          className="button"
+                          onClick={() => applyPromoCode(rate)}
+                          style={{ justifySelf: "start" }}
+                        >
+                          Appliquer
+                        </button>
+
+                        {promoState === "valid" ? (
+                          <p
+                            style={{
+                              margin: 0,
+                              color: "#166534",
+                              fontWeight: 700,
+                            }}
+                          >
+                            Code promo appliqué :{" "}
+                            {rate.promoDiscountPercent || 0} % de réduction sur
+                            ce tarif.
+                          </p>
+                        ) : null}
+
+                        {promoState === "invalid" ? (
+                          <p
+                            style={{
+                              margin: 0,
+                              color: "#991b1b",
+                              fontWeight: 700,
+                            }}
+                          >
+                            Code promo invalide. Aucune réduction n’est
+                            appliquée.
+                          </p>
+                        ) : null}
+                      </div>
+                    ) : null}
+                  </div>
+                ) : null}
               </article>
             );
           })}
@@ -977,18 +1164,47 @@ export default function PublicTicketingSelectionClient({
               <div
                 key={line.rate.id}
                 style={{
+                  display: "grid",
+                  gap: "4px",
+                }}
+              >
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    gap: "12px",
+                    flexWrap: "wrap",
+                  }}
+                >
+                  <span>
+                    {line.rate.name} × {line.quantity}
+                  </span>
+                  <strong>{formatAmount(line.lineTotal)}</strong>
+                </div>
+
+                {line.discountTotal > 0 ? (
+                  <small style={{ color: "#166534", fontWeight: 700 }}>
+                    Code promo appliqué : -{formatAmount(line.discountTotal)}
+                  </small>
+                ) : null}
+              </div>
+            ))}
+
+            {totalDiscount > 0 ? (
+              <div
+                style={{
                   display: "flex",
                   justifyContent: "space-between",
                   gap: "12px",
                   flexWrap: "wrap",
+                  color: "#166534",
+                  fontWeight: 800,
                 }}
               >
-                <span>
-                  {line.rate.name} × {line.quantity}
-                </span>
-                <strong>{formatAmount(line.lineTotal)}</strong>
+                <span>Réduction totale</span>
+                <span>-{formatAmount(totalDiscount)}</span>
               </div>
-            ))}
+            ) : null}
 
             {extraDonationAmount > 0 ? (
               <div
