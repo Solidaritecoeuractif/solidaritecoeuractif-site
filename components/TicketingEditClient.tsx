@@ -59,6 +59,14 @@ function normalizePercent(value?: number) {
   return String(Math.max(0, Math.min(100, Math.round(value))));
 }
 
+function cleanPercent(value: string) {
+  const number = Number(String(value || "").trim());
+
+  if (!Number.isFinite(number)) return "0";
+
+  return String(Math.max(0, Math.min(100, Math.round(number))));
+}
+
 function rateTypeLabel(type: DraftRateType) {
   if (type === "fixed") return "Prix fixe";
   if (type === "free_amount") return "Prix libre";
@@ -157,6 +165,12 @@ export default function TicketingEditClient({
 
         if (patch.promoCodeEnabled === false) {
           next.promoCodePublic = false;
+        }
+
+        if (Object.prototype.hasOwnProperty.call(patch, "promoDiscountPercent")) {
+          next.promoDiscountPercent = cleanPercent(
+            String(patch.promoDiscountPercent || "0")
+          );
         }
 
         return next;
@@ -309,7 +323,7 @@ export default function TicketingEditClient({
             <input
               className="input"
               value={title}
-              onChange={(event) => setTitle(event.target.value)}
+              onChange={(inputEvent) => setTitle(inputEvent.target.value)}
             />
           </label>
 
@@ -318,7 +332,9 @@ export default function TicketingEditClient({
             <input
               className="input"
               value={formTypeLabel}
-              onChange={(event) => setFormTypeLabel(event.target.value)}
+              onChange={(inputEvent) =>
+                setFormTypeLabel(inputEvent.target.value)
+              }
             />
           </label>
 
@@ -327,7 +343,9 @@ export default function TicketingEditClient({
             <select
               className="input"
               value={isVisible ? "visible" : "hidden"}
-              onChange={(event) => setIsVisible(event.target.value === "visible")}
+              onChange={(inputEvent) =>
+                setIsVisible(inputEvent.target.value === "visible")
+              }
             >
               <option value="hidden">Masquée / brouillon</option>
               <option value="visible">Visible publiquement</option>
@@ -358,7 +376,7 @@ export default function TicketingEditClient({
             <input
               className="input"
               value={locationName}
-              onChange={(event) => setLocationName(event.target.value)}
+              onChange={(inputEvent) => setLocationName(inputEvent.target.value)}
             />
           </label>
 
@@ -367,7 +385,7 @@ export default function TicketingEditClient({
             <input
               className="input"
               value={addressLine}
-              onChange={(event) => setAddressLine(event.target.value)}
+              onChange={(inputEvent) => setAddressLine(inputEvent.target.value)}
               placeholder="Adresse complète ou complément"
             />
           </label>
@@ -377,7 +395,7 @@ export default function TicketingEditClient({
             <input
               className="input"
               value={postalCode}
-              onChange={(event) => setPostalCode(event.target.value)}
+              onChange={(inputEvent) => setPostalCode(inputEvent.target.value)}
             />
           </label>
 
@@ -386,7 +404,7 @@ export default function TicketingEditClient({
             <input
               className="input"
               value={city}
-              onChange={(event) => setCity(event.target.value)}
+              onChange={(inputEvent) => setCity(inputEvent.target.value)}
             />
           </label>
 
@@ -395,7 +413,7 @@ export default function TicketingEditClient({
             <input
               className="input"
               value={country}
-              onChange={(event) => setCountry(event.target.value)}
+              onChange={(inputEvent) => setCountry(inputEvent.target.value)}
             />
           </label>
 
@@ -404,9 +422,9 @@ export default function TicketingEditClient({
             <select
               className="input"
               value={durationType}
-              onChange={(event) =>
+              onChange={(inputEvent) =>
                 setDurationType(
-                  event.target.value as "none" | "one_day" | "several_days"
+                  inputEvent.target.value as "none" | "one_day" | "several_days"
                 )
               }
             >
@@ -422,7 +440,7 @@ export default function TicketingEditClient({
               className="input"
               type="datetime-local"
               value={startsAt}
-              onChange={(event) => setStartsAt(event.target.value)}
+              onChange={(inputEvent) => setStartsAt(inputEvent.target.value)}
             />
           </label>
 
@@ -432,7 +450,7 @@ export default function TicketingEditClient({
               className="input"
               type="datetime-local"
               value={endsAt}
-              onChange={(event) => setEndsAt(event.target.value)}
+              onChange={(inputEvent) => setEndsAt(inputEvent.target.value)}
             />
           </label>
         </div>
@@ -540,8 +558,8 @@ export default function TicketingEditClient({
                     <input
                       className="input"
                       value={rate.name}
-                      onChange={(event) =>
-                        updateRate(rate.id, { name: event.target.value })
+                      onChange={(inputEvent) =>
+                        updateRate(rate.id, { name: inputEvent.target.value })
                       }
                       placeholder="Ex. Pass week-end"
                     />
@@ -552,9 +570,9 @@ export default function TicketingEditClient({
                     <select
                       className="input"
                       value={rate.type}
-                      onChange={(event) =>
+                      onChange={(inputEvent) =>
                         updateRate(rate.id, {
-                          type: event.target.value as DraftRateType,
+                          type: inputEvent.target.value as DraftRateType,
                         })
                       }
                     >
@@ -570,8 +588,8 @@ export default function TicketingEditClient({
                       <input
                         className="input"
                         value={rate.amount}
-                        onChange={(event) =>
-                          updateRate(rate.id, { amount: event.target.value })
+                        onChange={(inputEvent) =>
+                          updateRate(rate.id, { amount: inputEvent.target.value })
                         }
                         placeholder="Ex. 50"
                       />
@@ -584,9 +602,9 @@ export default function TicketingEditClient({
                       <input
                         className="input"
                         value={rate.minimumAmount}
-                        onChange={(event) =>
+                        onChange={(inputEvent) =>
                           updateRate(rate.id, {
-                            minimumAmount: event.target.value,
+                            minimumAmount: inputEvent.target.value,
                           })
                         }
                         placeholder="Ex. 50"
@@ -599,8 +617,8 @@ export default function TicketingEditClient({
                     <input
                       className="input"
                       value={rate.totalLimit}
-                      onChange={(event) =>
-                        updateRate(rate.id, { totalLimit: event.target.value })
+                      onChange={(inputEvent) =>
+                        updateRate(rate.id, { totalLimit: inputEvent.target.value })
                       }
                       placeholder="Optionnel"
                     />
@@ -611,9 +629,9 @@ export default function TicketingEditClient({
                     <input
                       className="input"
                       value={rate.perOrderLimit}
-                      onChange={(event) =>
+                      onChange={(inputEvent) =>
                         updateRate(rate.id, {
-                          perOrderLimit: event.target.value,
+                          perOrderLimit: inputEvent.target.value,
                         })
                       }
                       placeholder="Optionnel"
@@ -626,8 +644,8 @@ export default function TicketingEditClient({
                   <textarea
                     className="input"
                     value={rate.description}
-                    onChange={(event) =>
-                      updateRate(rate.id, { description: event.target.value })
+                    onChange={(inputEvent) =>
+                      updateRate(rate.id, { description: inputEvent.target.value })
                     }
                     rows={3}
                     placeholder="Texte facultatif pour expliquer ce tarif."
@@ -677,26 +695,43 @@ export default function TicketingEditClient({
 
                   {rate.promoCodeEnabled ? (
                     <div style={{ display: "grid", gap: "12px" }}>
-                      <label
+                      <div
                         style={{
                           display: "flex",
+                          gap: "10px",
                           alignItems: "center",
-                          gap: "8px",
-                          fontWeight: 700,
+                          flexWrap: "wrap",
+                          border: rate.promoCodePublic
+                            ? "1px solid #bbf7d0"
+                            : "1px solid #e5e7eb",
+                          background: rate.promoCodePublic ? "#f0fdf4" : "#f8fafc",
+                          borderRadius: "14px",
+                          padding: "12px",
                         }}
                       >
-                        <input
-                          type="checkbox"
-                          checked={rate.promoCodePublic}
-                          onChange={(event) =>
+                        <strong>
+                          Affichage public : {rate.promoCodePublic ? "OUI" : "NON"}
+                        </strong>
+
+                        <button
+                          type="button"
+                          className="button secondary"
+                          onClick={() =>
                             updateRate(rate.id, {
-                              promoCodePublic: event.target.checked,
+                              promoCodePublic: !rate.promoCodePublic,
                             })
                           }
-                        />
-                        Afficher l’option “J’ai un code promo” sur la page
-                        publique
-                      </label>
+                        >
+                          {rate.promoCodePublic
+                            ? "Ne pas afficher publiquement"
+                            : "Afficher publiquement"}
+                        </button>
+
+                        <span style={{ color: "#64748b", fontSize: "13px" }}>
+                          Si OUI, le bouton “J’ai un code promo” apparaîtra sur
+                          la page publique.
+                        </span>
+                      </div>
 
                       <div
                         style={{
@@ -711,9 +746,9 @@ export default function TicketingEditClient({
                           <input
                             className="input"
                             value={rate.promoCode}
-                            onChange={(event) =>
+                            onChange={(inputEvent) =>
                               updateRate(rate.id, {
-                                promoCode: event.target.value
+                                promoCode: inputEvent.target.value
                                   .trim()
                                   .toUpperCase(),
                               })
@@ -726,24 +761,26 @@ export default function TicketingEditClient({
                           <span style={{ fontWeight: 700 }}>
                             Réduction : {rate.promoDiscountPercent || "0"} %
                           </span>
+
                           <input
                             type="range"
                             min="0"
                             max="100"
                             step="1"
                             value={rate.promoDiscountPercent || "0"}
-                            onChange={(event) =>
+                            onChange={(inputEvent) =>
                               updateRate(rate.id, {
-                                promoDiscountPercent: event.target.value,
+                                promoDiscountPercent: inputEvent.target.value,
                               })
                             }
                           />
+
                           <input
                             className="input"
                             value={rate.promoDiscountPercent}
-                            onChange={(event) =>
+                            onChange={(inputEvent) =>
                               updateRate(rate.id, {
-                                promoDiscountPercent: event.target.value,
+                                promoDiscountPercent: inputEvent.target.value,
                               })
                             }
                             placeholder="Ex. 20"
@@ -756,10 +793,10 @@ export default function TicketingEditClient({
                         {rate.promoCode ? (
                           <>
                             <strong>{rate.promoCode}</strong> —{" "}
-                            {rate.promoDiscountPercent || "0"} % de réduction
+                            {rate.promoDiscountPercent || "0"} % de réduction —
                             {rate.promoCodePublic
-                              ? " — affiché publiquement"
-                              : " — non affiché publiquement"}
+                              ? " affiché publiquement"
+                              : " non affiché publiquement"}
                           </>
                         ) : (
                           "aucun code défini"
@@ -811,7 +848,9 @@ export default function TicketingEditClient({
             <input
               className="input"
               value={organizerEmail}
-              onChange={(event) => setOrganizerEmail(event.target.value)}
+              onChange={(inputEvent) =>
+                setOrganizerEmail(inputEvent.target.value)
+              }
             />
           </label>
 
@@ -820,7 +859,9 @@ export default function TicketingEditClient({
             <input
               className="input"
               value={organizerPhone}
-              onChange={(event) => setOrganizerPhone(event.target.value)}
+              onChange={(inputEvent) =>
+                setOrganizerPhone(inputEvent.target.value)
+              }
             />
           </label>
 
@@ -829,8 +870,8 @@ export default function TicketingEditClient({
             <select
               className="input"
               value={allowExtraDonation ? "yes" : "no"}
-              onChange={(event) =>
-                setAllowExtraDonation(event.target.value === "yes")
+              onChange={(inputEvent) =>
+                setAllowExtraDonation(inputEvent.target.value === "yes")
               }
             >
               <option value="yes">Proposer une contribution en plus</option>
@@ -843,8 +884,8 @@ export default function TicketingEditClient({
             <input
               className="input"
               value={suggestedDonationAmounts}
-              onChange={(event) =>
-                setSuggestedDonationAmounts(event.target.value)
+              onChange={(inputEvent) =>
+                setSuggestedDonationAmounts(inputEvent.target.value)
               }
               placeholder="Ex. 5, 10, 20"
             />
@@ -856,7 +897,9 @@ export default function TicketingEditClient({
           <textarea
             className="input"
             value={shortDescription}
-            onChange={(event) => setShortDescription(event.target.value)}
+            onChange={(inputEvent) =>
+              setShortDescription(inputEvent.target.value)
+            }
             rows={6}
             placeholder="Présentation courte affichée sur la page publique de la billetterie."
           />
