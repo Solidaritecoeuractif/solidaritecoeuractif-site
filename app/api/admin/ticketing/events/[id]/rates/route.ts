@@ -79,14 +79,13 @@ export async function PUT(
       const type = normalizeRateType(entry.type);
       const name = cleanString(entry.name) || "Tarif sans nom";
 
-      const promoCodeEnabled = Boolean(entry.promoCodeEnabled);
       const promoCode = normalizePromoCode(entry.promoCode);
       const promoDiscountPercent = normalizePercent(
         entry.promoDiscountPercent
       );
 
-      const finalPromoCodeEnabled =
-        promoCodeEnabled && Boolean(promoCode) && promoDiscountPercent > 0;
+      const promoCodeEnabled = Boolean(entry.promoCodeEnabled);
+      const promoCodePublic = Boolean(entry.promoCodePublic);
 
       return {
         id: cleanString(entry.id) || crypto.randomUUID(),
@@ -101,14 +100,21 @@ export async function PUT(
         totalQuantityLimit: toOptionalNumber(entry.totalLimit),
         quantityPerOrderLimit: toOptionalNumber(entry.perOrderLimit),
 
-        promoCodeEnabled: finalPromoCodeEnabled,
-        promoCodePublic: finalPromoCodeEnabled
-          ? Boolean(entry.promoCodePublic)
-          : false,
-        promoCode: finalPromoCodeEnabled ? promoCode : undefined,
-        promoDiscountPercent: finalPromoCodeEnabled
-          ? promoDiscountPercent
-          : 0,
+        promoCodeEnabled:
+          promoCodeEnabled && Boolean(promoCode) && promoDiscountPercent > 0,
+        promoCodePublic:
+          promoCodeEnabled &&
+          promoCodePublic &&
+          Boolean(promoCode) &&
+          promoDiscountPercent > 0,
+        promoCode:
+          promoCodeEnabled && Boolean(promoCode) && promoDiscountPercent > 0
+            ? promoCode
+            : undefined,
+        promoDiscountPercent:
+          promoCodeEnabled && Boolean(promoCode) && promoDiscountPercent > 0
+            ? promoDiscountPercent
+            : 0,
 
         createdAt: cleanString(entry.createdAt) || now,
         updatedAt: now,
