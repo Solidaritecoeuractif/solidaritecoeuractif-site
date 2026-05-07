@@ -8,6 +8,10 @@ function normalizeRateType(value: unknown): TicketingRateType {
   return "fixed";
 }
 
+function cleanString(value: unknown) {
+  return String(value || "").trim();
+}
+
 function toCents(value: unknown) {
   const normalized = String(value || "").replace(",", ".").trim();
   const number = Number(normalized);
@@ -27,6 +31,20 @@ function toOptionalNumber(value: unknown) {
   }
 
   return Math.floor(number);
+}
+
+function normalizePercent(value: unknown) {
+  const number = Number(String(value || "").trim());
+
+  if (!Number.isFinite(number)) {
+    return 0;
+  }
+
+  return Math.max(0, Math.min(100, Math.round(number)));
+}
+
+function normalizePromoCode(value: unknown) {
+  return cleanString(value).toUpperCase();
 }
 
 export async function PUT(
@@ -59,13 +77,22 @@ export async function PUT(
 
     const rates: TicketingRate[] = payload.rates.map((entry: any) => {
       const type = normalizeRateType(entry.type);
-      const name = String(entry.name || "").trim() || "Tarif sans nom";
+      const name = cleanString(entry.name) || "Tarif sans nom";
+
+      const promoCodeEnabled = Boolean(entry.promoCodeEnabled);
+      const promoCode = normalizePromoCode(entry.promoCode);
+      const promoDiscountPercent = normalizePercent(
+        entry.promoDiscountPercent
+      );
+
+      const finalPromoCodeEnabled =
+        promoCodeEnabled && Boolean(promoCode) && promoDiscountPercent > 0;
 
       return {
-        id: String(entry.id || "").trim() || crypto.randomUUID(),
+        id: cleanString(entry.id) || crypto.randomUUID(),
         eventId: id,
         name,
-        description: String(entry.description || "").trim() || undefined,
+        description: cleanString(entry.description) || undefined,
         type,
         amount: type === "fixed" ? toCents(entry.amount) : undefined,
         minimumAmount:
@@ -73,7 +100,17 @@ export async function PUT(
         isActive: Boolean(entry.isActive),
         totalQuantityLimit: toOptionalNumber(entry.totalLimit),
         quantityPerOrderLimit: toOptionalNumber(entry.perOrderLimit),
-        createdAt: String(entry.createdAt || "").trim() || now,
+
+        promoCodeEnabled: finalPromoCodeEnabled,
+        promoCodePublic: finalPromoCodeEnabled
+          ? Boolean(entry.promoCodePublic)
+          : false,
+        promoCode: finalPromoCodeEnabled ? promoCode : undefined,
+        promoDiscountPercent: finalPromoCodeEnabled
+          ? promoDiscountPercent
+          : 0,
+
+        createdAt: cleanString(entry.createdAt) || now,
         updatedAt: now,
       };
     });

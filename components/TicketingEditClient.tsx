@@ -15,6 +15,10 @@ type DraftRate = {
   totalLimit: string;
   perOrderLimit: string;
   isActive: boolean;
+  promoCodeEnabled: boolean;
+  promoCodePublic: boolean;
+  promoCode: string;
+  promoDiscountPercent: string;
   createdAt?: string;
 };
 
@@ -50,6 +54,11 @@ function optionalNumberToString(value?: number) {
   return String(value);
 }
 
+function normalizePercent(value?: number) {
+  if (typeof value !== "number") return "0";
+  return String(Math.max(0, Math.min(100, Math.round(value))));
+}
+
 function rateTypeLabel(type: DraftRateType) {
   if (type === "fixed") return "Prix fixe";
   if (type === "free_amount") return "Prix libre";
@@ -67,6 +76,10 @@ function toDraftRate(rate: TicketingRate): DraftRate {
     totalLimit: optionalNumberToString(rate.totalQuantityLimit),
     perOrderLimit: optionalNumberToString(rate.quantityPerOrderLimit),
     isActive: rate.isActive,
+    promoCodeEnabled: Boolean(rate.promoCodeEnabled),
+    promoCodePublic: Boolean(rate.promoCodePublic),
+    promoCode: rate.promoCode || "",
+    promoDiscountPercent: normalizePercent(rate.promoDiscountPercent),
     createdAt: rate.createdAt,
   };
 }
@@ -82,6 +95,10 @@ function newDraftRate(): DraftRate {
     totalLimit: "",
     perOrderLimit: "",
     isActive: true,
+    promoCodeEnabled: false,
+    promoCodePublic: false,
+    promoCode: "",
+    promoDiscountPercent: "0",
     createdAt: new Date().toISOString(),
   };
 }
@@ -133,7 +150,17 @@ export default function TicketingEditClient({
 
   function updateRate(id: string, patch: Partial<DraftRate>) {
     setDraftRates((current) =>
-      current.map((rate) => (rate.id === id ? { ...rate, ...patch } : rate))
+      current.map((rate) => {
+        if (rate.id !== id) return rate;
+
+        const next = { ...rate, ...patch };
+
+        if (patch.promoCodeEnabled === false) {
+          next.promoCodePublic = false;
+        }
+
+        return next;
+      })
     );
   }
 
@@ -607,6 +634,141 @@ export default function TicketingEditClient({
                   />
                 </label>
 
+                <section
+                  style={{
+                    border: "1px solid #dbe3ee",
+                    borderRadius: "14px",
+                    padding: "14px",
+                    background: "#ffffff",
+                    display: "grid",
+                    gap: "12px",
+                  }}
+                >
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      gap: "12px",
+                      alignItems: "center",
+                      flexWrap: "wrap",
+                    }}
+                  >
+                    <div>
+                      <strong>Code promo</strong>
+                      <p style={{ margin: "4px 0 0", color: "#64748b" }}>
+                        Réduction appliquée uniquement à ce tarif.
+                      </p>
+                    </div>
+
+                    <button
+                      type="button"
+                      className="button secondary"
+                      onClick={() =>
+                        updateRate(rate.id, {
+                          promoCodeEnabled: !rate.promoCodeEnabled,
+                        })
+                      }
+                    >
+                      {rate.promoCodeEnabled
+                        ? "Code promo activé"
+                        : "Code promo désactivé"}
+                    </button>
+                  </div>
+
+                  {rate.promoCodeEnabled ? (
+                    <div style={{ display: "grid", gap: "12px" }}>
+                      <label
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "8px",
+                          fontWeight: 700,
+                        }}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={rate.promoCodePublic}
+                          onChange={(event) =>
+                            updateRate(rate.id, {
+                              promoCodePublic: event.target.checked,
+                            })
+                          }
+                        />
+                        Afficher l’option “J’ai un code promo” sur la page
+                        publique
+                      </label>
+
+                      <div
+                        style={{
+                          display: "grid",
+                          gridTemplateColumns:
+                            "repeat(auto-fit, minmax(220px, 1fr))",
+                          gap: "12px",
+                        }}
+                      >
+                        <label style={{ display: "grid", gap: "6px" }}>
+                          <span style={{ fontWeight: 700 }}>Code</span>
+                          <input
+                            className="input"
+                            value={rate.promoCode}
+                            onChange={(event) =>
+                              updateRate(rate.id, {
+                                promoCode: event.target.value
+                                  .trim()
+                                  .toUpperCase(),
+                              })
+                            }
+                            placeholder="Ex. JEUNES2026"
+                          />
+                        </label>
+
+                        <label style={{ display: "grid", gap: "6px" }}>
+                          <span style={{ fontWeight: 700 }}>
+                            Réduction : {rate.promoDiscountPercent || "0"} %
+                          </span>
+                          <input
+                            type="range"
+                            min="0"
+                            max="100"
+                            step="1"
+                            value={rate.promoDiscountPercent || "0"}
+                            onChange={(event) =>
+                              updateRate(rate.id, {
+                                promoDiscountPercent: event.target.value,
+                              })
+                            }
+                          />
+                          <input
+                            className="input"
+                            value={rate.promoDiscountPercent}
+                            onChange={(event) =>
+                              updateRate(rate.id, {
+                                promoDiscountPercent: event.target.value,
+                              })
+                            }
+                            placeholder="Ex. 20"
+                          />
+                        </label>
+                      </div>
+
+                      <div style={{ color: "#64748b", fontSize: "13px" }}>
+                        Aperçu code promo :{" "}
+                        {rate.promoCode ? (
+                          <>
+                            <strong>{rate.promoCode}</strong> —{" "}
+                            {rate.promoDiscountPercent || "0"} % de réduction
+                            {rate.promoCodePublic
+                              ? " — affiché publiquement"
+                              : " — non affiché publiquement"}
+                          </>
+                        ) : (
+                          "aucun code défini"
+                        )}
+                      </div>
+                    </div>
+                  ) : null}
+                </section>
+
                 <div style={{ color: "#64748b", fontSize: "13px" }}>
                   Aperçu : {rate.name || "Tarif sans nom"} —{" "}
                   {rateTypeLabel(rate.type)}
@@ -617,6 +779,9 @@ export default function TicketingEditClient({
                     ? ` — à partir de ${rate.minimumAmount} €`
                     : ""}
                   {!rate.isActive ? " — désactivé" : ""}
+                  {rate.promoCodeEnabled && rate.promoCode
+                    ? ` — code promo ${rate.promoCode} (${rate.promoDiscountPercent || "0"} %)`
+                    : ""}
                 </div>
               </div>
             ))
