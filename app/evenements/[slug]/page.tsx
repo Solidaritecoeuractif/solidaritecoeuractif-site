@@ -2,6 +2,9 @@ import { notFound } from "next/navigation";
 import PublicTicketingSelectionClient from "@/components/PublicTicketingSelectionClient";
 import { ticketingStorage } from "@/lib/ticketing";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 function formatDate(value?: string) {
   if (!value) return null;
 
