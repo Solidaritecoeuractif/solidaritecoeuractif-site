@@ -42,6 +42,14 @@ function normalizeFieldTarget(value: unknown): TicketingCustomFieldTarget {
   return "participant";
 }
 
+function normalizePercent(value: unknown) {
+  const number = Number(value);
+
+  if (!Number.isFinite(number)) return 0;
+
+  return Math.max(0, Math.min(100, Math.round(number)));
+}
+
 function rowToTicketingEvent(row: any): TicketingEvent {
   return {
     id: row.id,
@@ -89,6 +97,10 @@ function rowToTicketingRate(row: any): TicketingRate {
     isActive: row.is_active,
     totalQuantityLimit: row.total_quantity_limit ?? undefined,
     quantityPerOrderLimit: row.quantity_per_order_limit ?? undefined,
+    promoCodeEnabled: Boolean(row.promo_code_enabled),
+    promoCodePublic: Boolean(row.promo_code_public),
+    promoCode: row.promo_code ?? undefined,
+    promoDiscountPercent: normalizePercent(row.promo_discount_percent),
     createdAt: toIso(row.created_at) || new Date().toISOString(),
     updatedAt: toIso(row.updated_at) || new Date().toISOString(),
   };
@@ -225,34 +237,12 @@ export async function savePostgresTicketingEvent(event: TicketingEvent) {
   try {
     await client.query(
       `insert into ticketing_events (
-        id,
-        slug,
-        title,
-        form_type_label,
-        status,
-        is_visible,
-        location_name,
-        address_line,
-        postal_code,
-        city,
-        country,
-        duration_type,
-        starts_at,
-        ends_at,
-        organizer_email,
-        organizer_phone,
-        short_description,
-        long_description,
-        primary_color,
-        banner_image_url,
-        thumbnail_image_url,
-        allow_extra_donation,
-        suggested_donation_amounts,
-        total_participant_limit,
-        sales_open_at,
-        sales_close_at,
-        created_at,
-        updated_at
+        id, slug, title, form_type_label, status, is_visible,
+        location_name, address_line, postal_code, city, country,
+        duration_type, starts_at, ends_at, organizer_email, organizer_phone,
+        short_description, long_description, primary_color, banner_image_url,
+        thumbnail_image_url, allow_extra_donation, suggested_donation_amounts,
+        total_participant_limit, sales_open_at, sales_close_at, created_at, updated_at
       ) values (
         $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25,$26,$27,$28
       )`,
@@ -418,10 +408,14 @@ export async function replacePostgresTicketingRates(
           is_active,
           total_quantity_limit,
           quantity_per_order_limit,
+          promo_code_enabled,
+          promo_code_public,
+          promo_code,
+          promo_discount_percent,
           created_at,
           updated_at
         ) values (
-          $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12
+          $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16
         )`,
         [
           rate.id,
@@ -434,6 +428,10 @@ export async function replacePostgresTicketingRates(
           rate.isActive,
           rate.totalQuantityLimit ?? null,
           rate.quantityPerOrderLimit ?? null,
+          Boolean(rate.promoCodeEnabled),
+          Boolean(rate.promoCodePublic),
+          rate.promoCode?.trim() || null,
+          normalizePercent(rate.promoDiscountPercent),
           rate.createdAt,
           rate.updatedAt,
         ]
@@ -504,7 +502,7 @@ export async function replacePostgresTicketingCustomFields(
           field.label,
           field.fieldKey,
           field.type,
-          field.target,
+          "participant",
           field.isRequired,
           field.isActive,
           JSON.stringify(field.options ?? []),

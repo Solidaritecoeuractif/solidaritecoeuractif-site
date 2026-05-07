@@ -80,6 +80,11 @@ export type TicketingRate = {
   totalQuantityLimit?: number;
   quantityPerOrderLimit?: number;
 
+  promoCodeEnabled?: boolean;
+  promoCodePublic?: boolean;
+  promoCode?: string;
+  promoDiscountPercent?: number;
+
   createdAt: string;
   updatedAt: string;
 };

@@ -37,6 +37,61 @@ function slugifyFieldKey(value: string) {
     .slice(0, 80);
 }
 
+function normalizePercent(value: unknown) {
+  const number = Number(value);
+
+  if (!Number.isFinite(number)) return 0;
+
+  return Math.max(0, Math.min(100, Math.round(number)));
+}
+
+function normalizeRate(rate: any): TicketingRate {
+  return {
+    id: String(rate?.id || crypto.randomUUID()),
+    eventId: String(rate?.eventId || ""),
+    name: String(rate?.name || "Tarif sans nom"),
+    description:
+      typeof rate?.description === "string" ? rate.description : undefined,
+    type:
+      rate?.type === "free_amount" || rate?.type === "free"
+        ? rate.type
+        : "fixed",
+    amount:
+      typeof rate?.amount === "number" ? rate.amount : rate?.amount ?? undefined,
+    minimumAmount:
+      typeof rate?.minimumAmount === "number"
+        ? rate.minimumAmount
+        : rate?.minimumAmount ?? undefined,
+    isActive:
+      typeof rate?.isActive === "boolean" ? Boolean(rate.isActive) : true,
+    totalQuantityLimit:
+      typeof rate?.totalQuantityLimit === "number"
+        ? rate.totalQuantityLimit
+        : rate?.totalQuantityLimit ?? undefined,
+    quantityPerOrderLimit:
+      typeof rate?.quantityPerOrderLimit === "number"
+        ? rate.quantityPerOrderLimit
+        : rate?.quantityPerOrderLimit ?? undefined,
+
+    promoCodeEnabled: Boolean(rate?.promoCodeEnabled),
+    promoCodePublic: Boolean(rate?.promoCodePublic),
+    promoCode:
+      typeof rate?.promoCode === "string" && rate.promoCode.trim()
+        ? rate.promoCode.trim()
+        : undefined,
+    promoDiscountPercent: normalizePercent(rate?.promoDiscountPercent),
+
+    createdAt:
+      typeof rate?.createdAt === "string"
+        ? rate.createdAt
+        : new Date().toISOString(),
+    updatedAt:
+      typeof rate?.updatedAt === "string"
+        ? rate.updatedAt
+        : new Date().toISOString(),
+  };
+}
+
 function normalizeCustomField(field: any): TicketingCustomField {
   const label = String(field?.label || "").trim() || "Champ sans nom";
 
@@ -58,7 +113,10 @@ function normalizeCustomField(field: any): TicketingCustomField {
       field?.type === "checkbox"
         ? field.type
         : "short_text",
-    target: field?.target === "payer" ? "payer" : "participant",
+
+    // Les informations complémentaires sont toujours demandées aux participants.
+    target: "participant",
+
     isRequired: Boolean(field?.isRequired),
     isActive:
       typeof field?.isActive === "boolean" ? Boolean(field.isActive) : true,
@@ -102,7 +160,9 @@ async function readTicketingStore(): Promise<TicketingStoreData> {
 
   return {
     events: Array.isArray(parsed.events) ? parsed.events : [],
-    rates: Array.isArray(parsed.rates) ? parsed.rates : [],
+    rates: Array.isArray(parsed.rates)
+      ? parsed.rates.map(normalizeRate)
+      : [],
     customFields: Array.isArray(parsed.customFields)
       ? parsed.customFields.map(normalizeCustomField)
       : [],
@@ -190,7 +250,12 @@ export async function replaceTicketingRates(
 
   store.rates = [
     ...store.rates.filter((rate) => rate.eventId !== eventId),
-    ...rates,
+    ...rates.map((rate) =>
+      normalizeRate({
+        ...rate,
+        eventId,
+      })
+    ),
   ];
 
   await writeTicketingStore(store);
