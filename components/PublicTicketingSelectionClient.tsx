@@ -66,16 +66,6 @@ type PreparedSummary = {
   message: string;
 };
 
-type PendingOrderSummary = {
-  reference: string;
-  paymentStatus: string;
-  subtotalAmount: number;
-  extraDonationAmount: number;
-  totalAmount: number;
-  currency: string;
-  createdAt: string;
-};
-
 function formatAmount(amount: number) {
   return new Intl.NumberFormat("fr-FR", {
     style: "currency",
@@ -185,17 +175,13 @@ export default function PublicTicketingSelectionClient({
   const [preparedSummary, setPreparedSummary] =
     useState<PreparedSummary | null>(null);
 
-  const [creatingPending, setCreatingPending] = useState(false);
-  const [pendingMessage, setPendingMessage] = useState("");
-  const [pendingOrder, setPendingOrder] = useState<PendingOrderSummary | null>(
-    null
-  );
+  const [checkoutLoading, setCheckoutLoading] = useState(false);
+  const [checkoutMessage, setCheckoutMessage] = useState("");
 
   function resetServerState() {
     setPreparedSummary(null);
     setPrepareMessage("");
-    setPendingMessage("");
-    setPendingOrder(null);
+    setCheckoutMessage("");
   }
 
   function updateParticipant(key: string, patch: Partial<ParticipantDraft>) {
@@ -424,9 +410,6 @@ export default function PublicTicketingSelectionClient({
   function buildPayload() {
     return {
       eventSlug: event.slug,
-
-      // Le participant 1 devient automatiquement le contact principal.
-      // Stripe pourra ensuite collecter la carte bancaire, même si elle appartient à une autre personne.
       payer: getMainParticipantAsPayer(),
 
       lines: selectedLines.map((line) => ({
@@ -462,8 +445,7 @@ export default function PublicTicketingSelectionClient({
     setPreparing(true);
     setPrepareMessage("");
     setPreparedSummary(null);
-    setPendingMessage("");
-    setPendingOrder(null);
+    setCheckoutMessage("");
 
     try {
       const response = await fetch("/api/ticketing/prepare", {
@@ -485,7 +467,7 @@ export default function PublicTicketingSelectionClient({
 
       setPreparedSummary(data);
       setPrepareMessage(
-        "Validation serveur réussie. Aucun paiement n’a été lancé."
+        "Récapitulatif validé. Tu peux maintenant passer au paiement sécurisé."
       );
     } catch {
       setPrepareMessage("Erreur pendant la validation de l’inscription.");
@@ -494,20 +476,14 @@ export default function PublicTicketingSelectionClient({
     }
   }
 
-  async function createPendingRegistration() {
-    if (!preparedSummary || creatingPending || pendingOrder) return;
+  async function startStripeCheckout() {
+    if (!preparedSummary || checkoutLoading) return;
 
-    const confirmed = window.confirm(
-      "Créer une inscription test en statut pending ? Aucun paiement ne sera lancé."
-    );
-
-    if (!confirmed) return;
-
-    setCreatingPending(true);
-    setPendingMessage("");
+    setCheckoutLoading(true);
+    setCheckoutMessage("");
 
     try {
-      const response = await fetch("/api/ticketing/create-pending", {
+      const response = await fetch("/api/ticketing/checkout", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(buildPayload()),
@@ -515,23 +491,20 @@ export default function PublicTicketingSelectionClient({
 
       const data = await response.json();
 
-      if (!response.ok) {
-        setPendingMessage(
+      if (!response.ok || !data?.url) {
+        setCheckoutMessage(
           typeof data?.error === "string"
             ? data.error
-            : "Impossible de créer cette inscription test."
+            : "Impossible de lancer le paiement sécurisé."
         );
         return;
       }
 
-      setPendingOrder(data.order);
-      setPendingMessage(
-        "Inscription test créée en statut pending. Aucun paiement n’a été lancé."
-      );
+      window.location.href = data.url;
     } catch {
-      setPendingMessage("Erreur pendant la création de l’inscription test.");
+      setCheckoutMessage("Erreur pendant le lancement du paiement.");
     } finally {
-      setCreatingPending(false);
+      setCheckoutLoading(false);
     }
   }
 
@@ -679,16 +652,16 @@ export default function PublicTicketingSelectionClient({
 
         <span
           style={{
-            border: "1px solid #facc15",
+            border: "1px solid #bbf7d0",
             borderRadius: "999px",
             padding: "8px 12px",
-            color: "#92400e",
+            color: "#166534",
             fontSize: "13px",
             fontWeight: 700,
-            background: "#fffbeb",
+            background: "#f0fdf4",
           }}
         >
-          Test sans paiement
+          Paiement sécurisé Stripe
         </span>
       </div>
 
@@ -1228,7 +1201,7 @@ export default function PublicTicketingSelectionClient({
             gap: "12px",
           }}
         >
-          <h3 style={{ margin: 0 }}>Récapitulatif validé par le serveur</h3>
+          <h3 style={{ margin: 0 }}>Récapitulatif validé</h3>
 
           <div>
             <strong>Référence provisoire :</strong>{" "}
@@ -1307,75 +1280,38 @@ export default function PublicTicketingSelectionClient({
               fontWeight: 800,
             }}
           >
-            Total validé : {formatAmount(preparedSummary.totalAmount)}
+            Total à payer : {formatAmount(preparedSummary.totalAmount)}
           </div>
 
           <button
             type="button"
             className="button"
-            disabled={creatingPending || Boolean(pendingOrder)}
-            onClick={createPendingRegistration}
+            disabled={checkoutLoading}
+            onClick={startStripeCheckout}
             style={{
-              opacity: creatingPending || pendingOrder ? 0.65 : 1,
-              cursor:
-                creatingPending || pendingOrder ? "not-allowed" : "pointer",
+              opacity: checkoutLoading ? 0.65 : 1,
+              cursor: checkoutLoading ? "not-allowed" : "pointer",
             }}
           >
-            {pendingOrder
-              ? "Inscription test créée"
-              : creatingPending
-                ? "Création en cours..."
-                : "Créer l’inscription test pending"}
+            {checkoutLoading
+              ? "Redirection vers Stripe..."
+              : "Payer avec Stripe"}
           </button>
-        </section>
-      ) : null}
 
-      {pendingMessage ? (
-        <section
-          style={{
-            marginTop: "18px",
-            border: "1px solid #dbe3ee",
-            borderRadius: "18px",
-            padding: "18px",
-            background: pendingOrder ? "#ecfdf5" : "#fef2f2",
-            color: pendingOrder ? "#166534" : "#991b1b",
-            fontWeight: 700,
-          }}
-        >
-          {pendingMessage}
-        </section>
-      ) : null}
-
-      {pendingOrder ? (
-        <section
-          style={{
-            marginTop: "18px",
-            border: "1px solid #bbf7d0",
-            borderRadius: "18px",
-            padding: "18px",
-            background: "#f0fdf4",
-            display: "grid",
-            gap: "8px",
-          }}
-        >
-          <h3 style={{ margin: 0 }}>Inscription test enregistrée</h3>
-
-          <div>
-            <strong>Référence :</strong> {pendingOrder.reference}
-          </div>
-
-          <div>
-            <strong>Statut :</strong> {pendingOrder.paymentStatus}
-          </div>
-
-          <div>
-            <strong>Total :</strong> {formatAmount(pendingOrder.totalAmount)}
-          </div>
-
-          <p style={{ margin: 0, color: "#166534", fontWeight: 700 }}>
-            Aucun paiement n’a été lancé. Cette inscription pourra ensuite être
-            reliée à Stripe.
-          </p>
+          {checkoutMessage ? (
+            <div
+              style={{
+                border: "1px solid #fca5a5",
+                borderRadius: "14px",
+                padding: "12px",
+                background: "#fef2f2",
+                color: "#991b1b",
+                fontWeight: 700,
+              }}
+            >
+              {checkoutMessage}
+            </div>
+          ) : null}
         </section>
       ) : null}
     </section>
