@@ -47,6 +47,15 @@ function normalizePromoCode(value: unknown) {
   return cleanString(value).toUpperCase();
 }
 
+function booleanFromUnknown(value: unknown) {
+  if (value === true) return true;
+  if (value === "true") return true;
+  if (value === "yes") return true;
+  if (value === "1") return true;
+  if (value === 1) return true;
+  return false;
+}
+
 export async function PUT(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
@@ -84,8 +93,18 @@ export async function PUT(
         entry.promoDiscountPercent
       );
 
-      const promoCodeEnabled = Boolean(entry.promoCodeEnabled);
-      const promoCodePublic = Boolean(entry.promoCodePublic);
+      // Sécurité : si un code et un pourcentage existent, le code promo reste activé.
+      const hasValidPromoData = Boolean(promoCode) && promoDiscountPercent > 0;
+
+      const promoCodeEnabled =
+        booleanFromUnknown(entry.promoCodeEnabled) || hasValidPromoData;
+
+      const promoCodePublic =
+        booleanFromUnknown(entry.promoCodePublic) ||
+        booleanFromUnknown(entry.promoPublic) ||
+        booleanFromUnknown(entry.isPromoPublic);
+
+      const finalPromoEnabled = promoCodeEnabled && hasValidPromoData;
 
       return {
         id: cleanString(entry.id) || crypto.randomUUID(),
@@ -96,25 +115,14 @@ export async function PUT(
         amount: type === "fixed" ? toCents(entry.amount) : undefined,
         minimumAmount:
           type === "free_amount" ? toCents(entry.minimumAmount) : undefined,
-        isActive: Boolean(entry.isActive),
+        isActive: booleanFromUnknown(entry.isActive),
         totalQuantityLimit: toOptionalNumber(entry.totalLimit),
         quantityPerOrderLimit: toOptionalNumber(entry.perOrderLimit),
 
-        promoCodeEnabled:
-          promoCodeEnabled && Boolean(promoCode) && promoDiscountPercent > 0,
-        promoCodePublic:
-          promoCodeEnabled &&
-          promoCodePublic &&
-          Boolean(promoCode) &&
-          promoDiscountPercent > 0,
-        promoCode:
-          promoCodeEnabled && Boolean(promoCode) && promoDiscountPercent > 0
-            ? promoCode
-            : undefined,
-        promoDiscountPercent:
-          promoCodeEnabled && Boolean(promoCode) && promoDiscountPercent > 0
-            ? promoDiscountPercent
-            : 0,
+        promoCodeEnabled: finalPromoEnabled,
+        promoCodePublic: finalPromoEnabled ? promoCodePublic : false,
+        promoCode: finalPromoEnabled ? promoCode : undefined,
+        promoDiscountPercent: finalPromoEnabled ? promoDiscountPercent : 0,
 
         createdAt: cleanString(entry.createdAt) || now,
         updatedAt: now,
