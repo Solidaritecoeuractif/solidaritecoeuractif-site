@@ -68,7 +68,8 @@ export default async function Page({
     notFound();
   }
 
-  const orders = await storage.getTicketingOrders(event.id);
+  const allOrders = await storage.getTicketingOrders(event.id);
+const orders = allOrders.filter((order) => order.paymentStatus === "paid");
 
   const totalParticipants = orders.reduce(
     (sum, order) => sum + order.participants.length,
@@ -126,8 +127,9 @@ export default async function Page({
           <h1 style={{ margin: 0 }}>{event.title}</h1>
 
           <p style={{ color: "#64748b", marginBottom: 0 }}>
-            Liste séparée des inscriptions liées à cette billetterie. Les
-            commandes classiques du site ne sont pas affichées ici.
+            Liste séparée des inscriptions payées liées à cette billetterie. Les
+inscriptions en attente, les commandes classiques du site et les paiements
+non finalisés ne sont pas affichés ici.
           </p>
         </section>
 
@@ -212,7 +214,7 @@ export default async function Page({
 
           {orders.length === 0 ? (
             <p style={{ color: "#64748b", marginBottom: 0 }}>
-              Aucune inscription enregistrée pour cette billetterie.
+              Aucune inscription payée enregistrée pour cette billetterie.
             </p>
           ) : (
             <div style={{ overflowX: "auto" }}>

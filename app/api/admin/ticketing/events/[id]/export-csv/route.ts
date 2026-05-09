@@ -43,10 +43,12 @@ export async function GET(
       );
     }
 
-    const [orders, rates] = await Promise.all([
-      storage.getTicketingOrders(event.id),
-      storage.getTicketingRates(event.id),
-    ]);
+    const [allOrders, rates] = await Promise.all([
+  storage.getTicketingOrders(event.id),
+  storage.getTicketingRates(event.id),
+]);
+
+const orders = allOrders.filter((order) => order.paymentStatus === "paid");
 
     const rateById = new Map(rates.map((rate) => [rate.id, rate.name]));
 
