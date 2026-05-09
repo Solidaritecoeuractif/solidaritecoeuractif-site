@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import Stripe from "stripe";
 import { stripe } from "@/lib/stripe";
 import { storage } from "@/lib/storage";
+import { ticketingStorage } from "@/lib/ticketing";
 import { sendPaymentConfirmationEmail } from "@/lib/email";
 
 export async function POST(request: Request) {
@@ -30,10 +31,34 @@ export async function POST(request: Request) {
 
     if (event.type === "checkout.session.completed") {
       const session = event.data.object as Stripe.Checkout.Session;
-      const reference = session.client_reference_id;
 
-      if (reference) {
-        const order = await storage().getOrderByReference(reference);
+      const checkoutType = session.metadata?.checkoutType;
+      const reference =
+        session.metadata?.ticketingReference || session.client_reference_id;
+
+      if (checkoutType === "ticketing" && reference) {
+        const ticketing = ticketingStorage();
+        const order = await ticketing.getTicketingOrderByReference(reference);
+
+        if (order) {
+          order.paymentStatus = "paid";
+          order.stripeSessionId = session.id;
+          order.stripePaymentIntentId =
+            typeof session.payment_intent === "string"
+              ? session.payment_intent
+              : session.payment_intent?.id;
+          order.updatedAt = new Date().toISOString();
+
+          await ticketing.updateTicketingOrder(reference, order);
+        }
+
+        return NextResponse.json({ received: true });
+      }
+
+      const classicReference = session.client_reference_id;
+
+      if (classicReference) {
+        const order = await storage().getOrderByReference(classicReference);
 
         if (order) {
           const wasAlreadyPaid = order.paymentStatus === "paid";
@@ -55,7 +80,7 @@ export async function POST(request: Request) {
             order.paymentReceiptSentAt = now;
           }
 
-          await storage().updateOrder(reference, order);
+          await storage().updateOrder(classicReference, order);
         }
       }
     }
