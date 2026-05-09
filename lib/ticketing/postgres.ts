@@ -391,9 +391,7 @@ export async function replacePostgresTicketingRates(
   try {
     await client.query("begin");
 
-    await client.query("delete from ticketing_rates where event_id = $1", [
-      eventId,
-    ]);
+    const keptRateIds = rates.map((rate) => rate.id);
 
     for (const rate of rates) {
       await client.query(
@@ -416,7 +414,22 @@ export async function replacePostgresTicketingRates(
           updated_at
         ) values (
           $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16
-        )`,
+        )
+        on conflict (id) do update
+        set event_id = excluded.event_id,
+            name = excluded.name,
+            description = excluded.description,
+            type = excluded.type,
+            amount = excluded.amount,
+            minimum_amount = excluded.minimum_amount,
+            is_active = excluded.is_active,
+            total_quantity_limit = excluded.total_quantity_limit,
+            quantity_per_order_limit = excluded.quantity_per_order_limit,
+            promo_code_enabled = excluded.promo_code_enabled,
+            promo_code_public = excluded.promo_code_public,
+            promo_code = excluded.promo_code,
+            promo_discount_percent = excluded.promo_discount_percent,
+            updated_at = excluded.updated_at`,
         [
           rate.id,
           eventId,
@@ -438,6 +451,25 @@ export async function replacePostgresTicketingRates(
       );
     }
 
+    if (keptRateIds.length > 0) {
+      await client.query(
+        `update ticketing_rates
+         set is_active = false,
+             updated_at = $2
+         where event_id = $1
+         and not (id = any($3::text[]))`,
+        [eventId, new Date().toISOString(), keptRateIds]
+      );
+    } else {
+      await client.query(
+        `update ticketing_rates
+         set is_active = false,
+             updated_at = $2
+         where event_id = $1`,
+        [eventId, new Date().toISOString()]
+      );
+    }
+
     await client.query("commit");
     return rates;
   } catch (error) {
@@ -447,7 +479,6 @@ export async function replacePostgresTicketingRates(
     client.release();
   }
 }
-
 export async function getPostgresTicketingCustomFields(eventId: string) {
   const client = await pool().connect();
 
