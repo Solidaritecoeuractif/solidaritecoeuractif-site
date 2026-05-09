@@ -17,13 +17,6 @@ type ParticipantDraft = {
   answers: Record<string, string | boolean>;
 };
 
-type PayerDraft = {
-  firstName: string;
-  lastName: string;
-  email: string;
-  phone: string;
-};
-
 type PromoState = "idle" | "valid" | "invalid";
 
 type PreparedSummary = {
@@ -33,7 +26,12 @@ type PreparedSummary = {
     slug: string;
     title: string;
   };
-  payer: PayerDraft;
+  payer: {
+    firstName: string;
+    lastName: string;
+    email: string;
+    phone: string;
+  };
   lines: Array<{
     rateId: string;
     rateName: string;
@@ -178,13 +176,6 @@ export default function PublicTicketingSelectionClient({
     {}
   );
 
-  const [payer, setPayer] = useState<PayerDraft>({
-    firstName: "",
-    lastName: "",
-    email: "",
-    phone: "",
-  });
-
   const [participants, setParticipants] = useState<
     Record<string, ParticipantDraft>
   >({});
@@ -205,11 +196,6 @@ export default function PublicTicketingSelectionClient({
     setPrepareMessage("");
     setPendingMessage("");
     setPendingOrder(null);
-  }
-
-  function updatePayer(patch: Partial<PayerDraft>) {
-    setPayer((current) => ({ ...current, ...patch }));
-    resetServerState();
   }
 
   function updateParticipant(key: string, patch: Partial<ParticipantDraft>) {
@@ -395,13 +381,6 @@ export default function PublicTicketingSelectionClient({
   const totalAmount = ticketsTotal + extraDonationAmount;
   const hasSelection = selectedLines.length > 0;
 
-  const payerComplete =
-    payer.firstName.trim() &&
-    payer.lastName.trim() &&
-    payer.email.trim() &&
-    payer.phone.trim() &&
-    isValidEmail(payer.email);
-
   const participantsComplete =
     participantRows.length > 0 &&
     participantRows.every((row) => {
@@ -426,26 +405,38 @@ export default function PublicTicketingSelectionClient({
       });
     });
 
-  const formLooksReady = Boolean(
-    hasSelection && payerComplete && participantsComplete
-  );
+  const formLooksReady = Boolean(hasSelection && participantsComplete);
+
+  function getMainParticipantAsPayer() {
+    const firstRow = participantRows[0];
+    const firstParticipant = firstRow
+      ? participants[firstRow.key] || emptyParticipant()
+      : emptyParticipant();
+
+    return {
+      firstName: firstParticipant.firstName,
+      lastName: firstParticipant.lastName,
+      email: firstParticipant.email,
+      phone: firstParticipant.phone,
+    };
+  }
 
   function buildPayload() {
     return {
       eventSlug: event.slug,
-      payer,
+
+      // Le participant 1 devient automatiquement le contact principal.
+      // Stripe pourra ensuite collecter la carte bancaire, même si elle appartient à une autre personne.
+      payer: getMainParticipantAsPayer(),
+
       lines: selectedLines.map((line) => ({
         rateId: line.rate.id,
         quantity: line.quantity,
-
-        // Le serveur se base sur ce montant original et recalcule la réduction.
         originalUnitAmount: line.originalUnitAmount,
-
-        // Ce champ reste informatif ; le serveur ne lui fait pas confiance seul.
         unitAmount: line.unitAmount,
-
         promoCode: line.promoCode,
       })),
+
       participants: participantRows.map((row) => {
         const participant = participants[row.key] || emptyParticipant();
 
@@ -460,6 +451,7 @@ export default function PublicTicketingSelectionClient({
           answers: participant.answers,
         };
       }),
+
       extraDonationAmount,
     };
   }
@@ -896,79 +888,6 @@ export default function PublicTicketingSelectionClient({
         </div>
       )}
 
-      {hasSelection ? (
-        <section
-          style={{
-            marginTop: "18px",
-            border: "1px solid #dbe3ee",
-            borderRadius: "18px",
-            padding: "18px",
-            background: "#ffffff",
-          }}
-        >
-          <h3 style={{ marginTop: 0 }}>Informations du payeur</h3>
-
-          <p style={{ color: "#64748b", lineHeight: 1.6 }}>
-            Ces informations servent à rattacher l’inscription au paiement. Les
-            informations détaillées sont demandées pour chaque participant.
-          </p>
-
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-              gap: "12px",
-            }}
-          >
-            <label style={{ display: "grid", gap: "6px" }}>
-              <span style={{ fontWeight: 700 }}>Prénom</span>
-              <input
-                className="input"
-                value={payer.firstName}
-                onChange={(inputEvent) =>
-                  updatePayer({ firstName: inputEvent.target.value })
-                }
-              />
-            </label>
-
-            <label style={{ display: "grid", gap: "6px" }}>
-              <span style={{ fontWeight: 700 }}>Nom</span>
-              <input
-                className="input"
-                value={payer.lastName}
-                onChange={(inputEvent) =>
-                  updatePayer({ lastName: inputEvent.target.value })
-                }
-              />
-            </label>
-
-            <label style={{ display: "grid", gap: "6px" }}>
-              <span style={{ fontWeight: 700 }}>Email</span>
-              <input
-                className="input"
-                type="email"
-                value={payer.email}
-                onChange={(inputEvent) =>
-                  updatePayer({ email: inputEvent.target.value })
-                }
-              />
-            </label>
-
-            <label style={{ display: "grid", gap: "6px" }}>
-              <span style={{ fontWeight: 700 }}>Téléphone</span>
-              <input
-                className="input"
-                type="tel"
-                value={payer.phone}
-                onChange={(inputEvent) =>
-                  updatePayer({ phone: inputEvent.target.value })
-                }
-              />
-            </label>
-          </div>
-        </section>
-      ) : null}
-
       {participantRows.length > 0 ? (
         <section
           style={{
@@ -982,9 +901,9 @@ export default function PublicTicketingSelectionClient({
           <h3 style={{ marginTop: 0 }}>Participants</h3>
 
           <p style={{ color: "#64748b", lineHeight: 1.6 }}>
-            Pour chaque billet, renseigne les informations de la personne qui
-            participera réellement à l’événement. Les champs marqués d’un
-            astérisque sont obligatoires.
+            Renseigne les informations de chaque personne qui participera à
+            l’événement. Le participant 1 servira aussi de contact principal
+            pour l’inscription.
           </p>
 
           <div style={{ display: "grid", gap: "12px" }}>
@@ -1321,8 +1240,9 @@ export default function PublicTicketingSelectionClient({
           </div>
 
           <div>
-            <strong>Payeur :</strong> {preparedSummary.payer.firstName}{" "}
-            {preparedSummary.payer.lastName} — {preparedSummary.payer.email}
+            <strong>Contact principal :</strong>{" "}
+            {preparedSummary.payer.firstName} {preparedSummary.payer.lastName} —{" "}
+            {preparedSummary.payer.email}
           </div>
 
           <div style={{ display: "grid", gap: "8px" }}>
