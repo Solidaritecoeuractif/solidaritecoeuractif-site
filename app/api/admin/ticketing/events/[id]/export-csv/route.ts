@@ -26,8 +26,24 @@ function answerValue(answers: Record<string, unknown>, key: string) {
   return answers?.[key] ?? "";
 }
 
+function parseReferencesFromRequest(request: Request) {
+  const url = new URL(request.url);
+  const raw = url.searchParams.get("references");
+
+  if (!raw) return null;
+
+  const references = raw
+    .split(",")
+    .map((item) => item.trim())
+    .filter(Boolean);
+
+  if (references.length === 0) return null;
+
+  return new Set(references);
+}
+
 export async function GET(
-  _request: Request,
+  request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
@@ -43,12 +59,20 @@ export async function GET(
       );
     }
 
-    const [allOrders, rates] = await Promise.all([
-  storage.getTicketingOrders(event.id),
-  storage.getTicketingRates(event.id),
-]);
+    const selectedReferences = parseReferencesFromRequest(request);
 
-const orders = allOrders.filter((order) => order.paymentStatus === "paid");
+    const [allOrders, rates] = await Promise.all([
+      storage.getTicketingOrders(event.id),
+      storage.getTicketingRates(event.id),
+    ]);
+
+    const paidOrders = allOrders.filter(
+      (order) => order.paymentStatus === "paid"
+    );
+
+    const orders = selectedReferences
+      ? paidOrders.filter((order) => selectedReferences.has(order.reference))
+      : paidOrders;
 
     const rateById = new Map(rates.map((rate) => [rate.id, rate.name]));
 
@@ -158,7 +182,8 @@ const orders = allOrders.filter((order) => order.paymentStatus === "paid");
     ].join("\n");
 
     const safeSlug = event.slug.replace(/[^a-z0-9-]/gi, "-").toLowerCase();
-    const filename = `inscriptions-${safeSlug}.csv`;
+    const suffix = selectedReferences ? "selection" : "payees";
+    const filename = `inscriptions-${suffix}-${safeSlug}.csv`;
 
     return new NextResponse(`\uFEFF${csv}`, {
       status: 200,
