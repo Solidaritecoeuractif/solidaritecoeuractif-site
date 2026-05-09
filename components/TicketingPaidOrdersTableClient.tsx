@@ -56,6 +56,20 @@ function paymentStatusStyle(status: string) {
   };
 }
 
+function exportUrl(eventId: string, references?: string[]) {
+  const params = new URLSearchParams();
+
+  if (references && references.length > 0) {
+    params.set("references", references.join(","));
+  }
+
+  const query = params.toString();
+
+  return `/api/admin/ticketing/events/${eventId}/export-csv${
+    query ? `?${query}` : ""
+  }`;
+}
+
 export default function TicketingPaidOrdersTableClient({
   eventId,
   eventSlug,
@@ -66,6 +80,7 @@ export default function TicketingPaidOrdersTableClient({
   orders: TicketingOrder[];
 }) {
   const [selectedReferences, setSelectedReferences] = useState<string[]>([]);
+  const [message, setMessage] = useState("");
 
   const allReferences = useMemo(
     () => orders.map((order) => order.reference),
@@ -81,6 +96,8 @@ export default function TicketingPaidOrdersTableClient({
     orders.length > 0 && selectedReferences.length === orders.length;
 
   function toggleOne(reference: string) {
+    setMessage("");
+
     setSelectedReferences((current) =>
       current.includes(reference)
         ? current.filter((item) => item !== reference)
@@ -89,14 +106,39 @@ export default function TicketingPaidOrdersTableClient({
   }
 
   function toggleAll() {
+    setMessage("");
     setSelectedReferences(allSelected ? [] : allReferences);
   }
 
-  function selectedExportUrl() {
-    const params = new URLSearchParams();
-    params.set("references", selectedReferences.join(","));
+  function handleExportAll(format: string) {
+    setMessage("");
 
-    return `/api/admin/ticketing/events/${eventId}/export-csv?${params.toString()}`;
+    if (format === "xlsx") {
+      setMessage("L’export XLSX sera ajouté à l’étape suivante.");
+      return;
+    }
+
+    if (format === "csv") {
+      window.location.href = exportUrl(eventId);
+    }
+  }
+
+  function handleExportSelection(format: string) {
+    setMessage("");
+
+    if (selectedReferences.length === 0) {
+      setMessage("Sélectionne au moins une inscription à exporter.");
+      return;
+    }
+
+    if (format === "xlsx") {
+      setMessage("L’export XLSX de la sélection sera ajouté à l’étape suivante.");
+      return;
+    }
+
+    if (format === "csv") {
+      window.location.href = exportUrl(eventId, selectedReferences);
+    }
   }
 
   return (
@@ -129,29 +171,77 @@ export default function TicketingPaidOrdersTableClient({
         </div>
 
         <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
-          <a
-            href={`/api/admin/ticketing/events/${eventId}/export-csv`}
-            className="button secondary"
-            style={{ textDecoration: "none" }}
+          <label
+            style={{
+              display: "grid",
+              gap: "4px",
+              minWidth: "210px",
+            }}
           >
-            Télécharger CSV
-          </a>
-
-          {selectedReferences.length > 0 ? (
-            <a
-              href={selectedExportUrl()}
-              className="button"
-              style={{ textDecoration: "none" }}
+            <span style={{ fontSize: "13px", fontWeight: 700 }}>
+              Exporter toutes les inscriptions
+            </span>
+            <select
+              className="input"
+              defaultValue=""
+              onChange={(event) => {
+                handleExportAll(event.target.value);
+                event.target.value = "";
+              }}
             >
-              Exporter la sélection CSV
-            </a>
-          ) : (
-            <button type="button" className="button" disabled>
-              Exporter la sélection CSV
-            </button>
-          )}
+              <option value="" disabled>
+                Choisir un format
+              </option>
+              <option value="csv">CSV</option>
+              <option value="xlsx">XLSX bientôt</option>
+            </select>
+          </label>
+
+          <label
+            style={{
+              display: "grid",
+              gap: "4px",
+              minWidth: "210px",
+              opacity: selectedReferences.length === 0 ? 0.6 : 1,
+            }}
+          >
+            <span style={{ fontSize: "13px", fontWeight: 700 }}>
+              Exporter la sélection
+            </span>
+            <select
+              className="input"
+              defaultValue=""
+              disabled={selectedReferences.length === 0}
+              onChange={(event) => {
+                handleExportSelection(event.target.value);
+                event.target.value = "";
+              }}
+            >
+              <option value="" disabled>
+                Choisir un format
+              </option>
+              <option value="csv">CSV</option>
+              <option value="xlsx">XLSX bientôt</option>
+            </select>
+          </label>
         </div>
       </div>
+
+      {message ? (
+        <div
+          style={{
+            border: "1px solid #fde68a",
+            borderRadius: "14px",
+            padding: "12px",
+            background: "#fffbeb",
+            color: "#92400e",
+            fontWeight: 700,
+            marginBottom: "14px",
+          }}
+        >
+          {message}
+        </div>
+      ) : null}
 
       {orders.length === 0 ? (
         <p style={{ color: "#64748b", marginBottom: 0 }}>
