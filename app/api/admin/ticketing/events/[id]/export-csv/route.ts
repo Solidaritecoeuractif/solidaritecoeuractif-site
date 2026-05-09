@@ -6,46 +6,24 @@ function csvEscape(value: unknown) {
   return `"${text.replace(/"/g, '""')}"`;
 }
 
-function formatAmount(amount?: number) {
-  if (typeof amount !== "number") return "0,00";
-  return (amount / 100).toFixed(2).replace(".", ",");
-}
-
-function statusLabel(status: string) {
-  if (status === "paid") return "Payée";
-  if (status === "cancelled") return "Annulée";
-  return "En attente";
-}
-
 function formatDate(value?: string) {
   if (!value) return "";
 
   try {
-    return new Intl.DateTimeFormat("fr-FR", {
-      dateStyle: "short",
-      timeStyle: "short",
-    }).format(new Date(value));
+    return new Date(value).toISOString();
   } catch {
     return value;
   }
 }
 
-function safeFileName(value: string) {
-  return value
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/(^-|-$)/g, "")
-    .slice(0, 80);
+function statusLabel(value: string) {
+  if (value === "paid") return "Payée";
+  if (value === "cancelled") return "Annulée";
+  return "En attente";
 }
 
-function answerValue(value: unknown) {
-  if (value === true) return "Oui";
-  if (value === false) return "Non";
-  if (value === null || typeof value === "undefined") return "";
-
-  return String(value).trim();
+function answerValue(answers: Record<string, unknown>, key: string) {
+  return answers?.[key] ?? "";
 }
 
 export async function GET(
@@ -65,124 +43,133 @@ export async function GET(
       );
     }
 
-    const [orders, rates, customFields] = await Promise.all([
+    const [orders, rates] = await Promise.all([
       storage.getTicketingOrders(event.id),
       storage.getTicketingRates(event.id),
-      storage.getTicketingCustomFields(event.id),
     ]);
 
-    const activeParticipantFields = customFields.filter(
-      (field) => field.isActive && field.target === "participant"
-    );
-
-    const rateNameById = new Map(
-      rates.map((rate) => [rate.id, rate.name || "Tarif sans nom"])
-    );
+    const rateById = new Map(rates.map((rate) => [rate.id, rate.name]));
 
     const headers = [
-      "reference_inscription",
-      "statut_paiement",
+      "evenement",
+      "reference",
+      "statut",
       "date_creation",
-      "billetterie",
-      "prenom_payeur",
-      "nom_payeur",
-      "email_payeur",
-      "telephone_payeur",
-      "prenom_participant",
-      "nom_participant",
-      "age_participant",
-      "email_participant",
-      "telephone_participant",
-      "ville_origine_participant",
-      "tarif",
-      ...activeParticipantFields.map((field) => field.label),
-      "sous_total_billets_eur",
-      "contribution_libre_eur",
-      "total_eur",
+      "date_mise_a_jour",
+      "contact_prenom",
+      "contact_nom",
+      "contact_email",
+      "contact_telephone",
+      "nombre_participants",
+      "sous_total_centimes",
+      "contribution_centimes",
+      "total_centimes",
       "devise",
+      "stripe_session_id",
+      "stripe_payment_intent_id",
+      "participant_numero",
+      "participant_prenom",
+      "participant_nom",
+      "participant_age",
+      "participant_email",
+      "participant_telephone",
+      "participant_ville_origine",
+      "participant_tarif",
+      "reponses_complementaires",
     ];
 
-    const rows: string[][] = [];
-
-    for (const order of orders) {
+    const rows = orders.flatMap((order) => {
       if (order.participants.length === 0) {
-        rows.push([
-          order.reference,
-          statusLabel(order.paymentStatus),
-          formatDate(order.createdAt),
-          event.title,
-          order.payerFirstName,
-          order.payerLastName,
-          order.payerEmail,
-          order.payerPhone ?? "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          ...activeParticipantFields.map(() => ""),
-          formatAmount(order.subtotalAmount),
-          formatAmount(order.extraDonationAmount),
-          formatAmount(order.totalAmount),
-          order.currency.toUpperCase(),
-        ]);
-
-        continue;
+        return [
+          [
+            event.title,
+            order.reference,
+            statusLabel(order.paymentStatus),
+            formatDate(order.createdAt),
+            formatDate(order.updatedAt),
+            order.payerFirstName,
+            order.payerLastName,
+            order.payerEmail,
+            order.payerPhone || "",
+            order.participants.length,
+            order.subtotalAmount,
+            order.extraDonationAmount,
+            order.totalAmount,
+            order.currency,
+            order.stripeSessionId || "",
+            order.stripePaymentIntentId || "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+          ],
+        ];
       }
 
-      for (const participant of order.participants) {
-        rows.push([
+      return order.participants.map((participant, index) => {
+        const answers = participant.answers || {};
+        const complementaryAnswers = { ...answers };
+
+        delete complementaryAnswers.age;
+        delete complementaryAnswers.email;
+        delete complementaryAnswers.phone;
+        delete complementaryAnswers.origin_city;
+
+        return [
+          event.title,
           order.reference,
           statusLabel(order.paymentStatus),
           formatDate(order.createdAt),
-          event.title,
+          formatDate(order.updatedAt),
           order.payerFirstName,
           order.payerLastName,
           order.payerEmail,
-          order.payerPhone ?? "",
+          order.payerPhone || "",
+          order.participants.length,
+          order.subtotalAmount,
+          order.extraDonationAmount,
+          order.totalAmount,
+          order.currency,
+          order.stripeSessionId || "",
+          order.stripePaymentIntentId || "",
+          index + 1,
           participant.firstName,
           participant.lastName,
-          answerValue(participant.answers?.age),
-          answerValue(participant.answers?.email),
-          answerValue(participant.answers?.phone),
-          answerValue(participant.answers?.origin_city),
-          rateNameById.get(participant.rateId) || "Tarif introuvable",
-          ...activeParticipantFields.map((field) =>
-            answerValue(participant.answers?.[field.fieldKey])
-          ),
-          formatAmount(order.subtotalAmount),
-          formatAmount(order.extraDonationAmount),
-          formatAmount(order.totalAmount),
-          order.currency.toUpperCase(),
-        ]);
-      }
-    }
+          answerValue(answers, "age"),
+          answerValue(answers, "email"),
+          answerValue(answers, "phone"),
+          answerValue(answers, "origin_city"),
+          rateById.get(participant.rateId) || participant.rateId,
+          JSON.stringify(complementaryAnswers),
+        ];
+      });
+    });
 
-    const csv =
-      "\uFEFF" +
-      [headers, ...rows]
-        .map((row) => row.map(csvEscape).join(";"))
-        .join("\r\n");
+    const csv = [
+      headers.map(csvEscape).join(";"),
+      ...rows.map((row) => row.map(csvEscape).join(";")),
+    ].join("\n");
 
-    const fileName = `inscriptions-billetterie-${safeFileName(
-      event.slug
-    )}.csv`;
+    const safeSlug = event.slug.replace(/[^a-z0-9-]/gi, "-").toLowerCase();
+    const filename = `inscriptions-${safeSlug}.csv`;
 
-    return new NextResponse(csv, {
+    return new NextResponse(`\uFEFF${csv}`, {
       status: 200,
       headers: {
         "Content-Type": "text/csv; charset=utf-8",
-        "Content-Disposition": `attachment; filename="${fileName}"`,
-        "Cache-Control": "no-store",
+        "Content-Disposition": `attachment; filename="${filename}"`,
       },
     });
   } catch (error) {
     console.error("Erreur export CSV inscriptions billetterie", error);
 
     return NextResponse.json(
-      { error: "Impossible d’exporter les inscriptions de cette billetterie." },
+      { error: "Impossible d’exporter les inscriptions." },
       { status: 500 }
     );
   }

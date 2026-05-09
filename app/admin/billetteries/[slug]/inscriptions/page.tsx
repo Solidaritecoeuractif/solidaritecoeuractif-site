@@ -94,6 +94,14 @@ export default async function Page({
           <Link href="/admin/billetteries" className="button secondary">
             Toutes les billetteries
           </Link>
+
+          <a
+            href={`/api/admin/ticketing/events/${event.id}/export-csv`}
+            className="button"
+            style={{ textDecoration: "none" }}
+          >
+            Exporter les inscriptions CSV
+          </a>
         </div>
 
         <section
@@ -181,7 +189,26 @@ export default async function Page({
             background: "#ffffff",
           }}
         >
-          <h2 style={{ marginTop: 0 }}>Liste des inscriptions</h2>
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              gap: "12px",
+              alignItems: "center",
+              flexWrap: "wrap",
+              marginBottom: "14px",
+            }}
+          >
+            <h2 style={{ margin: 0 }}>Liste des inscriptions</h2>
+
+            <a
+              href={`/api/admin/ticketing/events/${event.id}/export-csv`}
+              className="button secondary"
+              style={{ textDecoration: "none" }}
+            >
+              Télécharger CSV
+            </a>
+          </div>
 
           {orders.length === 0 ? (
             <p style={{ color: "#64748b", marginBottom: 0 }}>
@@ -201,7 +228,7 @@ export default async function Page({
                 <thead>
                   <tr>
                     <th style={{ width: "160px" }}>Référence</th>
-                    <th style={{ width: "210px" }}>Payeur</th>
+                    <th style={{ width: "210px" }}>Contact</th>
                     <th style={{ width: "120px" }}>Statut</th>
                     <th style={{ width: "120px" }}>Participants</th>
                     <th style={{ width: "130px" }}>Total</th>
