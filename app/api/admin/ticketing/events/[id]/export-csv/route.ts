@@ -26,6 +26,14 @@ function answerValue(answers: Record<string, unknown>, key: string) {
   return answers?.[key] ?? "";
 }
 
+function amountToEurosText(value?: number) {
+  if (typeof value !== "number" || !Number.isFinite(value)) {
+    return "0,00";
+  }
+
+  return (value / 100).toFixed(2).replace(".", ",");
+}
+
 function parseReferencesFromRequest(request: Request) {
   const url = new URL(request.url);
   const raw = url.searchParams.get("references");
@@ -87,9 +95,9 @@ export async function GET(
       "contact_email",
       "contact_telephone",
       "nombre_participants",
-      "sous_total_centimes",
-      "contribution_centimes",
-      "total_centimes",
+      "sous_total_euros",
+      "contribution_euros",
+      "total_euros",
       "devise",
       "stripe_session_id",
       "stripe_payment_intent_id",
@@ -118,9 +126,9 @@ export async function GET(
             order.payerEmail,
             order.payerPhone || "",
             order.participants.length,
-            order.subtotalAmount,
-            order.extraDonationAmount,
-            order.totalAmount,
+            amountToEurosText(order.subtotalAmount),
+            amountToEurosText(order.extraDonationAmount),
+            amountToEurosText(order.totalAmount),
             order.currency,
             order.stripeSessionId || "",
             order.stripePaymentIntentId || "",
@@ -157,9 +165,9 @@ export async function GET(
           order.payerEmail,
           order.payerPhone || "",
           order.participants.length,
-          order.subtotalAmount,
-          order.extraDonationAmount,
-          order.totalAmount,
+          amountToEurosText(order.subtotalAmount),
+          amountToEurosText(order.extraDonationAmount),
+          amountToEurosText(order.totalAmount),
           order.currency,
           order.stripeSessionId || "",
           order.stripePaymentIntentId || "",
