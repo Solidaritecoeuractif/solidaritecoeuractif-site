@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { storage } from "@/lib/storage";
 import { resolveCart, computeTotals } from "@/lib/cart";
+import { resolveDestinationCodeForPostalCode } from "@/lib/destinations";
 import { z } from "zod";
 
 export async function POST(request: Request) {
@@ -15,6 +16,7 @@ export async function POST(request: Request) {
       })
     ),
     country: z.string().optional(),
+    postalCode: z.string().optional(),
     supportEnabled: z.boolean().optional(),
     supportAmount: z.number().int().nonnegative().optional(),
   });
@@ -25,8 +27,13 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Payload invalide" }, { status: 400 });
   }
 
+  const destinationCode = resolveDestinationCodeForPostalCode(
+    parsed.data.country || "FR",
+    parsed.data.postalCode
+  );
+
   const products = await storage().getProducts();
-  const cart = resolveCart(parsed.data.items, products, parsed.data.country);
+  const cart = resolveCart(parsed.data.items, products, destinationCode);
 
   if (cart.errors.length) {
     return NextResponse.json(
@@ -35,7 +42,7 @@ export async function POST(request: Request) {
     );
   }
 
-  const baseTotals = computeTotals(cart.items, parsed.data.country);
+  const baseTotals = computeTotals(cart.items, destinationCode);
 
   const associationSupport =
     parsed.data.supportEnabled === false
@@ -47,5 +54,6 @@ export async function POST(request: Request) {
     shippingAmount: baseTotals.shippingAmount,
     supportAmount: associationSupport,
     totalAmount: baseTotals.totalAmount + associationSupport,
+    destinationCode,
   });
 }

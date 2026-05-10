@@ -27,6 +27,20 @@ const OVERSEAS_OPTIONS: DestinationOption[] = [
   { code: "FR-NC", label: "France / Nouvelle-Calédonie", zone: "outre_mer", countryCode: "FR" },
 ];
 
+const OVERSEAS_POSTAL_PREFIX_TO_DESTINATION_CODE: Record<string, string> = {
+  "971": "FR-GP",
+  "972": "FR-MQ",
+  "973": "FR-GF",
+  "974": "FR-RE",
+  "975": "FR-PM",
+  "976": "FR-YT",
+  "977": "FR-BL",
+  "978": "FR-MF",
+  "986": "FR-WF",
+  "987": "FR-PF",
+  "988": "FR-NC",
+};
+
 const AFRICA_CODES = new Set([
   "DZ", "AO", "BJ", "BW", "BF", "BI", "CM", "CV", "CF", "TD", "KM", "CG",
   "CD", "CI", "DJ", "EG", "GQ", "ER", "SZ", "ET", "GA", "GM", "GH", "GN",
@@ -498,6 +512,32 @@ function resolveDestinationCode(value: string) {
   }
 
   return raw;
+}
+
+export function getOverseasDestinationCodeFromPostalCode(
+  postalCode: string | undefined
+) {
+  const digits = String(postalCode || "").replace(/\D/g, "");
+
+  if (digits.length < 3) {
+    return "";
+  }
+
+  const prefix = digits.slice(0, 3);
+  return OVERSEAS_POSTAL_PREFIX_TO_DESTINATION_CODE[prefix] || "";
+}
+
+export function resolveDestinationCodeForPostalCode(
+  destinationCode: string | undefined,
+  postalCode: string | undefined
+) {
+  const overseasCode = getOverseasDestinationCodeFromPostalCode(postalCode);
+
+  if (overseasCode) {
+    return overseasCode;
+  }
+
+  return resolveDestinationCode(destinationCode || "FR");
 }
 
 export function getDestinationZone(code: string): DestinationZone {

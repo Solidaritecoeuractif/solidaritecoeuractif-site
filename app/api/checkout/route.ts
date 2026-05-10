@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { storage } from "@/lib/storage";
 import { checkoutSchema } from "@/lib/validators";
 import { resolveCart, computeTotals } from "@/lib/cart";
+import { resolveDestinationCodeForPostalCode } from "@/lib/destinations";
 import { uniqueId, orderReference } from "@/lib/utils";
 import { stripe } from "@/lib/stripe";
 import type { Order } from "@/lib/types";
@@ -21,7 +22,13 @@ export async function POST(request: Request) {
     const baseUrl =
       process.env.NEXT_PUBLIC_BASE_URL || new URL(request.url).origin;
 
-    const destinationCode = parsed.data.shippingAddress?.country || "FR";
+    const rawShippingAddress = parsed.data.shippingAddress;
+
+    const destinationCode = resolveDestinationCodeForPostalCode(
+      rawShippingAddress?.country || "FR",
+      rawShippingAddress?.postalCode
+    );
+
     const products = await storage().getProducts();
     const cart = resolveCart(parsed.data.items, products, destinationCode);
 
@@ -39,7 +46,7 @@ export async function POST(request: Request) {
       );
     }
 
-    if (cart.requiresShipping && !parsed.data.shippingAddress) {
+    if (cart.requiresShipping && !rawShippingAddress) {
       return NextResponse.json(
         {
           error:
@@ -49,9 +56,13 @@ export async function POST(request: Request) {
       );
     }
 
-    const shippingAddress = cart.requiresShipping
-      ? parsed.data.shippingAddress
-      : undefined;
+    const shippingAddress =
+      cart.requiresShipping && rawShippingAddress
+        ? {
+            ...rawShippingAddress,
+            country: destinationCode,
+          }
+        : undefined;
 
     const baseTotals = computeTotals(cart.items, destinationCode);
 

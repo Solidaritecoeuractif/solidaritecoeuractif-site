@@ -7,6 +7,8 @@ import {
   DESTINATION_OPTIONS,
   FORCED_POSTAL_CODES,
   calculateZoneAdjustedLineMinimum,
+  getOverseasDestinationCodeFromPostalCode,
+  resolveDestinationCodeForPostalCode,
 } from "@/lib/destinations";
 
 type ClientItem = {
@@ -20,6 +22,7 @@ type Quote = {
   shippingAmount: number;
   supportAmount: number;
   totalAmount: number;
+  destinationCode?: string;
 };
 
 function lineAmountToUnitAmount(lineAmount: number, quantity: number) {
@@ -62,8 +65,28 @@ export function CheckoutClient({ products }: { products: Product[] }) {
     city: "",
   });
 
+  const effectiveDestinationCode = useMemo(
+    () => resolveDestinationCodeForPostalCode(form.country, form.postalCode),
+    [form.country, form.postalCode]
+  );
+
   const forcedPostalCode = FORCED_POSTAL_CODES[form.country] || "";
   const isPostalCodeForced = Boolean(forcedPostalCode);
+
+  useEffect(() => {
+    const overseasDestinationCode = getOverseasDestinationCodeFromPostalCode(
+      form.postalCode
+    );
+
+    if (!overseasDestinationCode || form.country === overseasDestinationCode) {
+      return;
+    }
+
+    setForm((prev) => ({
+      ...prev,
+      country: overseasDestinationCode,
+    }));
+  }, [form.postalCode, form.country]);
 
   useEffect(() => {
     setForm((prev) => {
@@ -109,7 +132,7 @@ export function CheckoutClient({ products }: { products: Product[] }) {
             ? calculateZoneAdjustedLineMinimum(
                 product,
                 item.quantity,
-                form.country
+                effectiveDestinationCode
               )
             : 0;
 
@@ -155,7 +178,7 @@ export function CheckoutClient({ products }: { products: Product[] }) {
         isValidTypedAmount: boolean;
       }
     >;
-  }, [items, products, form.country, shippingInputs]);
+  }, [items, products, effectiveDestinationCode, shippingInputs]);
 
   const requiresShipping = resolvedPreview.some(
     (item) => item.product.requiresShipping && item.product.isPhysical
@@ -201,7 +224,8 @@ export function CheckoutClient({ products }: { products: Product[] }) {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             items,
-            country: requiresShipping ? form.country : undefined,
+            country: requiresShipping ? effectiveDestinationCode : undefined,
+            postalCode: requiresShipping ? form.postalCode : undefined,
             supportEnabled,
             supportAmount: supportEnabled ? supportAmount : 0,
           }),
@@ -224,7 +248,8 @@ export function CheckoutClient({ products }: { products: Product[] }) {
     refreshQuote();
   }, [
     items,
-    form.country,
+    effectiveDestinationCode,
+    form.postalCode,
     requiresShipping,
     supportEnabled,
     supportAmount,
@@ -258,7 +283,7 @@ export function CheckoutClient({ products }: { products: Product[] }) {
           },
           shippingAddress: requiresShipping
             ? {
-                country: form.country,
+                country: effectiveDestinationCode,
                 address1: form.address1,
                 address2: form.address2,
                 postalCode: form.postalCode,
@@ -307,7 +332,7 @@ export function CheckoutClient({ products }: { products: Product[] }) {
         const minimumLineAmount = calculateZoneAdjustedLineMinimum(
           product,
           item.quantity,
-          form.country
+          effectiveDestinationCode
         );
 
         if (parsed === null || parsed < minimumLineAmount) {
@@ -344,7 +369,7 @@ export function CheckoutClient({ products }: { products: Product[] }) {
     const minimumLineAmount = calculateZoneAdjustedLineMinimum(
       currentProduct,
       currentItem.quantity,
-      form.country
+      effectiveDestinationCode
     );
 
     const isInvalid = parsed === null || parsed < minimumLineAmount;
