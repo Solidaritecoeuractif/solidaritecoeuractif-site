@@ -56,7 +56,7 @@ function paymentStatusStyle(status: string) {
   };
 }
 
-function exportUrl(eventId: string, references?: string[]) {
+function exportUrl(eventId: string, format: "csv" | "xlsx", references?: string[]) {
   const params = new URLSearchParams();
 
   if (references && references.length > 0) {
@@ -64,10 +64,12 @@ function exportUrl(eventId: string, references?: string[]) {
   }
 
   const query = params.toString();
+  const route =
+    format === "xlsx"
+      ? `/api/admin/ticketing/events/${eventId}/export-xlsx`
+      : `/api/admin/ticketing/events/${eventId}/export-csv`;
 
-  return `/api/admin/ticketing/events/${eventId}/export-csv${
-    query ? `?${query}` : ""
-  }`;
+  return `${route}${query ? `?${query}` : ""}`;
 }
 
 export default function TicketingPaidOrdersTableClient({
@@ -113,13 +115,8 @@ export default function TicketingPaidOrdersTableClient({
   function handleExportAll(format: string) {
     setMessage("");
 
-    if (format === "xlsx") {
-      setMessage("L’export XLSX sera ajouté à l’étape suivante.");
-      return;
-    }
-
-    if (format === "csv") {
-      window.location.href = exportUrl(eventId);
+    if (format === "csv" || format === "xlsx") {
+      window.location.href = exportUrl(eventId, format);
     }
   }
 
@@ -131,13 +128,8 @@ export default function TicketingPaidOrdersTableClient({
       return;
     }
 
-    if (format === "xlsx") {
-      setMessage("L’export XLSX de la sélection sera ajouté à l’étape suivante.");
-      return;
-    }
-
-    if (format === "csv") {
-      window.location.href = exportUrl(eventId, selectedReferences);
+    if (format === "csv" || format === "xlsx") {
+      window.location.href = exportUrl(eventId, format, selectedReferences);
     }
   }
 
@@ -171,13 +163,7 @@ export default function TicketingPaidOrdersTableClient({
         </div>
 
         <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
-          <label
-            style={{
-              display: "grid",
-              gap: "4px",
-              minWidth: "210px",
-            }}
-          >
+          <label style={{ display: "grid", gap: "4px", minWidth: "210px" }}>
             <span style={{ fontSize: "13px", fontWeight: 700 }}>
               Exporter toutes les inscriptions
             </span>
@@ -193,7 +179,7 @@ export default function TicketingPaidOrdersTableClient({
                 Choisir un format
               </option>
               <option value="csv">CSV</option>
-              <option value="xlsx">XLSX bientôt</option>
+              <option value="xlsx">XLSX</option>
             </select>
           </label>
 
@@ -221,7 +207,7 @@ export default function TicketingPaidOrdersTableClient({
                 Choisir un format
               </option>
               <option value="csv">CSV</option>
-              <option value="xlsx">XLSX bientôt</option>
+              <option value="xlsx">XLSX</option>
             </select>
           </label>
         </div>
