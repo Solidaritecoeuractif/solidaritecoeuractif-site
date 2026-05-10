@@ -47,6 +47,20 @@ let logoBufferPromise: Promise<Buffer | null> | null = null;
 let cachetBufferPromise: Promise<Buffer | null> | null = null;
 let signatureBufferPromise: Promise<Buffer | null> | null = null;
 
+function getSelectedReferences(searchParams: URLSearchParams) {
+  const refsFromRepeatedParams = searchParams
+    .getAll("refs")
+    .map((value) => value.trim())
+    .filter(Boolean);
+
+  const refsFromCommaParam = String(searchParams.get("references") || "")
+    .split(",")
+    .map((value) => value.trim())
+    .filter(Boolean);
+
+  return Array.from(new Set([...refsFromRepeatedParams, ...refsFromCommaParam]));
+}
+
 function customsEligible(order: Order) {
   const code = order.shippingAddress?.country || "";
   const zone = getDestinationZone(code);
@@ -250,26 +264,10 @@ async function drawInvoiceCopy(
   drawCenteredText(page, "FACTURE PRO FORMA", y, 18, bold);
 
   y -= 30;
-  drawLabelValue(
-    page,
-    "N°:",
-    formatInvoiceNumber(order, invoiceIndex),
-    left,
-    y,
-    font,
-    bold
-  );
+  drawLabelValue(page, "N°:", formatInvoiceNumber(order, invoiceIndex), left, y, font, bold);
 
   y -= 20;
-  drawLabelValue(
-    page,
-    "Date:",
-    formatInvoiceDate(order.createdAt),
-    left,
-    y,
-    font,
-    bold
-  );
+  drawLabelValue(page, "Date:", formatInvoiceDate(order.createdAt), left, y, font, bold);
 
   y -= 34;
 
@@ -300,21 +298,21 @@ async function drawInvoiceCopy(
   ];
 
   const postalCity = [
-  safeText(order.shippingAddress?.postalCode),
-  safeText(order.shippingAddress?.city),
-]
-  .filter(Boolean)
-  .join(" ")
-  .trim();
+    safeText(order.shippingAddress?.postalCode),
+    safeText(order.shippingAddress?.city),
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .trim();
 
-const recipientLines = [
-  `${safeText(order.customer.firstName)} ${safeText(order.customer.lastName)}`.trim(),
-  safeText(order.shippingAddress?.address1),
-  cleanAddressLine(order.shippingAddress?.address2),
-  postalCity,
-  safeText(order.shippingAddress?.country),
-  safeText(order.customer.phone),
-];
+  const recipientLines = [
+    `${safeText(order.customer.firstName)} ${safeText(order.customer.lastName)}`.trim(),
+    safeText(order.shippingAddress?.address1),
+    cleanAddressLine(order.shippingAddress?.address2),
+    postalCity,
+    safeText(order.shippingAddress?.country),
+    safeText(order.customer.phone),
+  ];
 
   let y1 = y;
   for (const line of senderLines.filter(Boolean)) {
@@ -349,33 +347,10 @@ const recipientLines = [
 
   y -= 18;
 
-  page.drawText("Description", {
-    x: left,
-    y,
-    size: 11,
-    font: bold,
-  });
-
-  page.drawText("HS code", {
-    x: 335,
-    y,
-    size: 11,
-    font: bold,
-  });
-
-  page.drawText("Qté", {
-    x: 470,
-    y,
-    size: 11,
-    font: bold,
-  });
-
-  page.drawText("Valeur (€)", {
-    x: 520,
-    y,
-    size: 11,
-    font: bold,
-  });
+  page.drawText("Description", { x: left, y, size: 11, font: bold });
+  page.drawText("HS code", { x: 335, y, size: 11, font: bold });
+  page.drawText("Qté", { x: 470, y, size: 11, font: bold });
+  page.drawText("Valeur (€)", { x: 520, y, size: 11, font: bold });
 
   y -= 10;
 
@@ -402,20 +377,8 @@ const recipientLines = [
     font,
   });
 
-  page.drawText("490199", {
-    x: 340,
-    y,
-    size: 10,
-    font,
-  });
-
-  page.drawText(String(qty), {
-    x: 485,
-    y,
-    size: 10,
-    font,
-  });
-
+  page.drawText("490199", { x: 340, y, size: 10, font });
+  page.drawText(String(qty), { x: 485, y, size: 10, font });
   page.drawText(valueText, {
     x: 545 - font.widthOfTextAtSize(valueText, 10),
     y,
@@ -434,13 +397,7 @@ const recipientLines = [
 
   y -= 24;
 
-  page.drawText("Total", {
-    x: 475,
-    y,
-    size: 11,
-    font: bold,
-  });
-
+  page.drawText("Total", { x: 475, y, size: 11, font: bold });
   page.drawText(valueText, {
     x: 545 - bold.widthOfTextAtSize(valueText, 11),
     y,
@@ -477,15 +434,12 @@ const recipientLines = [
 
   y -= 16;
 
-  page.drawText(
-    `Frais de port / Frais / Postage costs: ${postageCostsText}`,
-    {
-      x: left,
-      y,
-      size: 10,
-      font,
-    }
-  );
+  page.drawText(`Frais de port / Frais / Postage costs: ${postageCostsText}`, {
+    x: left,
+    y,
+    size: 10,
+    font,
+  });
 
   y -= 16;
 
@@ -602,7 +556,18 @@ const recipientLines = [
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
-  const refs = searchParams.getAll("refs");
+  const refs = getSelectedReferences(searchParams);
+  const selectionOnly = searchParams.get("selectionOnly") === "true";
+
+  if (selectionOnly && refs.length === 0) {
+    return NextResponse.json(
+      {
+        error:
+          "Aucune commande sélectionnée. L’export douanier PDF doit recevoir les références sélectionnées.",
+      },
+      { status: 400 }
+    );
+  }
 
   let orders = await storage().getOrders();
 
