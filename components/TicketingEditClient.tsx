@@ -145,6 +145,16 @@ export default function TicketingEditClient({
     formatDonationAmounts(event.suggestedDonationAmounts || [])
   );
 
+  const [confirmationEmailEnabled, setConfirmationEmailEnabled] = useState(
+    event.confirmationEmailEnabled !== false
+  );
+  const [confirmationEmailSubject, setConfirmationEmailSubject] = useState(
+    event.confirmationEmailSubject || ""
+  );
+  const [confirmationEmailMessage, setConfirmationEmailMessage] = useState(
+    event.confirmationEmailMessage || ""
+  );
+
   const [draftRates, setDraftRates] = useState<DraftRate[]>(
     rates.length > 0 ? rates.map(toDraftRate) : [newDraftRate()]
   );
@@ -233,6 +243,9 @@ export default function TicketingEditClient({
           suggestedDonationAmounts: parseDonationAmounts(
             suggestedDonationAmounts
           ),
+          confirmationEmailEnabled,
+          confirmationEmailSubject,
+          confirmationEmailMessage,
         }),
       });
 
@@ -453,6 +466,87 @@ export default function TicketingEditClient({
               onChange={(inputEvent) => setEndsAt(inputEvent.target.value)}
             />
           </label>
+        </div>
+      </section>
+
+      <section
+        style={{
+          border: "1px solid #dbe3ee",
+          borderRadius: "16px",
+          padding: "18px",
+          background: "#ffffff",
+        }}
+      >
+        <h2 style={{ marginTop: 0 }}>Email de confirmation</h2>
+
+        <p style={{ marginTop: 0, color: "#64748b", lineHeight: 1.6 }}>
+          Cet email sera envoyé automatiquement après paiement validé. Le
+          récapitulatif de l’inscription sera ajouté automatiquement sous ton
+          message : référence, événement, participants, montant payé et contact.
+        </p>
+
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
+            gap: "14px",
+          }}
+        >
+          <label style={{ display: "grid", gap: "6px" }}>
+            <span style={{ fontWeight: 700 }}>Envoi automatique</span>
+            <select
+              className="input"
+              value={confirmationEmailEnabled ? "yes" : "no"}
+              onChange={(inputEvent) =>
+                setConfirmationEmailEnabled(inputEvent.target.value === "yes")
+              }
+            >
+              <option value="yes">Activé après paiement</option>
+              <option value="no">Désactivé pour cette billetterie</option>
+            </select>
+          </label>
+
+          <label style={{ display: "grid", gap: "6px" }}>
+            <span style={{ fontWeight: 700 }}>Objet de l’email</span>
+            <input
+              className="input"
+              value={confirmationEmailSubject}
+              onChange={(inputEvent) =>
+                setConfirmationEmailSubject(inputEvent.target.value)
+              }
+              placeholder="Confirmation d’inscription – Nom de l’événement"
+            />
+          </label>
+        </div>
+
+        <label style={{ display: "grid", gap: "6px", marginTop: "14px" }}>
+          <span style={{ fontWeight: 700 }}>Message personnalisé</span>
+          <textarea
+            className="input"
+            value={confirmationEmailMessage}
+            onChange={(inputEvent) =>
+              setConfirmationEmailMessage(inputEvent.target.value)
+            }
+            rows={8}
+            placeholder="Bonjour, nous confirmons votre inscription. Voici les informations importantes à retenir pour cet événement..."
+          />
+        </label>
+
+        <div
+          style={{
+            marginTop: "12px",
+            padding: "12px",
+            border: "1px solid #e5e7eb",
+            borderRadius: "14px",
+            background: "#f8fafc",
+            color: "#64748b",
+            fontSize: "14px",
+            lineHeight: 1.55,
+          }}
+        >
+          Si l’objet est vide, le site utilisera automatiquement :{" "}
+          <strong>Confirmation d’inscription – {title || "Titre de l’événement"}</strong>.
+          Si le message est vide, un message simple par défaut sera utilisé.
         </div>
       </section>
 
@@ -916,9 +1010,10 @@ export default function TicketingEditClient({
           fontWeight: 600,
         }}
       >
-        Cette étape modifie uniquement les informations générales et les tarifs
-        de cette billetterie. Les inscriptions, paiements, commandes, offres,
-        panier, Stripe et exports existants ne sont pas modifiés.
+        Cette étape modifie uniquement les informations générales, les tarifs et
+        le modèle d’email de confirmation de cette billetterie. Les inscriptions,
+        paiements, commandes, offres, panier, Stripe et exports existants ne sont
+        pas modifiés.
       </section>
 
       <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>

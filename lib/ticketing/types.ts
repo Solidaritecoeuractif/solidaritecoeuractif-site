@@ -59,6 +59,10 @@ export type TicketingEvent = {
   salesOpenAt?: string;
   salesCloseAt?: string;
 
+  confirmationEmailSubject?: string;
+  confirmationEmailMessage?: string;
+  confirmationEmailEnabled?: boolean;
+
   createdAt: string;
   updatedAt: string;
 };

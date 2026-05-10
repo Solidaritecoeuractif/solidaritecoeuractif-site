@@ -80,6 +80,9 @@ function rowToTicketingEvent(row: any): TicketingEvent {
     totalParticipantLimit: row.total_participant_limit ?? undefined,
     salesOpenAt: toIso(row.sales_open_at),
     salesCloseAt: toIso(row.sales_close_at),
+    confirmationEmailSubject: row.confirmation_email_subject ?? undefined,
+    confirmationEmailMessage: row.confirmation_email_message ?? undefined,
+    confirmationEmailEnabled: row.confirmation_email_enabled !== false,
     createdAt: toIso(row.created_at) || new Date().toISOString(),
     updatedAt: toIso(row.updated_at) || new Date().toISOString(),
   };
@@ -242,9 +245,13 @@ export async function savePostgresTicketingEvent(event: TicketingEvent) {
         duration_type, starts_at, ends_at, organizer_email, organizer_phone,
         short_description, long_description, primary_color, banner_image_url,
         thumbnail_image_url, allow_extra_donation, suggested_donation_amounts,
-        total_participant_limit, sales_open_at, sales_close_at, created_at, updated_at
+        total_participant_limit, sales_open_at, sales_close_at,
+        confirmation_email_subject, confirmation_email_message, confirmation_email_enabled,
+        created_at, updated_at
       ) values (
-        $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25,$26,$27,$28
+        $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,
+        $11,$12,$13,$14,$15,$16,$17,$18,$19,$20,
+        $21,$22,$23,$24,$25,$26,$27,$28,$29,$30,$31
       )`,
       [
         event.id,
@@ -273,6 +280,9 @@ export async function savePostgresTicketingEvent(event: TicketingEvent) {
         event.totalParticipantLimit ?? null,
         event.salesOpenAt ?? null,
         event.salesCloseAt ?? null,
+        event.confirmationEmailSubject ?? null,
+        event.confirmationEmailMessage ?? null,
+        event.confirmationEmailEnabled !== false,
         event.createdAt,
         event.updatedAt,
       ]
@@ -318,7 +328,10 @@ export async function updatePostgresTicketingEvent(
            total_participant_limit = $24,
            sales_open_at = $25,
            sales_close_at = $26,
-           updated_at = $27
+           confirmation_email_subject = $27,
+           confirmation_email_message = $28,
+           confirmation_email_enabled = $29,
+           updated_at = $30
        where id = $1`,
       [
         id,
@@ -347,6 +360,9 @@ export async function updatePostgresTicketingEvent(
         event.totalParticipantLimit ?? null,
         event.salesOpenAt ?? null,
         event.salesCloseAt ?? null,
+        event.confirmationEmailSubject ?? null,
+        event.confirmationEmailMessage ?? null,
+        event.confirmationEmailEnabled !== false,
         event.updatedAt,
       ]
     );
@@ -479,6 +495,7 @@ export async function replacePostgresTicketingRates(
     client.release();
   }
 }
+
 export async function getPostgresTicketingCustomFields(eventId: string) {
   const client = await pool().connect();
 

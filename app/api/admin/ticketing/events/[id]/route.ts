@@ -17,6 +17,11 @@ function normalizeSuggestedDonationAmounts(value: unknown) {
     .map((amount) => Math.round(amount));
 }
 
+function cleanOptionalText(value: unknown) {
+  const cleaned = String(value || "").trim();
+  return cleaned || undefined;
+}
+
 export async function PUT(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
@@ -50,34 +55,32 @@ export async function PUT(
       status: isVisible ? "published" : "draft",
       isVisible,
 
-      locationName:
-        String(payload.locationName || "").trim() || undefined,
-      addressLine:
-        String(payload.addressLine || "").trim() || undefined,
-      postalCode:
-        String(payload.postalCode || "").trim() || undefined,
-      city:
-        String(payload.city || "").trim() || undefined,
-      country:
-        String(payload.country || "").trim() || undefined,
+      locationName: cleanOptionalText(payload.locationName),
+      addressLine: cleanOptionalText(payload.addressLine),
+      postalCode: cleanOptionalText(payload.postalCode),
+      city: cleanOptionalText(payload.city),
+      country: cleanOptionalText(payload.country),
 
       durationType: normalizeDurationType(payload.durationType),
-      startsAt:
-        String(payload.startsAt || "").trim() || undefined,
-      endsAt:
-        String(payload.endsAt || "").trim() || undefined,
+      startsAt: cleanOptionalText(payload.startsAt),
+      endsAt: cleanOptionalText(payload.endsAt),
 
-      organizerEmail:
-        String(payload.organizerEmail || "").trim() || undefined,
-      organizerPhone:
-        String(payload.organizerPhone || "").trim() || undefined,
+      organizerEmail: cleanOptionalText(payload.organizerEmail),
+      organizerPhone: cleanOptionalText(payload.organizerPhone),
 
-      shortDescription:
-        String(payload.shortDescription || "").trim() || undefined,
+      shortDescription: cleanOptionalText(payload.shortDescription),
 
       allowExtraDonation: Boolean(payload.allowExtraDonation),
       suggestedDonationAmounts: normalizeSuggestedDonationAmounts(
         payload.suggestedDonationAmounts
+      ),
+
+      confirmationEmailEnabled: payload.confirmationEmailEnabled !== false,
+      confirmationEmailSubject: cleanOptionalText(
+        payload.confirmationEmailSubject
+      ),
+      confirmationEmailMessage: cleanOptionalText(
+        payload.confirmationEmailMessage
       ),
 
       updatedAt: now,
