@@ -2,10 +2,24 @@ import { NextResponse } from "next/server";
 import { storage } from "@/lib/storage";
 import { chronopostRows, toSemicolonCsv } from "@/lib/exports";
 
+function getSelectedReferences(searchParams: URLSearchParams) {
+  const refsFromRepeatedParams = searchParams
+    .getAll("refs")
+    .map((value) => value.trim())
+    .filter(Boolean);
+
+  const refsFromCommaParam = String(searchParams.get("references") || "")
+    .split(",")
+    .map((value) => value.trim())
+    .filter(Boolean);
+
+  return Array.from(new Set([...refsFromRepeatedParams, ...refsFromCommaParam]));
+}
+
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
 
-  const refs = searchParams.getAll("refs");
+  const refs = getSelectedReferences(searchParams);
   const paymentStatus = searchParams.get("paymentStatus");
   const logisticsStatus = searchParams.get("logisticsStatus");
   const dateFrom = searchParams.get("dateFrom");
@@ -17,6 +31,12 @@ export async function GET(request: Request) {
   ]);
 
   let orders = allOrders;
+
+  if (refs.length > 0) {
+    orders = orders.filter((order) => refs.includes(order.reference));
+  } else {
+    orders = orders.filter((order) => order.paymentStatus === "paid");
+  }
 
   if (paymentStatus) {
     orders = orders.filter((order) => order.paymentStatus === paymentStatus);
@@ -34,12 +54,6 @@ export async function GET(request: Request) {
   if (dateTo) {
     const to = new Date(dateTo).getTime();
     orders = orders.filter((order) => new Date(order.createdAt).getTime() <= to);
-  }
-
-  if (refs.length > 0) {
-    orders = orders.filter((order) => refs.includes(order.reference));
-  } else {
-    orders = orders.filter((order) => order.paymentStatus === "paid");
   }
 
   orders = orders.filter((order) => order.shippingAddress);

@@ -332,11 +332,15 @@ export default function OrdersTableClient({ orders }: { orders: Order[] }) {
   ) {
     if (selected.length === 0) return;
 
+    const uniqueSelectedRefs = Array.from(new Set(selected));
     const params = new URLSearchParams();
 
-    for (const reference of selected) {
+    for (const reference of uniqueSelectedRefs) {
       params.append("refs", reference);
     }
+
+    params.set("references", uniqueSelectedRefs.join(","));
+    params.set("selectionOnly", "true");
 
     if (logisticsFilter !== "all") {
       params.set("logisticsStatus", logisticsFilter);
