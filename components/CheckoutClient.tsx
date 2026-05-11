@@ -716,11 +716,11 @@ export function CheckoutClient({ products }: { products: Product[] }) {
         {resolvedPreview.length > 0 ? (
           <div
             style={{
-              marginTop: 10,
-              marginBottom: 10,
-              padding: "10px 12px",
+              marginTop: 8,
+              marginBottom: 8,
+              padding: "7px 10px",
               border: "1px solid #e5e7eb",
-              borderRadius: 14,
+              borderRadius: 12,
               background: "#ffffff",
             }}
           >
@@ -729,27 +729,27 @@ export function CheckoutClient({ products }: { products: Product[] }) {
                 display: "grid",
                 gridTemplateColumns: "1fr auto auto",
                 alignItems: "center",
-                gap: 10,
+                gap: 8,
               }}
             >
               <div style={{ minWidth: 0 }}>
-                <strong style={{ fontSize: "0.88rem" }}>
-                  Participation libre à Solidarité Cœur Actif
+                <strong style={{ fontSize: "0.76rem" }}>
+                  Participation libre
                 </strong>{" "}
                 <span
                   style={{
                     color: "#64748b",
-                    fontSize: "0.82rem",
-                    lineHeight: 1.35,
+                    fontSize: "0.72rem",
+                    lineHeight: 1.25,
                   }}
                 >
-                  proposée pour soutenir la plateforme et ses actions solidaires.
+                  pour soutenir l’association.
                 </span>
               </div>
 
               <strong
                 style={{
-                  fontSize: "0.9rem",
+                  fontSize: "0.78rem",
                   whiteSpace: "nowrap",
                   color: "#111827",
                 }}
@@ -762,9 +762,9 @@ export function CheckoutClient({ products }: { products: Product[] }) {
                 className="button secondary small"
                 onClick={() => setSupportEditing((prev) => !prev)}
                 style={{
-                  padding: "7px 12px",
-                  borderRadius: 10,
-                  fontSize: "0.82rem",
+                  padding: "5px 9px",
+                  borderRadius: 9,
+                  fontSize: "0.72rem",
                   whiteSpace: "nowrap",
                 }}
               >
@@ -775,20 +775,20 @@ export function CheckoutClient({ products }: { products: Product[] }) {
             {supportEditing ? (
               <div
                 style={{
-                  marginTop: 10,
-                  paddingTop: 10,
+                  marginTop: 8,
+                  paddingTop: 8,
                   borderTop: "1px solid #eef2f7",
                   display: "grid",
-                  gap: 8,
+                  gap: 7,
                 }}
               >
                 <label
                   style={{
                     display: "flex",
                     alignItems: "center",
-                    gap: 8,
+                    gap: 7,
                     color: "#475569",
-                    fontSize: "0.84rem",
+                    fontSize: "0.76rem",
                     cursor: "pointer",
                   }}
                 >
@@ -796,7 +796,7 @@ export function CheckoutClient({ products }: { products: Product[] }) {
                     type="checkbox"
                     checked={supportEnabled}
                     onChange={(e) => setSupportEnabled(e.target.checked)}
-                    style={{ transform: "scale(0.9)", margin: 0 }}
+                    style={{ transform: "scale(0.82)", margin: 0 }}
                   />
                   Ajouter une participation libre
                 </label>
@@ -805,9 +805,9 @@ export function CheckoutClient({ products }: { products: Product[] }) {
                   <div
                     style={{
                       display: "grid",
-                      gridTemplateColumns: "32px 1fr 32px",
+                      gridTemplateColumns: "28px 1fr 28px",
                       alignItems: "center",
-                      gap: 6,
+                      gap: 5,
                     }}
                   >
                     <button
@@ -816,11 +816,11 @@ export function CheckoutClient({ products }: { products: Product[] }) {
                       onClick={decreaseSupport}
                       aria-label="Diminuer la participation"
                       style={{
-                        minWidth: 32,
-                        height: 32,
+                        minWidth: 28,
+                        height: 28,
                         padding: 0,
-                        borderRadius: 9,
-                        fontSize: "0.9rem",
+                        borderRadius: 8,
+                        fontSize: "0.78rem",
                       }}
                     >
                       –
@@ -828,12 +828,12 @@ export function CheckoutClient({ products }: { products: Product[] }) {
 
                     <div
                       style={{
-                        padding: "7px 10px",
+                        padding: "5px 8px",
                         border: "1px solid #e5e7eb",
-                        borderRadius: 10,
+                        borderRadius: 8,
                         background: "#ffffff",
                         fontWeight: 700,
-                        fontSize: "0.88rem",
+                        fontSize: "0.76rem",
                         textAlign: "center",
                       }}
                     >
@@ -846,11 +846,11 @@ export function CheckoutClient({ products }: { products: Product[] }) {
                       onClick={increaseSupport}
                       aria-label="Augmenter la participation"
                       style={{
-                        minWidth: 32,
-                        height: 32,
+                        minWidth: 28,
+                        height: 28,
                         padding: 0,
-                        borderRadius: 9,
-                        fontSize: "0.9rem",
+                        borderRadius: 8,
+                        fontSize: "0.78rem",
                       }}
                     >
                       +
@@ -861,25 +861,25 @@ export function CheckoutClient({ products }: { products: Product[] }) {
                 <div
                   style={{
                     display: "flex",
-                    gap: 8,
+                    gap: 6,
                     alignItems: "center",
                     justifyContent: "space-between",
                     flexWrap: "wrap",
                   }}
                 >
-                  <small style={{ color: "#8a94a6", fontSize: "0.78rem" }}>
+                  <small style={{ color: "#8a94a6", fontSize: "0.72rem" }}>
                     Suggestion : <strong>{euros(suggestedSupport)}</strong>
                   </small>
 
-                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                  <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
                     <button
                       type="button"
                       className="button secondary small"
                       onClick={restoreSupportSuggestion}
                       style={{
-                        padding: "6px 10px",
-                        borderRadius: 9,
-                        fontSize: "0.78rem",
+                        padding: "5px 8px",
+                        borderRadius: 8,
+                        fontSize: "0.7rem",
                       }}
                     >
                       Remettre la suggestion
@@ -890,9 +890,9 @@ export function CheckoutClient({ products }: { products: Product[] }) {
                       className="button secondary small"
                       onClick={removeSupport}
                       style={{
-                        padding: "6px 10px",
-                        borderRadius: 9,
-                        fontSize: "0.78rem",
+                        padding: "5px 8px",
+                        borderRadius: 8,
+                        fontSize: "0.7rem",
                       }}
                     >
                       Retirer
