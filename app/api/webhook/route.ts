@@ -58,7 +58,8 @@ export async function POST(request: Request) {
       const classicReference = session.client_reference_id;
 
       if (classicReference) {
-        const order = await storage().getOrderByReference(classicReference);
+        const classicStorage = storage();
+        const order = await classicStorage.getOrderByReference(classicReference);
 
         if (order) {
           const wasAlreadyPaid = order.paymentStatus === "paid";
@@ -72,15 +73,25 @@ export async function POST(request: Request) {
               : session.payment_intent?.id;
           order.updatedAt = new Date().toISOString();
 
+          await classicStorage.updateOrder(classicReference, order);
+
           if (!wasAlreadyPaid || !emailAlreadySent) {
-            await sendPaymentConfirmationEmail(order);
+            try {
+              await sendPaymentConfirmationEmail(order);
 
-            const now = new Date().toISOString();
-            order.emailSentAt = now;
-            order.paymentReceiptSentAt = now;
+              const now = new Date().toISOString();
+              order.emailSentAt = now;
+              order.paymentReceiptSentAt = now;
+              order.updatedAt = now;
+
+              await classicStorage.updateOrder(classicReference, order);
+            } catch (emailError) {
+              console.error(
+                "Erreur envoi email confirmation commande classique",
+                emailError
+              );
+            }
           }
-
-          await storage().updateOrder(classicReference, order);
         }
       }
     }
