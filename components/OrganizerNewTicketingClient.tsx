@@ -132,7 +132,7 @@ export default function OrganizerNewTicketingClient({
               className="input"
               value={title}
               onChange={(event) => setTitle(event.target.value)}
-              placeholder="Ex. Week-end de ressourcement"
+              placeholder="Nom de votre événement"
               required
             />
           </label>
