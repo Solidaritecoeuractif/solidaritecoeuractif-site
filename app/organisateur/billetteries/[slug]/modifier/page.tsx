@@ -75,9 +75,13 @@ export default async function Page({
           </p>
         </section>
 
-        <OrganizerEditTicketingClient event={event} rates={rates} />
-
-        <OrganizerFieldsEditorClient event={event} fields={customFields} />
+        <OrganizerEditTicketingClient
+          event={event}
+          rates={rates}
+          extraSection={
+            <OrganizerFieldsEditorClient event={event} fields={customFields} />
+          }
+        />
       </div>
     </main>
   );

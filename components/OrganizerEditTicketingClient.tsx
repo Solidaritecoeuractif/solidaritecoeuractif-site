@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import type { TicketingEvent, TicketingRate } from "@/lib/ticketing/types";
 
 type DraftRateType = "fixed" | "free_amount" | "free";
@@ -128,9 +128,11 @@ function labelTitleStyle() {
 export default function OrganizerEditTicketingClient({
   event,
   rates,
+  extraSection,
 }: {
   event: TicketingEvent;
   rates: TicketingRate[];
+  extraSection?: ReactNode;
 }) {
   const [title, setTitle] = useState(event.title);
   const [formTypeLabel, setFormTypeLabel] = useState(event.formTypeLabel || "");
@@ -660,6 +662,8 @@ export default function OrganizerEditTicketingClient({
           </label>
         </div>
       </section>
+
+      {extraSection ? <div>{extraSection}</div> : null}
 
       <section
         style={{

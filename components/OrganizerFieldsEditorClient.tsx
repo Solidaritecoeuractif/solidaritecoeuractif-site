@@ -233,21 +233,6 @@ export default function OrganizerFieldsEditorClient({
         </button>
       </div>
 
-      <div
-        style={{
-          border: "1px solid #fde68a",
-          borderRadius: "14px",
-          padding: "12px",
-          background: "#fffbeb",
-          color: "#92400e",
-          fontWeight: 800,
-          marginBottom: "14px",
-        }}
-      >
-        Les champs de base restent toujours obligatoires : nom, prénom, âge,
-        email, téléphone et ville d’origine.
-      </div>
-
       {message ? (
         <div
           style={{
