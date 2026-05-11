@@ -990,23 +990,6 @@ export default function TicketingEditClient({
         </label>
       </section>
 
-      <section
-        style={{
-          border: "1px solid #facc15",
-          borderRadius: "16px",
-          padding: "14px",
-          background: "#fffbeb",
-          color: "#92400e",
-          fontWeight: 700,
-          lineHeight: 1.55,
-        }}
-      >
-        Cette étape modifie uniquement les informations générales, les tarifs,
-        le modèle d’email de confirmation, le contact et la présentation de cette
-        billetterie. Les inscriptions, paiements, commandes livres, offres,
-        panier, Stripe et exports existants ne sont pas modifiés.
-      </section>
-
       <div
         style={{
           display: "flex",
