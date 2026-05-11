@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
+import OrganizerTicketingPublicationActions from "@/components/OrganizerTicketingPublicationActions";
 import { getOrganizerSession } from "@/lib/auth";
 import { ticketingStorage } from "@/lib/ticketing";
 
@@ -90,6 +91,8 @@ export default async function Page({
     0
   );
 
+  const publicVisible = event.status === "published" && event.isVisible;
+
   return (
     <main className="panel">
       <div
@@ -118,7 +121,7 @@ export default async function Page({
             Inscriptions
           </Link>
 
-          {event.status === "published" && event.isVisible ? (
+          {publicVisible ? (
             <Link
               href={`/evenements/${event.slug}`}
               target="_blank"
@@ -156,6 +159,8 @@ export default async function Page({
             l’admin général.
           </p>
         </section>
+
+        <OrganizerTicketingPublicationActions event={event} />
 
         <section
           style={{
