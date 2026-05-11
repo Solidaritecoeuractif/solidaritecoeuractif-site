@@ -703,18 +703,18 @@ export function CheckoutClient({ products }: { products: Product[] }) {
         {resolvedPreview.length > 0 ? (
           <div
             style={{
-              marginTop: 12,
-              marginBottom: 12,
-              padding: "10px 12px",
-              border: "1px solid #edf2f7",
-              borderRadius: 12,
-              background: "#fcfdff",
+              marginTop: 8,
+              marginBottom: 10,
+              padding: "8px 10px",
+              borderTop: "1px solid #e5e7eb",
+              borderBottom: supportEnabled ? "1px solid #f1f5f9" : "none",
+              background: "transparent",
             }}
           >
             <label
               style={{
                 display: "flex",
-                alignItems: "flex-start",
+                alignItems: "center",
                 gap: 8,
                 marginBottom: supportEnabled ? 8 : 0,
                 cursor: "pointer",
@@ -724,15 +724,15 @@ export function CheckoutClient({ products }: { products: Product[] }) {
                 type="checkbox"
                 checked={supportEnabled}
                 onChange={(e) => setSupportEnabled(e.target.checked)}
-                style={{ marginTop: 2, transform: "scale(0.95)" }}
+                style={{ transform: "scale(0.9)" }}
               />
-              <span style={{ lineHeight: 1.35 }}>
-                <strong style={{ fontSize: "0.95rem", fontWeight: 700 }}>
+              <span style={{ lineHeight: 1.25 }}>
+                <strong style={{ fontSize: "0.86rem", fontWeight: 700 }}>
                   Participation libre à l’Association
                 </strong>
                 <br />
-                <small style={{ color: "#6b7280" }}>
-                  Cette contribution facultative aide l’association à poursuivre ses actions solidaires
+                <small style={{ color: "#6b7280", fontSize: "0.78rem" }}>
+                  Contribution facultative pour soutenir nos actions.
                 </small>
               </span>
             </label>
@@ -741,9 +741,10 @@ export function CheckoutClient({ products }: { products: Product[] }) {
               <div style={{ marginTop: 2 }}>
                 <div
                   style={{
-                    display: "flex",
+                    display: "grid",
+                    gridTemplateColumns: "32px 1fr 32px",
                     alignItems: "center",
-                    gap: 8,
+                    gap: 6,
                   }}
                 >
                   <button
@@ -752,10 +753,11 @@ export function CheckoutClient({ products }: { products: Product[] }) {
                     onClick={decreaseSupport}
                     aria-label="Diminuer la participation"
                     style={{
-                      minWidth: 38,
-                      height: 38,
+                      minWidth: 32,
+                      height: 32,
                       padding: 0,
-                      borderRadius: 10,
+                      borderRadius: 9,
+                      fontSize: "0.9rem",
                     }}
                   >
                     –
@@ -763,13 +765,12 @@ export function CheckoutClient({ products }: { products: Product[] }) {
 
                   <div
                     style={{
-                      flex: 1,
-                      padding: "9px 12px",
+                      padding: "7px 10px",
                       border: "1px solid #e5e7eb",
-                      borderRadius: 11,
+                      borderRadius: 10,
                       background: "#ffffff",
                       fontWeight: 700,
-                      fontSize: "0.98rem",
+                      fontSize: "0.9rem",
                       textAlign: "center",
                     }}
                   >
@@ -782,10 +783,11 @@ export function CheckoutClient({ products }: { products: Product[] }) {
                     onClick={increaseSupport}
                     aria-label="Augmenter la participation"
                     style={{
-                      minWidth: 38,
-                      height: 38,
+                      minWidth: 32,
+                      height: 32,
                       padding: 0,
-                      borderRadius: 10,
+                      borderRadius: 9,
+                      fontSize: "0.9rem",
                     }}
                   >
                     +
@@ -795,10 +797,10 @@ export function CheckoutClient({ products }: { products: Product[] }) {
                 <small
                   style={{
                     display: "block",
-                    marginTop: 6,
-                    color: "#6b7280",
-                    lineHeight: 1.35,
-                    fontSize: "0.88rem",
+                    marginTop: 5,
+                    color: "#8a94a6",
+                    lineHeight: 1.25,
+                    fontSize: "0.78rem",
                   }}
                 >
                   Suggestion : <strong>{euros(suggestedSupport)}</strong>
