@@ -184,6 +184,8 @@ export default function OrganizerEditTicketingClient({
 
         if (patch.promoCodeEnabled === false) {
           next.promoCodePublic = false;
+          next.promoCode = "";
+          next.promoDiscountPercent = "0";
         }
 
         if (Object.prototype.hasOwnProperty.call(patch, "promoDiscountPercent")) {
@@ -208,6 +210,10 @@ export default function OrganizerEditTicketingClient({
         ...rate,
         id: crypto.randomUUID(),
         name: `${rate.name || "Tarif"} copie`,
+        promoCodeEnabled: false,
+        promoCodePublic: false,
+        promoCode: "",
+        promoDiscountPercent: "0",
         createdAt: new Date().toISOString(),
       },
     ]);
@@ -250,7 +256,11 @@ export default function OrganizerEditTicketingClient({
           confirmationEmailEnabled,
           confirmationEmailSubject,
           confirmationEmailMessage,
-          rates: draftRates,
+          rates: draftRates.map((rate) => ({
+            ...rate,
+            promoCode: rate.promoCode.trim().toUpperCase(),
+            promoDiscountPercent: cleanPercent(rate.promoDiscountPercent),
+          })),
         }),
       });
 
@@ -308,7 +318,7 @@ export default function OrganizerEditTicketingClient({
             <input
               className="input"
               value={title}
-              onChange={(event) => setTitle(event.target.value)}
+              onChange={(inputEvent) => setTitle(inputEvent.target.value)}
             />
           </label>
 
@@ -317,7 +327,9 @@ export default function OrganizerEditTicketingClient({
             <input
               className="input"
               value={formTypeLabel}
-              onChange={(event) => setFormTypeLabel(event.target.value)}
+              onChange={(inputEvent) =>
+                setFormTypeLabel(inputEvent.target.value)
+              }
             />
           </label>
         </div>
@@ -327,7 +339,9 @@ export default function OrganizerEditTicketingClient({
           <textarea
             className="input"
             value={shortDescription}
-            onChange={(event) => setShortDescription(event.target.value)}
+            onChange={(inputEvent) =>
+              setShortDescription(inputEvent.target.value)
+            }
             rows={5}
           />
         </label>
@@ -342,7 +356,7 @@ export default function OrganizerEditTicketingClient({
             <input
               className="input"
               value={locationName}
-              onChange={(event) => setLocationName(event.target.value)}
+              onChange={(inputEvent) => setLocationName(inputEvent.target.value)}
             />
           </label>
 
@@ -351,7 +365,7 @@ export default function OrganizerEditTicketingClient({
             <input
               className="input"
               value={addressLine}
-              onChange={(event) => setAddressLine(event.target.value)}
+              onChange={(inputEvent) => setAddressLine(inputEvent.target.value)}
             />
           </label>
 
@@ -360,7 +374,7 @@ export default function OrganizerEditTicketingClient({
             <input
               className="input"
               value={postalCode}
-              onChange={(event) => setPostalCode(event.target.value)}
+              onChange={(inputEvent) => setPostalCode(inputEvent.target.value)}
             />
           </label>
 
@@ -369,7 +383,7 @@ export default function OrganizerEditTicketingClient({
             <input
               className="input"
               value={city}
-              onChange={(event) => setCity(event.target.value)}
+              onChange={(inputEvent) => setCity(inputEvent.target.value)}
             />
           </label>
 
@@ -378,7 +392,7 @@ export default function OrganizerEditTicketingClient({
             <input
               className="input"
               value={country}
-              onChange={(event) => setCountry(event.target.value)}
+              onChange={(inputEvent) => setCountry(inputEvent.target.value)}
             />
           </label>
 
@@ -387,9 +401,9 @@ export default function OrganizerEditTicketingClient({
             <select
               className="input"
               value={durationType}
-              onChange={(event) =>
+              onChange={(inputEvent) =>
                 setDurationType(
-                  event.target.value as "none" | "one_day" | "several_days"
+                  inputEvent.target.value as "none" | "one_day" | "several_days"
                 )
               }
             >
@@ -405,7 +419,7 @@ export default function OrganizerEditTicketingClient({
               className="input"
               type="datetime-local"
               value={startsAt}
-              onChange={(event) => setStartsAt(event.target.value)}
+              onChange={(inputEvent) => setStartsAt(inputEvent.target.value)}
             />
           </label>
 
@@ -415,7 +429,7 @@ export default function OrganizerEditTicketingClient({
               className="input"
               type="datetime-local"
               value={endsAt}
-              onChange={(event) => setEndsAt(event.target.value)}
+              onChange={(inputEvent) => setEndsAt(inputEvent.target.value)}
             />
           </label>
         </div>
@@ -504,8 +518,8 @@ export default function OrganizerEditTicketingClient({
                   <input
                     className="input"
                     value={rate.name}
-                    onChange={(event) =>
-                      updateRate(rate.id, { name: event.target.value })
+                    onChange={(inputEvent) =>
+                      updateRate(rate.id, { name: inputEvent.target.value })
                     }
                   />
                 </label>
@@ -515,9 +529,9 @@ export default function OrganizerEditTicketingClient({
                   <select
                     className="input"
                     value={rate.type}
-                    onChange={(event) =>
+                    onChange={(inputEvent) =>
                       updateRate(rate.id, {
-                        type: event.target.value as DraftRateType,
+                        type: inputEvent.target.value as DraftRateType,
                       })
                     }
                   >
@@ -533,8 +547,8 @@ export default function OrganizerEditTicketingClient({
                     <input
                       className="input"
                       value={rate.amount}
-                      onChange={(event) =>
-                        updateRate(rate.id, { amount: event.target.value })
+                      onChange={(inputEvent) =>
+                        updateRate(rate.id, { amount: inputEvent.target.value })
                       }
                     />
                   </label>
@@ -546,9 +560,9 @@ export default function OrganizerEditTicketingClient({
                     <input
                       className="input"
                       value={rate.minimumAmount}
-                      onChange={(event) =>
+                      onChange={(inputEvent) =>
                         updateRate(rate.id, {
-                          minimumAmount: event.target.value,
+                          minimumAmount: inputEvent.target.value,
                         })
                       }
                     />
@@ -560,8 +574,8 @@ export default function OrganizerEditTicketingClient({
                   <input
                     className="input"
                     value={rate.totalLimit}
-                    onChange={(event) =>
-                      updateRate(rate.id, { totalLimit: event.target.value })
+                    onChange={(inputEvent) =>
+                      updateRate(rate.id, { totalLimit: inputEvent.target.value })
                     }
                   />
                 </label>
@@ -571,8 +585,10 @@ export default function OrganizerEditTicketingClient({
                   <input
                     className="input"
                     value={rate.perOrderLimit}
-                    onChange={(event) =>
-                      updateRate(rate.id, { perOrderLimit: event.target.value })
+                    onChange={(inputEvent) =>
+                      updateRate(rate.id, {
+                        perOrderLimit: inputEvent.target.value,
+                      })
                     }
                   />
                 </label>
@@ -583,12 +599,157 @@ export default function OrganizerEditTicketingClient({
                 <textarea
                   className="input"
                   value={rate.description}
-                  onChange={(event) =>
-                    updateRate(rate.id, { description: event.target.value })
+                  onChange={(inputEvent) =>
+                    updateRate(rate.id, { description: inputEvent.target.value })
                   }
                   rows={3}
                 />
               </label>
+
+              <section
+                style={{
+                  border: "1px solid #dbe3ee",
+                  borderRadius: "14px",
+                  padding: "14px",
+                  background: "#f8fafc",
+                  display: "grid",
+                  gap: "12px",
+                }}
+              >
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    gap: "12px",
+                    alignItems: "center",
+                    flexWrap: "wrap",
+                  }}
+                >
+                  <div>
+                    <strong>Code promo</strong>
+                    <p style={{ margin: "4px 0 0", color: "#64748b" }}>
+                      Réduction appliquée uniquement à ce tarif.
+                    </p>
+                  </div>
+
+                  <button
+                    type="button"
+                    className="button secondary"
+                    onClick={() =>
+                      updateRate(rate.id, {
+                        promoCodeEnabled: !rate.promoCodeEnabled,
+                      })
+                    }
+                  >
+                    {rate.promoCodeEnabled
+                      ? "Code promo activé"
+                      : "Code promo désactivé"}
+                  </button>
+                </div>
+
+                {rate.promoCodeEnabled ? (
+                  <div style={{ display: "grid", gap: "12px" }}>
+                    <div
+                      style={{
+                        display: "flex",
+                        gap: "10px",
+                        alignItems: "center",
+                        flexWrap: "wrap",
+                        border: rate.promoCodePublic
+                          ? "1px solid #bbf7d0"
+                          : "1px solid #e5e7eb",
+                        background: rate.promoCodePublic ? "#f0fdf4" : "#ffffff",
+                        borderRadius: "14px",
+                        padding: "12px",
+                      }}
+                    >
+                      <strong>
+                        Affichage public : {rate.promoCodePublic ? "OUI" : "NON"}
+                      </strong>
+
+                      <button
+                        type="button"
+                        className="button secondary"
+                        onClick={() =>
+                          updateRate(rate.id, {
+                            promoCodePublic: !rate.promoCodePublic,
+                          })
+                        }
+                      >
+                        {rate.promoCodePublic
+                          ? "Ne pas afficher publiquement"
+                          : "Afficher publiquement"}
+                      </button>
+
+                      <span style={{ color: "#64748b", fontSize: "13px" }}>
+                        Si OUI, le bouton “J’ai un code promo” apparaîtra sur la
+                        page publique.
+                      </span>
+                    </div>
+
+                    <div style={gridStyle(220)}>
+                      <label style={labelStyle()}>
+                        <span style={labelTitleStyle()}>Code</span>
+                        <input
+                          className="input"
+                          value={rate.promoCode}
+                          onChange={(inputEvent) =>
+                            updateRate(rate.id, {
+                              promoCode: inputEvent.target.value
+                                .trim()
+                                .toUpperCase(),
+                            })
+                          }
+                        />
+                      </label>
+
+                      <label style={labelStyle()}>
+                        <span style={labelTitleStyle()}>
+                          Réduction : {rate.promoDiscountPercent || "0"} %
+                        </span>
+
+                        <input
+                          type="range"
+                          min="0"
+                          max="100"
+                          step="1"
+                          value={rate.promoDiscountPercent || "0"}
+                          onChange={(inputEvent) =>
+                            updateRate(rate.id, {
+                              promoDiscountPercent: inputEvent.target.value,
+                            })
+                          }
+                        />
+
+                        <input
+                          className="input"
+                          value={rate.promoDiscountPercent}
+                          onChange={(inputEvent) =>
+                            updateRate(rate.id, {
+                              promoDiscountPercent: inputEvent.target.value,
+                            })
+                          }
+                        />
+                      </label>
+                    </div>
+
+                    <div style={{ color: "#64748b", fontSize: "13px" }}>
+                      Aperçu code promo :{" "}
+                      {rate.promoCode ? (
+                        <>
+                          <strong>{rate.promoCode}</strong> —{" "}
+                          {rate.promoDiscountPercent || "0"} % de réduction —{" "}
+                          {rate.promoCodePublic
+                            ? "affiché publiquement"
+                            : "non affiché publiquement"}
+                        </>
+                      ) : (
+                        "aucun code défini"
+                      )}
+                    </div>
+                  </div>
+                ) : null}
+              </section>
             </div>
           ))}
         </div>
@@ -605,8 +766,8 @@ export default function OrganizerEditTicketingClient({
             <select
               className="input"
               value={confirmationEmailEnabled ? "yes" : "no"}
-              onChange={(event) =>
-                setConfirmationEmailEnabled(event.target.value === "yes")
+              onChange={(inputEvent) =>
+                setConfirmationEmailEnabled(inputEvent.target.value === "yes")
               }
             >
               <option value="yes">Activé après paiement</option>
@@ -619,8 +780,8 @@ export default function OrganizerEditTicketingClient({
             <input
               className="input"
               value={confirmationEmailSubject}
-              onChange={(event) =>
-                setConfirmationEmailSubject(event.target.value)
+              onChange={(inputEvent) =>
+                setConfirmationEmailSubject(inputEvent.target.value)
               }
             />
           </label>
@@ -631,8 +792,8 @@ export default function OrganizerEditTicketingClient({
           <textarea
             className="input"
             value={confirmationEmailMessage}
-            onChange={(event) =>
-              setConfirmationEmailMessage(event.target.value)
+            onChange={(inputEvent) =>
+              setConfirmationEmailMessage(inputEvent.target.value)
             }
             rows={7}
           />
@@ -648,7 +809,9 @@ export default function OrganizerEditTicketingClient({
             <input
               className="input"
               value={organizerEmail}
-              onChange={(event) => setOrganizerEmail(event.target.value)}
+              onChange={(inputEvent) =>
+                setOrganizerEmail(inputEvent.target.value)
+              }
             />
           </label>
 
@@ -657,7 +820,9 @@ export default function OrganizerEditTicketingClient({
             <input
               className="input"
               value={organizerPhone}
-              onChange={(event) => setOrganizerPhone(event.target.value)}
+              onChange={(inputEvent) =>
+                setOrganizerPhone(inputEvent.target.value)
+              }
             />
           </label>
         </div>
