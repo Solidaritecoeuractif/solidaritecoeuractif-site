@@ -12,6 +12,41 @@ export default function OrganizerTicketingPublicationActions({
   const [message, setMessage] = useState("");
 
   const isPublic = event.status === "published" && event.isVisible;
+  const publicPath = `/evenements/${event.slug}`;
+
+  function getPublicUrl() {
+    if (typeof window === "undefined") {
+      return publicPath;
+    }
+
+    return `${window.location.origin}${publicPath}`;
+  }
+
+  async function copyPublicLink() {
+    setMessage("");
+
+    const publicUrl = getPublicUrl();
+
+    try {
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(publicUrl);
+      } else {
+        const textArea = document.createElement("textarea");
+        textArea.value = publicUrl;
+        textArea.style.position = "fixed";
+        textArea.style.left = "-9999px";
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+        document.execCommand("copy");
+        document.body.removeChild(textArea);
+      }
+
+      setMessage("Lien public copié.");
+    } catch {
+      setMessage("Impossible de copier le lien. Tu peux l’ouvrir puis copier l’adresse.");
+    }
+  }
 
   async function updatePublication(action: "publish" | "hide") {
     if (loading) return;
@@ -86,16 +121,35 @@ export default function OrganizerTicketingPublicationActions({
             ? "Cette billetterie est publiée. Les participants peuvent accéder à la page publique et s’inscrire."
             : "Cette billetterie n’est pas encore publique. Publie-la pour obtenir un lien accessible aux participants."}
         </p>
+
+        {isPublic ? (
+          <div
+            style={{
+              marginTop: "10px",
+              padding: "10px 12px",
+              border: "1px solid #dcfce7",
+              borderRadius: "14px",
+              background: "#ffffff",
+              color: "#166534",
+              fontWeight: 700,
+              wordBreak: "break-word",
+            }}
+          >
+            {getPublicUrl()}
+          </div>
+        ) : null}
       </div>
 
       {message ? (
         <div
           style={{
-            border: "1px solid #fecaca",
+            border: message.includes("Impossible")
+              ? "1px solid #fecaca"
+              : "1px solid #bbf7d0",
             borderRadius: "14px",
             padding: "12px",
-            background: "#fef2f2",
-            color: "#991b1b",
+            background: message.includes("Impossible") ? "#fef2f2" : "#f0fdf4",
+            color: message.includes("Impossible") ? "#991b1b" : "#166534",
             fontWeight: 800,
           }}
         >
@@ -107,13 +161,21 @@ export default function OrganizerTicketingPublicationActions({
         {isPublic ? (
           <>
             <a
-              href={`/evenements/${event.slug}`}
+              href={publicPath}
               target="_blank"
               className="button"
               style={{ textDecoration: "none" }}
             >
               Voir la page publique
             </a>
+
+            <button
+              type="button"
+              className="button secondary"
+              onClick={copyPublicLink}
+            >
+              Copier le lien public
+            </button>
 
             <button
               type="button"
