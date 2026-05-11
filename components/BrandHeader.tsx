@@ -13,8 +13,12 @@ export function BrandHeader() {
   const brand = process.env.NEXT_PUBLIC_BRAND_NAME || "Solidarité Cœur Actif";
   const pathname = usePathname();
 
-  const showAdminLink =
-    pathname === "/admin-login" || pathname.startsWith("/admin");
+  const isTicketingPage = pathname.startsWith("/evenements");
+  const isOrganizerPage = pathname.startsWith("/organisateur");
+  const isAdminPage = pathname === "/admin-login" || pathname.startsWith("/admin");
+
+  const showPublicNav = !isTicketingPage && !isOrganizerPage && !isAdminPage;
+  const showAdminLink = isAdminPage;
 
   return (
     <header className="site-header">
@@ -36,21 +40,25 @@ export function BrandHeader() {
           </span>
         </Link>
 
-        <nav className="main-nav">
-          <Link href="/" className={navLinkClass(pathname === "/")}>
-            Accueil
-          </Link>
+        {showPublicNav ? (
+          <nav className="main-nav">
+            <Link href="/" className={navLinkClass(pathname === "/")}>
+              Accueil
+            </Link>
 
-          <CartBadgeLink />
+            <CartBadgeLink />
 
-          <Link
-            href="/contact"
-            className={navLinkClass(pathname === "/contact")}
-          >
-            Contact
-          </Link>
+            <Link
+              href="/contact"
+              className={navLinkClass(pathname === "/contact")}
+            >
+              Contact
+            </Link>
+          </nav>
+        ) : null}
 
-          {showAdminLink ? (
+        {showAdminLink ? (
+          <nav className="main-nav">
             <Link
               href="/admin-login"
               className={navLinkClass(
@@ -59,8 +67,8 @@ export function BrandHeader() {
             >
               Admin
             </Link>
-          ) : null}
-        </nav>
+          </nav>
+        ) : null}
       </div>
     </header>
   );
