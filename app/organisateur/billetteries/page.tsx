@@ -171,16 +171,17 @@ export default async function Page() {
                       <td>{formatDate(event.createdAt)}</td>
 
                       <td>
-                        <span
-                          className="button secondary small"
-                          style={{
-                            display: "inline-flex",
-                            justifyContent: "center",
-                            opacity: 0.7,
-                          }}
-                        >
-                          Gestion bientôt
-                        </span>
+                        <Link
+  href={`/organisateur/billetteries/${event.slug}`}
+  className="button secondary small"
+  style={{
+    display: "inline-flex",
+    justifyContent: "center",
+    textDecoration: "none",
+  }}
+>
+  Ouvrir
+</Link>
                       </td>
                     </tr>
                   ))}
