@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
-import { BrandHeader } from "@/components/BrandHeader";
-import { Footer } from "@/components/Footer";
+import { SiteChrome } from "@/components/SiteChrome";
 
 const brand = process.env.NEXT_PUBLIC_BRAND_NAME || "Solidarité Cœur Actif";
 const baseUrl =
@@ -41,9 +40,7 @@ export default function RootLayout({
   return (
     <html lang="fr">
       <body>
-        <BrandHeader />
-        {children}
-        <Footer />
+        <SiteChrome>{children}</SiteChrome>
       </body>
     </html>
   );
