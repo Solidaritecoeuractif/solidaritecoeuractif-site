@@ -64,14 +64,6 @@ function normalizePercent(value: unknown) {
   return Math.max(0, Math.min(100, Math.round(number)));
 }
 
-function normalizeContributionPercent(value: unknown) {
-  const number = Number(value);
-
-  if (!Number.isFinite(number)) return 0;
-
-  return Math.max(0, Math.min(10, Math.round(number)));
-}
-
 function applyPercentDiscount(amount: number, percent: number) {
   const safePercent = normalizePercent(percent);
 
@@ -163,21 +155,11 @@ function computePromoForLine(rate: TicketingRate, promoCodeInput: unknown) {
 
 function computeExtraDonationAmount(
   event: TicketingEvent,
-  subtotalAmount: number,
   submittedExtraDonationAmount: unknown
 ) {
   if (!event.allowExtraDonation) return 0;
 
-  const percent = normalizeContributionPercent(
-    event.extraDonationSuggestedPercent
-  );
-
-  if (subtotalAmount <= 0 || percent <= 0) return 0;
-
-  const suggestedAmount = Math.round((subtotalAmount * percent) / 100);
-  const requestedAmount = toPositiveCents(submittedExtraDonationAmount);
-
-  return Math.min(requestedAmount, suggestedAmount);
+  return toPositiveCents(submittedExtraDonationAmount);
 }
 
 export async function POST(request: Request) {
@@ -457,7 +439,6 @@ export async function POST(request: Request) {
 
     const finalExtraDonationAmount = computeExtraDonationAmount(
       event,
-      subtotalAmount,
       submittedExtraDonationAmount
     );
 

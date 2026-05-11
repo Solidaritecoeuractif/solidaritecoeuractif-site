@@ -61,14 +61,6 @@ function normalizePercent(value: unknown) {
   return Math.max(0, Math.min(100, Math.round(number)));
 }
 
-function normalizeContributionPercent(value: unknown) {
-  const number = Number(value);
-
-  if (!Number.isFinite(number)) return 0;
-
-  return Math.max(0, Math.min(10, Math.round(number)));
-}
-
 function applyPercentDiscount(amount: number, percent: number) {
   const safePercent = normalizePercent(percent);
 
@@ -148,21 +140,11 @@ function computePromoForLine(rate: TicketingRate, promoCodeInput: unknown) {
 
 function computeExtraDonationAmount(
   event: TicketingEvent,
-  subtotalAmount: number,
   submittedExtraDonationAmount: unknown
 ) {
   if (!event.allowExtraDonation) return 0;
 
-  const percent = normalizeContributionPercent(
-    event.extraDonationSuggestedPercent
-  );
-
-  if (subtotalAmount <= 0 || percent <= 0) return 0;
-
-  const suggestedAmount = Math.round((subtotalAmount * percent) / 100);
-  const requestedAmount = toPositiveCents(submittedExtraDonationAmount);
-
-  return Math.min(requestedAmount, suggestedAmount);
+  return toPositiveCents(submittedExtraDonationAmount);
 }
 
 export async function POST(request: Request) {
@@ -318,19 +300,43 @@ export async function POST(request: Request) {
       );
     }
 
-    const preparedParticipants = participantsInput.map((participant) => ({
-      rateId: cleanString(participant.rateId),
-      firstName: cleanString(participant.firstName),
-      lastName: cleanString(participant.lastName),
-      age: cleanString(participant.age),
-      email: cleanString(participant.email).toLowerCase(),
-      phone: cleanString(participant.phone),
-      originCity: cleanString(participant.originCity),
-      answers:
+    const expectedCountByRateId = new Map<string, number>();
+
+    for (const line of preparedLines) {
+      expectedCountByRateId.set(line.rateId, line.quantity);
+    }
+
+    const receivedCountByRateId = new Map<string, number>();
+
+    const preparedParticipants = participantsInput.map((participant) => {
+      const rateId = cleanString(participant.rateId);
+      const firstName = cleanString(participant.firstName);
+      const lastName = cleanString(participant.lastName);
+      const age = cleanString(participant.age);
+      const email = cleanString(participant.email).toLowerCase();
+      const phone = cleanString(participant.phone);
+      const originCity = cleanString(participant.originCity);
+      const answers =
         participant.answers && typeof participant.answers === "object"
           ? participant.answers
-          : {},
-    }));
+          : {};
+
+      receivedCountByRateId.set(
+        rateId,
+        (receivedCountByRateId.get(rateId) || 0) + 1
+      );
+
+      return {
+        rateId,
+        firstName,
+        lastName,
+        age,
+        email,
+        phone,
+        originCity,
+        answers,
+      };
+    });
 
     const participantInvalid = preparedParticipants.some((participant) => {
       const lineExists = preparedLines.some(
@@ -376,6 +382,20 @@ export async function POST(request: Request) {
       );
     }
 
+    for (const [rateId, expectedCount] of expectedCountByRateId.entries()) {
+      const receivedCount = receivedCountByRateId.get(rateId) || 0;
+
+      if (receivedCount !== expectedCount) {
+        return NextResponse.json(
+          {
+            error:
+              "La répartition des participants ne correspond pas aux billets sélectionnés.",
+          },
+          { status: 400 }
+        );
+      }
+    }
+
     const subtotalAmount = preparedLines.reduce(
       (sum, line) => sum + line.lineTotal,
       0
@@ -393,7 +413,6 @@ export async function POST(request: Request) {
 
     const finalExtraDonationAmount = computeExtraDonationAmount(
       event,
-      subtotalAmount,
       submittedExtraDonationAmount
     );
 

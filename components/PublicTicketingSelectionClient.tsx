@@ -176,6 +176,7 @@ export default function PublicTicketingSelectionClient({
   const [freeAmounts, setFreeAmounts] = useState<Record<string, string>>({});
   const [extraDonation, setExtraDonation] = useState("");
   const [extraDonationTouched, setExtraDonationTouched] = useState(false);
+  const [extraDonationEditorOpen, setExtraDonationEditorOpen] = useState(false);
 
   const [promoOpen, setPromoOpen] = useState<Record<string, boolean>>({});
   const [promoInputs, setPromoInputs] = useState<Record<string, string>>({});
@@ -407,10 +408,9 @@ export default function PublicTicketingSelectionClient({
     ? centsFromEuroInput(extraDonation)
     : 0;
 
-  const extraDonationAmount =
-    suggestedContributionAmount > 0
-      ? Math.min(rawExtraDonationAmount, suggestedContributionAmount)
-      : 0;
+  const extraDonationAmount = event.allowExtraDonation
+    ? rawExtraDonationAmount
+    : 0;
 
   const totalAmount = ticketsTotal + extraDonationAmount;
   const hasSelection = selectedLines.length > 0;
@@ -461,15 +461,14 @@ export default function PublicTicketingSelectionClient({
     resetServerState();
   }
 
-  function removeExtraDonation() {
-    setExtraDonation("0");
+  function chooseExtraDonationAmount(amountInCents: number) {
+    setExtraDonation(euroInputFromCents(Math.max(0, amountInCents)));
     setExtraDonationTouched(true);
     resetServerState();
   }
 
-  function restoreSuggestedDonation() {
-    setExtraDonation(euroInputFromCents(suggestedContributionAmount));
-    setExtraDonationTouched(false);
+  function validateExtraDonationEditor() {
+    setExtraDonationEditorOpen(false);
     resetServerState();
   }
 
@@ -1096,75 +1095,132 @@ export default function PublicTicketingSelectionClient({
               </strong>{" "}
               <span>
                 proposée pour soutenir la plateforme et ses actions solidaires.
-Elle est indépendante du tarif de l’événement.
+                Elle est indépendante du tarif de l’événement.
               </span>
             </div>
 
-            <strong style={{ color: "#475569", fontSize: "13px" }}>
-              {formatAmount(extraDonationAmount)}
-            </strong>
-          </div>
-
-          <div
-            style={{
-              display: "flex",
-              gap: "8px",
-              alignItems: "center",
-              flexWrap: "wrap",
-              marginTop: "8px",
-            }}
-          >
-            <input
-              value={extraDonation}
-              onChange={(inputEvent) => updateExtraDonation(inputEvent.target.value)}
+            <div
               style={{
-                width: "90px",
-                border: "1px solid #cbd5e1",
-                borderRadius: "10px",
-                padding: "7px 9px",
-                fontSize: "12px",
-                color: "#475569",
-                background: "#ffffff",
-              }}
-              inputMode="decimal"
-              aria-label="Montant de la contribution facultative"
-            />
-
-            <button
-              type="button"
-              onClick={removeExtraDonation}
-              style={{
-                border: "1px solid #e5e7eb",
-                borderRadius: "999px",
-                padding: "6px 9px",
-                background: "#ffffff",
-                color: "#64748b",
-                fontSize: "12px",
-                cursor: "pointer",
+                display: "flex",
+                alignItems: "center",
+                gap: "10px",
+                flexWrap: "wrap",
               }}
             >
-              Retirer
-            </button>
+              <strong style={{ color: "#475569", fontSize: "13px" }}>
+                {formatAmount(extraDonationAmount)}
+              </strong>
 
-            {extraDonationTouched ? (
               <button
                 type="button"
-                onClick={restoreSuggestedDonation}
+                onClick={() =>
+                  setExtraDonationEditorOpen((current) => !current)
+                }
                 style={{
                   border: "1px solid #e5e7eb",
                   borderRadius: "999px",
-                  padding: "6px 9px",
+                  padding: "6px 10px",
                   background: "#ffffff",
                   color: "#64748b",
                   fontSize: "12px",
                   cursor: "pointer",
                 }}
               >
-                Remettre la suggestion
+                Modifier
               </button>
-            ) : null}
-
+            </div>
           </div>
+
+          {extraDonationEditorOpen ? (
+            <div
+              style={{
+                marginTop: "10px",
+                border: "1px solid #edf2f7",
+                borderRadius: "12px",
+                padding: "10px",
+                background: "#ffffff",
+                display: "grid",
+                gap: "10px",
+              }}
+            >
+              <div
+                style={{
+                  display: "flex",
+                  gap: "6px",
+                  flexWrap: "wrap",
+                }}
+              >
+                {[0, 200, 500, 1000, 2000, 5000, 10000].map((amount) => (
+                  <button
+                    key={amount}
+                    type="button"
+                    onClick={() => chooseExtraDonationAmount(amount)}
+                    style={{
+                      border:
+                        extraDonationAmount === amount
+                          ? "1px solid #94a3b8"
+                          : "1px solid #e5e7eb",
+                      borderRadius: "999px",
+                      padding: "6px 9px",
+                      background:
+                        extraDonationAmount === amount ? "#f1f5f9" : "#ffffff",
+                      color: "#475569",
+                      fontSize: "12px",
+                      cursor: "pointer",
+                    }}
+                  >
+                    {formatAmount(amount)}
+                  </button>
+                ))}
+              </div>
+
+              <label
+                style={{
+                  display: "grid",
+                  gap: "5px",
+                  maxWidth: "160px",
+                }}
+              >
+                <span style={{ fontSize: "11px", color: "#64748b" }}>
+                  Montant libre
+                </span>
+                <input
+                  value={extraDonation}
+                  onChange={(inputEvent) =>
+                    updateExtraDonation(inputEvent.target.value)
+                  }
+                  style={{
+                    border: "1px solid #cbd5e1",
+                    borderRadius: "10px",
+                    padding: "8px 10px",
+                    fontSize: "12px",
+                    color: "#475569",
+                    background: "#ffffff",
+                  }}
+                  inputMode="decimal"
+                  aria-label="Montant libre de la contribution facultative"
+                />
+              </label>
+
+              <button
+                type="button"
+                onClick={validateExtraDonationEditor}
+                style={{
+                  justifySelf: "start",
+                  border: "1px solid #dbe3ee",
+                  borderRadius: "999px",
+                  padding: "7px 12px",
+                  background: "#f8fafc",
+                  color: "#334155",
+                  fontSize: "12px",
+                  fontWeight: 700,
+                  cursor: "pointer",
+                }}
+              >
+                Valider
+              </button>
+            </div>
+          ) : null}
         </div>
       ) : null}
 
