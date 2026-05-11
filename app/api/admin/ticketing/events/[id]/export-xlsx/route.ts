@@ -95,9 +95,7 @@ export async function GET(
       { header: "Contact email", key: "payerEmail", width: 28 },
       { header: "Contact téléphone", key: "payerPhone", width: 18 },
       { header: "Nombre participants", key: "participantsCount", width: 18 },
-      { header: "Sous-total", key: "subtotalAmount", width: 14 },
-      { header: "Contribution", key: "extraDonationAmount", width: 14 },
-      { header: "Total", key: "totalAmount", width: 14 },
+      { header: "Montant événement", key: "eventAmount", width: 18 },
       { header: "Devise", key: "currency", width: 10 },
       { header: "Stripe session", key: "stripeSessionId", width: 28 },
       { header: "Stripe payment intent", key: "stripePaymentIntentId", width: 28 },
@@ -125,9 +123,7 @@ export async function GET(
           payerEmail: order.payerEmail,
           payerPhone: order.payerPhone || "",
           participantsCount: order.participants.length,
-          subtotalAmount: amountToEuros(order.subtotalAmount),
-          extraDonationAmount: amountToEuros(order.extraDonationAmount),
-          totalAmount: amountToEuros(order.totalAmount),
+          eventAmount: amountToEuros(order.subtotalAmount),
           currency: order.currency,
           stripeSessionId: order.stripeSessionId || "",
           stripePaymentIntentId: order.stripePaymentIntentId || "",
@@ -154,9 +150,7 @@ export async function GET(
           payerEmail: order.payerEmail,
           payerPhone: order.payerPhone || "",
           participantsCount: order.participants.length,
-          subtotalAmount: amountToEuros(order.subtotalAmount),
-          extraDonationAmount: amountToEuros(order.extraDonationAmount),
-          totalAmount: amountToEuros(order.totalAmount),
+          eventAmount: amountToEuros(order.subtotalAmount),
           currency: order.currency,
           stripeSessionId: order.stripeSessionId || "",
           stripePaymentIntentId: order.stripePaymentIntentId || "",
@@ -206,13 +200,11 @@ export async function GET(
       });
     });
 
-    sheet.getColumn("subtotalAmount").numFmt = '#,##0.00 €';
-    sheet.getColumn("extraDonationAmount").numFmt = '#,##0.00 €';
-    sheet.getColumn("totalAmount").numFmt = '#,##0.00 €';
+    sheet.getColumn("eventAmount").numFmt = '#,##0.00 €';
 
     sheet.autoFilter = {
       from: "A1",
-      to: "Y1",
+      to: "W1",
     };
 
     const buffer = await workbook.xlsx.writeBuffer();

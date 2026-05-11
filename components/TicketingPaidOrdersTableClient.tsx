@@ -258,7 +258,7 @@ export default function TicketingPaidOrdersTableClient({
                 <th style={{ width: "210px" }}>Contact</th>
                 <th style={{ width: "120px" }}>Statut</th>
                 <th style={{ width: "120px" }}>Participants</th>
-                <th style={{ width: "130px" }}>Total</th>
+                <th style={{ width: "150px" }}>Montant événement</th>
                 <th style={{ width: "150px" }}>Créée le</th>
                 <th style={{ width: "260px" }}>Détail participants</th>
                 <th style={{ width: "110px" }}>Action</th>
@@ -326,15 +326,7 @@ export default function TicketingPaidOrdersTableClient({
                   </td>
 
                   <td>
-                    <strong>{formatAmount(order.totalAmount)}</strong>
-                    {order.extraDonationAmount > 0 ? (
-                      <>
-                        <br />
-                        <small style={{ color: "#64748b" }}>
-                          Don : {formatAmount(order.extraDonationAmount)}
-                        </small>
-                      </>
-                    ) : null}
+                    <strong>{formatAmount(order.subtotalAmount)}</strong>
                   </td>
 
                   <td>{formatDate(order.createdAt)}</td>

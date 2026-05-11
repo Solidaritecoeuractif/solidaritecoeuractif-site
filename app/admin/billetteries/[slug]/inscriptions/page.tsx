@@ -34,7 +34,10 @@ export default async function Page({
     0
   );
 
-  const totalAmount = orders.reduce((sum, order) => sum + order.totalAmount, 0);
+  const totalEventAmount = orders.reduce(
+    (sum, order) => sum + order.subtotalAmount,
+    0
+  );
 
   return (
     <main className="panel">
@@ -89,8 +92,8 @@ export default async function Page({
 
           <p style={{ color: "#64748b", marginBottom: 0 }}>
             Liste séparée des inscriptions payées liées à cette billetterie. Les
-            inscriptions en attente, les commandes classiques du site et les
-            paiements non finalisés ne sont pas affichés ici.
+            montants affichés ici correspondent uniquement au montant événement,
+            hors contribution facultative versée à Solidarité Cœur Actif.
           </p>
         </section>
 
@@ -137,9 +140,9 @@ export default async function Page({
               background: "#ffffff",
             }}
           >
-            <strong>Total encaissé</strong>
+            <strong>Total événement</strong>
             <div style={{ fontSize: "28px", fontWeight: 800, marginTop: "6px" }}>
-              {formatAmount(totalAmount)}
+              {formatAmount(totalEventAmount)}
             </div>
           </div>
         </section>
@@ -149,21 +152,6 @@ export default async function Page({
           eventSlug={event.slug}
           orders={orders}
         />
-
-        <section
-          style={{
-            border: "1px solid #facc15",
-            borderRadius: "16px",
-            padding: "14px",
-            background: "#fffbeb",
-            color: "#92400e",
-            fontWeight: 600,
-          }}
-        >
-          Cette page affiche uniquement les inscriptions billetterie payées,
-          stockées dans les tables dédiées. Elle ne modifie pas les commandes
-          classiques, les offres, le panier, Stripe ou les exports existants.
-        </section>
       </div>
     </main>
   );
