@@ -4,7 +4,10 @@ import Stripe from "stripe";
 import { stripe } from "@/lib/stripe";
 import { storage } from "@/lib/storage";
 import { ticketingStorage } from "@/lib/ticketing";
-import { sendPaymentConfirmationEmail } from "@/lib/email";
+import {
+  sendPaymentConfirmationEmail,
+  sendTicketingConfirmationEmail,
+} from "@/lib/email";
 
 export async function POST(request: Request) {
   const body = await request.text();
@@ -41,6 +44,9 @@ export async function POST(request: Request) {
         const order = await ticketing.getTicketingOrderByReference(reference);
 
         if (order) {
+          const wasAlreadyPaid = order.paymentStatus === "paid";
+          const confirmationAlreadySent = Boolean(order.confirmationEmailSentAt);
+
           order.paymentStatus = "paid";
           order.stripeSessionId = session.id;
           order.stripePaymentIntentId =
@@ -50,6 +56,40 @@ export async function POST(request: Request) {
           order.updatedAt = new Date().toISOString();
 
           await ticketing.updateTicketingOrder(reference, order);
+
+          if (!wasAlreadyPaid || !confirmationAlreadySent) {
+            try {
+              const ticketingEvent = await ticketing.getTicketingEventById(
+                order.eventId
+              );
+
+              if (
+                ticketingEvent &&
+                ticketingEvent.confirmationEmailEnabled !== false
+              ) {
+                const rates = await ticketing.getTicketingRates(
+                  ticketingEvent.id
+                );
+
+                await sendTicketingConfirmationEmail({
+                  order,
+                  event: ticketingEvent,
+                  rates,
+                });
+
+                const now = new Date().toISOString();
+                order.confirmationEmailSentAt = now;
+                order.updatedAt = now;
+
+                await ticketing.updateTicketingOrder(reference, order);
+              }
+            } catch (emailError) {
+              console.error(
+                "Erreur envoi email confirmation billetterie",
+                emailError
+              );
+            }
+          }
         }
 
         return NextResponse.json({ received: true });
