@@ -1,7 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import type { TicketingEvent, TicketingRate } from "@/lib/ticketing/types";
+import type {
+  TicketingCustomField,
+  TicketingEvent,
+  TicketingRate,
+} from "@/lib/ticketing/types";
+import TicketingFieldsEditorClient from "@/components/TicketingFieldsEditorClient";
 
 type DraftRateType = "fixed" | "free_amount" | "free";
 
@@ -111,12 +116,54 @@ function newDraftRate(): DraftRate {
   };
 }
 
+function sectionStyle(accent: string, background: string) {
+  return {
+    border: `1px solid ${accent}`,
+    borderRadius: "18px",
+    padding: "18px",
+    background,
+    boxShadow: "0 12px 28px rgba(15, 23, 42, 0.045)",
+  } as const;
+}
+
+function sectionHeadingStyle(color: string) {
+  return {
+    marginTop: 0,
+    marginBottom: "12px",
+    color,
+  } as const;
+}
+
+function gridStyle(minWidth = 240) {
+  return {
+    display: "grid",
+    gridTemplateColumns: `repeat(auto-fit, minmax(${minWidth}px, 1fr))`,
+    gap: "14px",
+  } as const;
+}
+
+function labelStyle() {
+  return {
+    display: "grid",
+    gap: "6px",
+  } as const;
+}
+
+function labelTitleStyle() {
+  return {
+    fontWeight: 800,
+    color: "#1e293b",
+  } as const;
+}
+
 export default function TicketingEditClient({
   event,
   rates,
+  fields,
 }: {
   event: TicketingEvent;
   rates: TicketingRate[];
+  fields: TicketingCustomField[];
 }) {
   const [title, setTitle] = useState(event.title);
   const [formTypeLabel, setFormTypeLabel] = useState(event.formTypeLabel || "");
@@ -307,32 +354,19 @@ export default function TicketingEditClient({
               message.includes("Impossible") || message.includes("Erreur")
                 ? "#991b1b"
                 : "#166534",
-            fontWeight: 700,
+            fontWeight: 800,
           }}
         >
           {message}
         </div>
       ) : null}
 
-      <section
-        style={{
-          border: "1px solid #dbe3ee",
-          borderRadius: "16px",
-          padding: "18px",
-          background: "#ffffff",
-        }}
-      >
-        <h2 style={{ marginTop: 0 }}>Informations générales</h2>
+      <section style={sectionStyle("#bfdbfe", "#f8fbff")}>
+        <h2 style={sectionHeadingStyle("#1d4ed8")}>Informations générales</h2>
 
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
-            gap: "14px",
-          }}
-        >
-          <label style={{ display: "grid", gap: "6px" }}>
-            <span style={{ fontWeight: 700 }}>Nom de la billetterie</span>
+        <div style={gridStyle()}>
+          <label style={labelStyle()}>
+            <span style={labelTitleStyle()}>Nom de la billetterie</span>
             <input
               className="input"
               value={title}
@@ -340,8 +374,8 @@ export default function TicketingEditClient({
             />
           </label>
 
-          <label style={{ display: "grid", gap: "6px" }}>
-            <span style={{ fontWeight: 700 }}>Type de formulaire</span>
+          <label style={labelStyle()}>
+            <span style={labelTitleStyle()}>Type de formulaire</span>
             <input
               className="input"
               value={formTypeLabel}
@@ -351,8 +385,8 @@ export default function TicketingEditClient({
             />
           </label>
 
-          <label style={{ display: "grid", gap: "6px" }}>
-            <span style={{ fontWeight: 700 }}>Visibilité</span>
+          <label style={labelStyle()}>
+            <span style={labelTitleStyle()}>Visibilité</span>
             <select
               className="input"
               value={isVisible ? "visible" : "hidden"}
@@ -367,25 +401,12 @@ export default function TicketingEditClient({
         </div>
       </section>
 
-      <section
-        style={{
-          border: "1px solid #dbe3ee",
-          borderRadius: "16px",
-          padding: "18px",
-          background: "#ffffff",
-        }}
-      >
-        <h2 style={{ marginTop: 0 }}>Lieu et durée</h2>
+      <section style={sectionStyle("#c4b5fd", "#fbfaff")}>
+        <h2 style={sectionHeadingStyle("#6d28d9")}>Lieu et durée</h2>
 
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-            gap: "14px",
-          }}
-        >
-          <label style={{ display: "grid", gap: "6px" }}>
-            <span style={{ fontWeight: 700 }}>Lieu</span>
+        <div style={gridStyle(220)}>
+          <label style={labelStyle()}>
+            <span style={labelTitleStyle()}>Lieu</span>
             <input
               className="input"
               value={locationName}
@@ -393,8 +414,8 @@ export default function TicketingEditClient({
             />
           </label>
 
-          <label style={{ display: "grid", gap: "6px" }}>
-            <span style={{ fontWeight: 700 }}>Adresse</span>
+          <label style={labelStyle()}>
+            <span style={labelTitleStyle()}>Adresse</span>
             <input
               className="input"
               value={addressLine}
@@ -403,8 +424,8 @@ export default function TicketingEditClient({
             />
           </label>
 
-          <label style={{ display: "grid", gap: "6px" }}>
-            <span style={{ fontWeight: 700 }}>Code postal</span>
+          <label style={labelStyle()}>
+            <span style={labelTitleStyle()}>Code postal</span>
             <input
               className="input"
               value={postalCode}
@@ -412,8 +433,8 @@ export default function TicketingEditClient({
             />
           </label>
 
-          <label style={{ display: "grid", gap: "6px" }}>
-            <span style={{ fontWeight: 700 }}>Ville</span>
+          <label style={labelStyle()}>
+            <span style={labelTitleStyle()}>Ville</span>
             <input
               className="input"
               value={city}
@@ -421,8 +442,8 @@ export default function TicketingEditClient({
             />
           </label>
 
-          <label style={{ display: "grid", gap: "6px" }}>
-            <span style={{ fontWeight: 700 }}>Pays</span>
+          <label style={labelStyle()}>
+            <span style={labelTitleStyle()}>Pays</span>
             <input
               className="input"
               value={country}
@@ -430,8 +451,8 @@ export default function TicketingEditClient({
             />
           </label>
 
-          <label style={{ display: "grid", gap: "6px" }}>
-            <span style={{ fontWeight: 700 }}>Durée</span>
+          <label style={labelStyle()}>
+            <span style={labelTitleStyle()}>Durée</span>
             <select
               className="input"
               value={durationType}
@@ -447,8 +468,8 @@ export default function TicketingEditClient({
             </select>
           </label>
 
-          <label style={{ display: "grid", gap: "6px" }}>
-            <span style={{ fontWeight: 700 }}>Début</span>
+          <label style={labelStyle()}>
+            <span style={labelTitleStyle()}>Début</span>
             <input
               className="input"
               type="datetime-local"
@@ -457,8 +478,8 @@ export default function TicketingEditClient({
             />
           </label>
 
-          <label style={{ display: "grid", gap: "6px" }}>
-            <span style={{ fontWeight: 700 }}>Fin</span>
+          <label style={labelStyle()}>
+            <span style={labelTitleStyle()}>Fin</span>
             <input
               className="input"
               type="datetime-local"
@@ -469,95 +490,7 @@ export default function TicketingEditClient({
         </div>
       </section>
 
-      <section
-        style={{
-          border: "1px solid #dbe3ee",
-          borderRadius: "16px",
-          padding: "18px",
-          background: "#ffffff",
-        }}
-      >
-        <h2 style={{ marginTop: 0 }}>Email de confirmation</h2>
-
-        <p style={{ marginTop: 0, color: "#64748b", lineHeight: 1.6 }}>
-          Cet email sera envoyé automatiquement après paiement validé. Le
-          récapitulatif de l’inscription sera ajouté automatiquement sous ton
-          message : référence, événement, participants, montant payé et contact.
-        </p>
-
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
-            gap: "14px",
-          }}
-        >
-          <label style={{ display: "grid", gap: "6px" }}>
-            <span style={{ fontWeight: 700 }}>Envoi automatique</span>
-            <select
-              className="input"
-              value={confirmationEmailEnabled ? "yes" : "no"}
-              onChange={(inputEvent) =>
-                setConfirmationEmailEnabled(inputEvent.target.value === "yes")
-              }
-            >
-              <option value="yes">Activé après paiement</option>
-              <option value="no">Désactivé pour cette billetterie</option>
-            </select>
-          </label>
-
-          <label style={{ display: "grid", gap: "6px" }}>
-            <span style={{ fontWeight: 700 }}>Objet de l’email</span>
-            <input
-              className="input"
-              value={confirmationEmailSubject}
-              onChange={(inputEvent) =>
-                setConfirmationEmailSubject(inputEvent.target.value)
-              }
-              placeholder="Confirmation d’inscription – Nom de l’événement"
-            />
-          </label>
-        </div>
-
-        <label style={{ display: "grid", gap: "6px", marginTop: "14px" }}>
-          <span style={{ fontWeight: 700 }}>Message personnalisé</span>
-          <textarea
-            className="input"
-            value={confirmationEmailMessage}
-            onChange={(inputEvent) =>
-              setConfirmationEmailMessage(inputEvent.target.value)
-            }
-            rows={8}
-            placeholder="Bonjour, nous confirmons votre inscription. Voici les informations importantes à retenir pour cet événement..."
-          />
-        </label>
-
-        <div
-          style={{
-            marginTop: "12px",
-            padding: "12px",
-            border: "1px solid #e5e7eb",
-            borderRadius: "14px",
-            background: "#f8fafc",
-            color: "#64748b",
-            fontSize: "14px",
-            lineHeight: 1.55,
-          }}
-        >
-          Si l’objet est vide, le site utilisera automatiquement :{" "}
-          <strong>Confirmation d’inscription – {title || "Titre de l’événement"}</strong>.
-          Si le message est vide, un message simple par défaut sera utilisé.
-        </div>
-      </section>
-
-      <section
-        style={{
-          border: "1px solid #dbe3ee",
-          borderRadius: "16px",
-          padding: "18px",
-          background: "#ffffff",
-        }}
-      >
+      <section style={sectionStyle("#fed7aa", "#fffaf5")}>
         <div
           style={{
             display: "flex",
@@ -569,7 +502,7 @@ export default function TicketingEditClient({
           }}
         >
           <div>
-            <h2 style={{ margin: 0 }}>Tarifs</h2>
+            <h2 style={{ margin: 0, color: "#c2410c" }}>Tarifs</h2>
             <p style={{ margin: "6px 0 0", color: "#64748b" }}>
               {draftRates.filter((rate) => rate.isActive).length} tarif(s)
               actif(s)
@@ -592,10 +525,10 @@ export default function TicketingEditClient({
               <div
                 key={rate.id}
                 style={{
-                  border: "1px solid #e5e7eb",
+                  border: "1px solid #fed7aa",
                   borderRadius: "14px",
                   padding: "14px",
-                  background: "#f8fafc",
+                  background: "#ffffff",
                   display: "grid",
                   gap: "12px",
                 }}
@@ -609,7 +542,7 @@ export default function TicketingEditClient({
                     flexWrap: "wrap",
                   }}
                 >
-                  <strong>Tarif {index + 1}</strong>
+                  <strong style={{ color: "#9a3412" }}>Tarif {index + 1}</strong>
 
                   <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
                     <button
@@ -640,15 +573,9 @@ export default function TicketingEditClient({
                   </div>
                 </div>
 
-                <div
-                  style={{
-                    display: "grid",
-                    gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
-                    gap: "12px",
-                  }}
-                >
-                  <label style={{ display: "grid", gap: "6px" }}>
-                    <span style={{ fontWeight: 700 }}>Nom du tarif</span>
+                <div style={gridStyle(180)}>
+                  <label style={labelStyle()}>
+                    <span style={labelTitleStyle()}>Nom du tarif</span>
                     <input
                       className="input"
                       value={rate.name}
@@ -659,8 +586,8 @@ export default function TicketingEditClient({
                     />
                   </label>
 
-                  <label style={{ display: "grid", gap: "6px" }}>
-                    <span style={{ fontWeight: 700 }}>Type</span>
+                  <label style={labelStyle()}>
+                    <span style={labelTitleStyle()}>Type</span>
                     <select
                       className="input"
                       value={rate.type}
@@ -677,8 +604,8 @@ export default function TicketingEditClient({
                   </label>
 
                   {rate.type === "fixed" ? (
-                    <label style={{ display: "grid", gap: "6px" }}>
-                      <span style={{ fontWeight: 700 }}>Montant (€)</span>
+                    <label style={labelStyle()}>
+                      <span style={labelTitleStyle()}>Montant (€)</span>
                       <input
                         className="input"
                         value={rate.amount}
@@ -691,8 +618,8 @@ export default function TicketingEditClient({
                   ) : null}
 
                   {rate.type === "free_amount" ? (
-                    <label style={{ display: "grid", gap: "6px" }}>
-                      <span style={{ fontWeight: 700 }}>Minimum (€)</span>
+                    <label style={labelStyle()}>
+                      <span style={labelTitleStyle()}>Minimum (€)</span>
                       <input
                         className="input"
                         value={rate.minimumAmount}
@@ -706,8 +633,8 @@ export default function TicketingEditClient({
                     </label>
                   ) : null}
 
-                  <label style={{ display: "grid", gap: "6px" }}>
-                    <span style={{ fontWeight: 700 }}>Limite totale</span>
+                  <label style={labelStyle()}>
+                    <span style={labelTitleStyle()}>Limite totale</span>
                     <input
                       className="input"
                       value={rate.totalLimit}
@@ -718,8 +645,8 @@ export default function TicketingEditClient({
                     />
                   </label>
 
-                  <label style={{ display: "grid", gap: "6px" }}>
-                    <span style={{ fontWeight: 700 }}>Limite par commande</span>
+                  <label style={labelStyle()}>
+                    <span style={labelTitleStyle()}>Limite par commande</span>
                     <input
                       className="input"
                       value={rate.perOrderLimit}
@@ -733,8 +660,8 @@ export default function TicketingEditClient({
                   </label>
                 </div>
 
-                <label style={{ display: "grid", gap: "6px" }}>
-                  <span style={{ fontWeight: 700 }}>Description du tarif</span>
+                <label style={labelStyle()}>
+                  <span style={labelTitleStyle()}>Description du tarif</span>
                   <textarea
                     className="input"
                     value={rate.description}
@@ -751,7 +678,7 @@ export default function TicketingEditClient({
                     border: "1px solid #dbe3ee",
                     borderRadius: "14px",
                     padding: "14px",
-                    background: "#ffffff",
+                    background: "#f8fafc",
                     display: "grid",
                     gap: "12px",
                   }}
@@ -798,7 +725,7 @@ export default function TicketingEditClient({
                           border: rate.promoCodePublic
                             ? "1px solid #bbf7d0"
                             : "1px solid #e5e7eb",
-                          background: rate.promoCodePublic ? "#f0fdf4" : "#f8fafc",
+                          background: rate.promoCodePublic ? "#f0fdf4" : "#ffffff",
                           borderRadius: "14px",
                           padding: "12px",
                         }}
@@ -827,16 +754,9 @@ export default function TicketingEditClient({
                         </span>
                       </div>
 
-                      <div
-                        style={{
-                          display: "grid",
-                          gridTemplateColumns:
-                            "repeat(auto-fit, minmax(220px, 1fr))",
-                          gap: "12px",
-                        }}
-                      >
-                        <label style={{ display: "grid", gap: "6px" }}>
-                          <span style={{ fontWeight: 700 }}>Code</span>
+                      <div style={gridStyle(220)}>
+                        <label style={labelStyle()}>
+                          <span style={labelTitleStyle()}>Code</span>
                           <input
                             className="input"
                             value={rate.promoCode}
@@ -851,8 +771,8 @@ export default function TicketingEditClient({
                           />
                         </label>
 
-                        <label style={{ display: "grid", gap: "6px" }}>
-                          <span style={{ fontWeight: 700 }}>
+                        <label style={labelStyle()}>
+                          <span style={labelTitleStyle()}>
                             Réduction : {rate.promoDiscountPercent || "0"} %
                           </span>
 
@@ -920,25 +840,95 @@ export default function TicketingEditClient({
         </div>
       </section>
 
-      <section
+      <div
         style={{
-          border: "1px solid #dbe3ee",
-          borderRadius: "16px",
-          padding: "18px",
-          background: "#ffffff",
+          border: "1px solid #bbf7d0",
+          borderRadius: "18px",
+          background: "#f7fef9",
+          boxShadow: "0 12px 28px rgba(15, 23, 42, 0.045)",
         }}
       >
-        <h2 style={{ marginTop: 0 }}>Contact, description et contribution</h2>
+        <TicketingFieldsEditorClient event={event} fields={fields} />
+      </div>
+
+      <section style={sectionStyle("#fecaca", "#fffafa")}>
+        <h2 style={sectionHeadingStyle("#b91c1c")}>Email de confirmation</h2>
+
+        <p style={{ marginTop: 0, color: "#64748b", lineHeight: 1.6 }}>
+          Cet email sera envoyé automatiquement après paiement validé. Le
+          récapitulatif de l’inscription sera ajouté automatiquement sous ton
+          message : référence, événement, participants, montant payé et contact.
+        </p>
+
+        <div style={gridStyle()}>
+          <label style={labelStyle()}>
+            <span style={labelTitleStyle()}>Envoi automatique</span>
+            <select
+              className="input"
+              value={confirmationEmailEnabled ? "yes" : "no"}
+              onChange={(inputEvent) =>
+                setConfirmationEmailEnabled(inputEvent.target.value === "yes")
+              }
+            >
+              <option value="yes">Activé après paiement</option>
+              <option value="no">Désactivé pour cette billetterie</option>
+            </select>
+          </label>
+
+          <label style={labelStyle()}>
+            <span style={labelTitleStyle()}>Objet de l’email</span>
+            <input
+              className="input"
+              value={confirmationEmailSubject}
+              onChange={(inputEvent) =>
+                setConfirmationEmailSubject(inputEvent.target.value)
+              }
+              placeholder="Confirmation d’inscription – Nom de l’événement"
+            />
+          </label>
+        </div>
+
+        <label style={{ ...labelStyle(), marginTop: "14px" }}>
+          <span style={labelTitleStyle()}>Message personnalisé</span>
+          <textarea
+            className="input"
+            value={confirmationEmailMessage}
+            onChange={(inputEvent) =>
+              setConfirmationEmailMessage(inputEvent.target.value)
+            }
+            rows={8}
+            placeholder="Bonjour, nous confirmons votre inscription. Voici les informations importantes à retenir pour cet événement..."
+          />
+        </label>
 
         <div
           style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
-            gap: "14px",
+            marginTop: "12px",
+            padding: "12px",
+            border: "1px solid #fecaca",
+            borderRadius: "14px",
+            background: "#ffffff",
+            color: "#64748b",
+            fontSize: "14px",
+            lineHeight: 1.55,
           }}
         >
-          <label style={{ display: "grid", gap: "6px" }}>
-            <span style={{ fontWeight: 700 }}>Email organisateur</span>
+          Si l’objet est vide, le site utilisera automatiquement :{" "}
+          <strong>
+            Confirmation d’inscription – {title || "Titre de l’événement"}
+          </strong>
+          . Si le message est vide, un message simple par défaut sera utilisé.
+        </div>
+      </section>
+
+      <section style={sectionStyle("#99f6e4", "#f5fffd")}>
+        <h2 style={sectionHeadingStyle("#0f766e")}>
+          Contact, description et contribution
+        </h2>
+
+        <div style={gridStyle()}>
+          <label style={labelStyle()}>
+            <span style={labelTitleStyle()}>Email organisateur</span>
             <input
               className="input"
               value={organizerEmail}
@@ -948,8 +938,8 @@ export default function TicketingEditClient({
             />
           </label>
 
-          <label style={{ display: "grid", gap: "6px" }}>
-            <span style={{ fontWeight: 700 }}>Téléphone organisateur</span>
+          <label style={labelStyle()}>
+            <span style={labelTitleStyle()}>Téléphone organisateur</span>
             <input
               className="input"
               value={organizerPhone}
@@ -959,8 +949,8 @@ export default function TicketingEditClient({
             />
           </label>
 
-          <label style={{ display: "grid", gap: "6px" }}>
-            <span style={{ fontWeight: 700 }}>Contribution libre</span>
+          <label style={labelStyle()}>
+            <span style={labelTitleStyle()}>Contribution libre</span>
             <select
               className="input"
               value={allowExtraDonation ? "yes" : "no"}
@@ -973,8 +963,8 @@ export default function TicketingEditClient({
             </select>
           </label>
 
-          <label style={{ display: "grid", gap: "6px" }}>
-            <span style={{ fontWeight: 700 }}>Montants proposés</span>
+          <label style={labelStyle()}>
+            <span style={labelTitleStyle()}>Montants proposés</span>
             <input
               className="input"
               value={suggestedDonationAmounts}
@@ -986,8 +976,8 @@ export default function TicketingEditClient({
           </label>
         </div>
 
-        <label style={{ display: "grid", gap: "6px", marginTop: "14px" }}>
-          <span style={{ fontWeight: 700 }}>Description courte</span>
+        <label style={{ ...labelStyle(), marginTop: "14px" }}>
+          <span style={labelTitleStyle()}>Description courte</span>
           <textarea
             className="input"
             value={shortDescription}
@@ -1007,16 +997,28 @@ export default function TicketingEditClient({
           padding: "14px",
           background: "#fffbeb",
           color: "#92400e",
-          fontWeight: 600,
+          fontWeight: 700,
+          lineHeight: 1.55,
         }}
       >
-        Cette étape modifie uniquement les informations générales, les tarifs et
-        le modèle d’email de confirmation de cette billetterie. Les inscriptions,
-        paiements, commandes, offres, panier, Stripe et exports existants ne sont
-        pas modifiés.
+        Cette étape modifie uniquement les informations générales, les tarifs,
+        le modèle d’email de confirmation, le contact et la présentation de cette
+        billetterie. Les inscriptions, paiements, commandes livres, offres,
+        panier, Stripe et exports existants ne sont pas modifiés.
       </section>
 
-      <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
+      <div
+        style={{
+          display: "flex",
+          gap: "10px",
+          flexWrap: "wrap",
+          padding: "18px",
+          border: "1px solid #dbe3ee",
+          borderRadius: "18px",
+          background: "#ffffff",
+          boxShadow: "0 12px 28px rgba(15, 23, 42, 0.045)",
+        }}
+      >
         <button
           type="button"
           className="button"
