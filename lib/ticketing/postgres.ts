@@ -50,6 +50,14 @@ function normalizePercent(value: unknown) {
   return Math.max(0, Math.min(100, Math.round(number)));
 }
 
+function normalizeContributionPercent(value: unknown) {
+  const number = Number(value);
+
+  if (!Number.isFinite(number)) return 0;
+
+  return Math.max(0, Math.min(10, Math.round(number)));
+}
+
 function rowToTicketingEvent(row: any): TicketingEvent {
   return {
     id: row.id,
@@ -77,6 +85,9 @@ function rowToTicketingEvent(row: any): TicketingEvent {
     suggestedDonationAmounts: Array.isArray(row.suggested_donation_amounts)
       ? row.suggested_donation_amounts
       : [],
+    extraDonationSuggestedPercent: normalizeContributionPercent(
+      row.extra_donation_suggested_percent
+    ),
     totalParticipantLimit: row.total_participant_limit ?? undefined,
     salesOpenAt: toIso(row.sales_open_at),
     salesCloseAt: toIso(row.sales_close_at),
@@ -245,13 +256,14 @@ export async function savePostgresTicketingEvent(event: TicketingEvent) {
         duration_type, starts_at, ends_at, organizer_email, organizer_phone,
         short_description, long_description, primary_color, banner_image_url,
         thumbnail_image_url, allow_extra_donation, suggested_donation_amounts,
+        extra_donation_suggested_percent,
         total_participant_limit, sales_open_at, sales_close_at,
         confirmation_email_subject, confirmation_email_message, confirmation_email_enabled,
         created_at, updated_at
       ) values (
         $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,
         $11,$12,$13,$14,$15,$16,$17,$18,$19,$20,
-        $21,$22,$23,$24,$25,$26,$27,$28,$29,$30,$31
+        $21,$22,$23,$24,$25,$26,$27,$28,$29,$30,$31,$32
       )`,
       [
         event.id,
@@ -277,6 +289,7 @@ export async function savePostgresTicketingEvent(event: TicketingEvent) {
         event.thumbnailImageUrl ?? null,
         event.allowExtraDonation,
         event.suggestedDonationAmounts,
+        normalizeContributionPercent(event.extraDonationSuggestedPercent),
         event.totalParticipantLimit ?? null,
         event.salesOpenAt ?? null,
         event.salesCloseAt ?? null,
@@ -325,13 +338,14 @@ export async function updatePostgresTicketingEvent(
            thumbnail_image_url = $21,
            allow_extra_donation = $22,
            suggested_donation_amounts = $23,
-           total_participant_limit = $24,
-           sales_open_at = $25,
-           sales_close_at = $26,
-           confirmation_email_subject = $27,
-           confirmation_email_message = $28,
-           confirmation_email_enabled = $29,
-           updated_at = $30
+           extra_donation_suggested_percent = $24,
+           total_participant_limit = $25,
+           sales_open_at = $26,
+           sales_close_at = $27,
+           confirmation_email_subject = $28,
+           confirmation_email_message = $29,
+           confirmation_email_enabled = $30,
+           updated_at = $31
        where id = $1`,
       [
         id,
@@ -357,6 +371,7 @@ export async function updatePostgresTicketingEvent(
         event.thumbnailImageUrl ?? null,
         event.allowExtraDonation,
         event.suggestedDonationAmounts,
+        normalizeContributionPercent(event.extraDonationSuggestedPercent),
         event.totalParticipantLimit ?? null,
         event.salesOpenAt ?? null,
         event.salesCloseAt ?? null,

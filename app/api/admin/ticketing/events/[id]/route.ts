@@ -17,6 +17,14 @@ function normalizeSuggestedDonationAmounts(value: unknown) {
     .map((amount) => Math.round(amount));
 }
 
+function normalizeContributionPercent(value: unknown) {
+  const number = Number(value);
+
+  if (!Number.isFinite(number)) return 0;
+
+  return Math.max(0, Math.min(10, Math.round(number)));
+}
+
 function cleanOptionalText(value: unknown) {
   const cleaned = String(value || "").trim();
   return cleaned || undefined;
@@ -71,8 +79,17 @@ export async function PUT(
       shortDescription: cleanOptionalText(payload.shortDescription),
 
       allowExtraDonation: Boolean(payload.allowExtraDonation),
+
+      /**
+       * Ancien champ conservé pour compatibilité.
+       * La nouvelle configuration se fait avec extraDonationSuggestedPercent.
+       */
       suggestedDonationAmounts: normalizeSuggestedDonationAmounts(
-        payload.suggestedDonationAmounts
+        payload.suggestedDonationAmounts ?? existingEvent.suggestedDonationAmounts
+      ),
+
+      extraDonationSuggestedPercent: normalizeContributionPercent(
+        payload.extraDonationSuggestedPercent
       ),
 
       confirmationEmailEnabled: payload.confirmationEmailEnabled !== false,

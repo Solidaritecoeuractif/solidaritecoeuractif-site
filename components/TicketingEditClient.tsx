@@ -37,18 +37,6 @@ function toDateTimeLocalValue(value?: string) {
   return local.toISOString().slice(0, 16);
 }
 
-function parseDonationAmounts(value: string) {
-  return String(value || "")
-    .split(",")
-    .map((item) => Number(item.trim().replace(",", ".")))
-    .filter((amount) => Number.isFinite(amount) && amount > 0)
-    .map((amount) => Math.round(amount * 100));
-}
-
-function formatDonationAmounts(amounts: number[]) {
-  return amounts.map((amount) => String(amount / 100)).join(", ");
-}
-
 function centsToEuros(value?: number) {
   if (typeof value !== "number") return "";
   return String(value / 100);
@@ -70,6 +58,14 @@ function cleanPercent(value: string) {
   if (!Number.isFinite(number)) return "0";
 
   return String(Math.max(0, Math.min(100, Math.round(number))));
+}
+
+function cleanContributionPercent(value: string) {
+  const number = Number(String(value || "").trim());
+
+  if (!Number.isFinite(number)) return "0";
+
+  return String(Math.max(0, Math.min(10, Math.round(number))));
 }
 
 function rateTypeLabel(type: DraftRateType) {
@@ -187,12 +183,17 @@ export default function TicketingEditClient({
   const [shortDescription, setShortDescription] = useState(
     event.shortDescription || ""
   );
+
   const [allowExtraDonation, setAllowExtraDonation] = useState(
     event.allowExtraDonation
   );
-  const [suggestedDonationAmounts, setSuggestedDonationAmounts] = useState(
-    formatDonationAmounts(event.suggestedDonationAmounts || [])
-  );
+
+  const [extraDonationSuggestedPercent, setExtraDonationSuggestedPercent] =
+    useState(
+      cleanContributionPercent(
+        String(event.extraDonationSuggestedPercent ?? 0)
+      )
+    );
 
   const [confirmationEmailEnabled, setConfirmationEmailEnabled] = useState(
     event.confirmationEmailEnabled !== false
@@ -289,9 +290,7 @@ export default function TicketingEditClient({
           organizerPhone,
           shortDescription,
           allowExtraDonation,
-          suggestedDonationAmounts: parseDonationAmounts(
-            suggestedDonationAmounts
-          ),
+          extraDonationSuggestedPercent: Number(extraDonationSuggestedPercent),
           confirmationEmailEnabled,
           confirmationEmailSubject,
           confirmationEmailMessage,
@@ -994,15 +993,39 @@ export default function TicketingEditClient({
             </label>
 
             <label style={labelStyle()}>
-              <span style={labelTitleStyle()}>Montants proposés</span>
+              <span style={labelTitleStyle()}>
+                Pourcentage suggéré : {extraDonationSuggestedPercent || "0"} %
+              </span>
+
+              <input
+                type="range"
+                min="0"
+                max="10"
+                step="1"
+                value={extraDonationSuggestedPercent || "0"}
+                onChange={(inputEvent) =>
+                  setExtraDonationSuggestedPercent(
+                    cleanContributionPercent(inputEvent.target.value)
+                  )
+                }
+              />
+
               <input
                 className="input"
-                value={suggestedDonationAmounts}
+                value={extraDonationSuggestedPercent}
                 onChange={(inputEvent) =>
-                  setSuggestedDonationAmounts(inputEvent.target.value)
+                  setExtraDonationSuggestedPercent(
+                    cleanContributionPercent(inputEvent.target.value)
+                  )
                 }
-                placeholder="Ex. 5, 10, 20"
+                placeholder="Ex. 5"
               />
+
+              <small style={{ color: "#64748b", lineHeight: 1.5 }}>
+                Le pourcentage sert uniquement à proposer automatiquement une
+                contribution au participant. Il pourra la réduire ou la supprimer
+                sur la page publique.
+              </small>
             </label>
           </div>
         </section>

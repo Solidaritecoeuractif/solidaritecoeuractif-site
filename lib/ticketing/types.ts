@@ -53,7 +53,18 @@ export type TicketingEvent = {
   thumbnailImageUrl?: string;
 
   allowExtraDonation: boolean;
+
+  /**
+   * Ancien système conservé pour compatibilité avec les anciennes données.
+   * La nouvelle logique admin/public utilise extraDonationSuggestedPercent.
+   */
   suggestedDonationAmounts: number[];
+
+  /**
+   * Pourcentage suggéré pour la contribution libre à Solidarité Cœur Actif.
+   * Valeur attendue : 0 à 10.
+   */
+  extraDonationSuggestedPercent?: number;
 
   totalParticipantLimit?: number;
   salesOpenAt?: string;
