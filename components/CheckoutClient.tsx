@@ -46,6 +46,7 @@ export function CheckoutClient({ products }: { products: Product[] }) {
   const [quoting, setQuoting] = useState(false);
   const [error, setError] = useState("");
   const [supportEnabled, setSupportEnabled] = useState(true);
+  const [supportEditing, setSupportEditing] = useState(false);
   const [supportAmount, setSupportAmount] = useState(0);
   const [shippingInputs, setShippingInputs] = useState<Record<number, string>>(
     {}
@@ -468,12 +469,24 @@ export function CheckoutClient({ products }: { products: Product[] }) {
     setSupportAmount((prev) => prev + 100);
   }
 
+  function removeSupport() {
+    setSupportEnabled(false);
+    setSupportEditing(false);
+  }
+
+  function restoreSupportSuggestion() {
+    setSupportEnabled(true);
+    setSupportAmount(suggestedSupport);
+  }
+
   const displayedSubtotal = hasFlexibleItems
     ? localSubtotal
     : quote?.subtotalAmount || 0;
 
+  const displayedSupportAmount = supportEnabled ? supportAmount : 0;
+
   const displayedTotal = hasFlexibleItems
-    ? localSubtotal + (supportEnabled ? supportAmount : 0)
+    ? localSubtotal + displayedSupportAmount
     : quote?.totalAmount || 0;
 
   return (
@@ -703,125 +716,189 @@ export function CheckoutClient({ products }: { products: Product[] }) {
         {resolvedPreview.length > 0 ? (
           <div
             style={{
-              marginTop: 6,
-              marginBottom: 8,
-              padding: "6px 0",
-              borderTop: "1px solid #e5e7eb",
-              borderBottom: "1px solid #eef2f7",
+              marginTop: 10,
+              marginBottom: 10,
+              padding: "10px 12px",
+              border: "1px solid #e5e7eb",
+              borderRadius: 14,
+              background: "#ffffff",
             }}
           >
             <div
               style={{
-                display: "flex",
+                display: "grid",
+                gridTemplateColumns: "1fr auto auto",
                 alignItems: "center",
-                justifyContent: "space-between",
                 gap: 10,
               }}
             >
-              <label
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 7,
-                  cursor: "pointer",
-                  minWidth: 0,
-                  flex: 1,
-                }}
-              >
-                <input
-                  type="checkbox"
-                  checked={supportEnabled}
-                  onChange={(e) => setSupportEnabled(e.target.checked)}
-                  style={{
-                    transform: "scale(0.82)",
-                    margin: 0,
-                  }}
-                />
-
+              <div style={{ minWidth: 0 }}>
+                <strong style={{ fontSize: "0.88rem" }}>
+                  Participation libre à Solidarité Cœur Actif
+                </strong>{" "}
                 <span
                   style={{
-                    fontSize: "0.8rem",
-                    lineHeight: 1.25,
-                    color: "#475569",
+                    color: "#64748b",
+                    fontSize: "0.82rem",
+                    lineHeight: 1.35,
                   }}
                 >
-                  <strong style={{ color: "#1f2937" }}>
-                    Participation libre
-                  </strong>{" "}
-                  <span style={{ color: "#64748b" }}>
-                    pour soutenir l’association
-                  </span>
+                  proposée pour soutenir la plateforme et ses actions solidaires.
                 </span>
-              </label>
+              </div>
 
-              {supportEnabled ? (
-                <strong
-                  style={{
-                    fontSize: "0.88rem",
-                    whiteSpace: "nowrap",
-                    color: "#111827",
-                  }}
-                >
-                  {euros(supportAmount)}
-                </strong>
-              ) : null}
-            </div>
-
-            {supportEnabled ? (
-              <div
+              <strong
                 style={{
-                  display: "grid",
-                  gridTemplateColumns: "28px 1fr 28px",
-                  alignItems: "center",
-                  gap: 5,
-                  marginTop: 6,
+                  fontSize: "0.9rem",
+                  whiteSpace: "nowrap",
+                  color: "#111827",
                 }}
               >
-                <button
-                  type="button"
-                  className="button secondary small"
-                  onClick={decreaseSupport}
-                  aria-label="Diminuer la participation"
+                {euros(displayedSupportAmount)}
+              </strong>
+
+              <button
+                type="button"
+                className="button secondary small"
+                onClick={() => setSupportEditing((prev) => !prev)}
+                style={{
+                  padding: "7px 12px",
+                  borderRadius: 10,
+                  fontSize: "0.82rem",
+                  whiteSpace: "nowrap",
+                }}
+              >
+                {supportEditing ? "Fermer" : "Modifier"}
+              </button>
+            </div>
+
+            {supportEditing ? (
+              <div
+                style={{
+                  marginTop: 10,
+                  paddingTop: 10,
+                  borderTop: "1px solid #eef2f7",
+                  display: "grid",
+                  gap: 8,
+                }}
+              >
+                <label
                   style={{
-                    minWidth: 28,
-                    height: 28,
-                    padding: 0,
-                    borderRadius: 8,
-                    fontSize: "0.82rem",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 8,
+                    color: "#475569",
+                    fontSize: "0.84rem",
+                    cursor: "pointer",
                   }}
                 >
-                  –
-                </button>
+                  <input
+                    type="checkbox"
+                    checked={supportEnabled}
+                    onChange={(e) => setSupportEnabled(e.target.checked)}
+                    style={{ transform: "scale(0.9)", margin: 0 }}
+                  />
+                  Ajouter une participation libre
+                </label>
+
+                {supportEnabled ? (
+                  <div
+                    style={{
+                      display: "grid",
+                      gridTemplateColumns: "32px 1fr 32px",
+                      alignItems: "center",
+                      gap: 6,
+                    }}
+                  >
+                    <button
+                      type="button"
+                      className="button secondary small"
+                      onClick={decreaseSupport}
+                      aria-label="Diminuer la participation"
+                      style={{
+                        minWidth: 32,
+                        height: 32,
+                        padding: 0,
+                        borderRadius: 9,
+                        fontSize: "0.9rem",
+                      }}
+                    >
+                      –
+                    </button>
+
+                    <div
+                      style={{
+                        padding: "7px 10px",
+                        border: "1px solid #e5e7eb",
+                        borderRadius: 10,
+                        background: "#ffffff",
+                        fontWeight: 700,
+                        fontSize: "0.88rem",
+                        textAlign: "center",
+                      }}
+                    >
+                      {euros(supportAmount)}
+                    </div>
+
+                    <button
+                      type="button"
+                      className="button secondary small"
+                      onClick={increaseSupport}
+                      aria-label="Augmenter la participation"
+                      style={{
+                        minWidth: 32,
+                        height: 32,
+                        padding: 0,
+                        borderRadius: 9,
+                        fontSize: "0.9rem",
+                      }}
+                    >
+                      +
+                    </button>
+                  </div>
+                ) : null}
 
                 <div
                   style={{
-                    padding: "5px 8px",
-                    border: "1px solid #e5e7eb",
-                    borderRadius: 8,
-                    background: "#ffffff",
-                    fontWeight: 700,
-                    fontSize: "0.82rem",
-                    textAlign: "center",
+                    display: "flex",
+                    gap: 8,
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    flexWrap: "wrap",
                   }}
                 >
-                  Suggestion : {euros(suggestedSupport)}
-                </div>
+                  <small style={{ color: "#8a94a6", fontSize: "0.78rem" }}>
+                    Suggestion : <strong>{euros(suggestedSupport)}</strong>
+                  </small>
 
-                <button
-                  type="button"
-                  className="button secondary small"
-                  onClick={increaseSupport}
-                  aria-label="Augmenter la participation"
-                  style={{
-                    minWidth: 28,
-                    height: 28,
-                    padding: 0,
-                    borderRadius: 8,
-                    fontSize: "0.82rem",
-                  }}
-                >
-                  +
-                </button>
+                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                    <button
+                      type="button"
+                      className="button secondary small"
+                      onClick={restoreSupportSuggestion}
+                      style={{
+                        padding: "6px 10px",
+                        borderRadius: 9,
+                        fontSize: "0.78rem",
+                      }}
+                    >
+                      Remettre la suggestion
+                    </button>
+
+                    <button
+                      type="button"
+                      className="button secondary small"
+                      onClick={removeSupport}
+                      style={{
+                        padding: "6px 10px",
+                        borderRadius: 9,
+                        fontSize: "0.78rem",
+                      }}
+                    >
+                      Retirer
+                    </button>
+                  </div>
+                </div>
               </div>
             ) : null}
           </div>
@@ -829,7 +906,9 @@ export function CheckoutClient({ products }: { products: Product[] }) {
 
         <div className="summary-row total">
           <span>Total</span>
-          <strong>{allFlexibleAmountsEntered ? euros(displayedTotal) : "—"}</strong>
+          <strong>
+            {allFlexibleAmountsEntered ? euros(displayedTotal) : "—"}
+          </strong>
         </div>
 
         <div style={{ marginTop: 16 }}>
