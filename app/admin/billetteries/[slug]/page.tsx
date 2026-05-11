@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import TicketingDeleteEventButton from "@/components/TicketingDeleteEventButton";
 import TicketingEventStatusActions from "@/components/TicketingEventStatusActions";
+import TicketingOrganizerAccessesClient from "@/components/TicketingOrganizerAccessesClient";
 import { ticketingStorage } from "@/lib/ticketing";
 
 function formatDate(value?: string) {
@@ -63,9 +64,10 @@ export default async function Page({
     notFound();
   }
 
-  const [rates, orders] = await Promise.all([
+  const [rates, orders, organizerAccesses] = await Promise.all([
     storage.getTicketingRates(event.id),
     storage.getTicketingOrders(event.id),
+    storage.getTicketingCollaboratorAccesses(event.id),
   ]);
 
   const publicVisible = isPubliclyVisible(event.status, event.isVisible);
@@ -383,18 +385,16 @@ export default async function Page({
             </div>
 
             <div>
-              <strong>Contribution libre</strong>
+              <strong>Contribution SCA</strong>
               <br />
               {event.allowExtraDonation ? "Activée" : "Désactivée"}
             </div>
 
             <div>
-              <strong>Montants proposés</strong>
+              <strong>Pourcentage suggéré</strong>
               <br />
-              {event.suggestedDonationAmounts.length > 0
-                ? event.suggestedDonationAmounts
-                    .map((amount) => formatAmount(amount))
-                    .join(", ")
+              {event.extraDonationSuggestedPercent
+                ? `${event.extraDonationSuggestedPercent} %`
                 : "—"}
             </div>
           </div>
@@ -406,6 +406,11 @@ export default async function Page({
             </p>
           </div>
         </section>
+
+        <TicketingOrganizerAccessesClient
+          eventId={event.id}
+          initialOrganizers={organizerAccesses}
+        />
 
         <TicketingDeleteEventButton event={event} ordersCount={orders.length} />
 
