@@ -91,10 +91,8 @@ export default async function Page({
           <h1 style={{ margin: 0 }}>{event.title}</h1>
 
           <p style={{ color: "#64748b", marginBottom: 0 }}>
-            Liste séparée des inscriptions payées liées à cette billetterie. Les
-            montants affichés ici correspondent uniquement au montant événement,
-            hors contribution facultative versée à Solidarité Cœur Actif.
-          </p>
+  Liste des inscriptions payées pour cette billetterie.
+</p>
         </section>
 
         <section
