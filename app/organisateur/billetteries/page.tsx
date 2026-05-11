@@ -16,6 +16,13 @@ function formatDate(value?: string) {
   }
 }
 
+function statusLabel(status: string, isVisible: boolean) {
+  if (status === "published" && isVisible) return "Visible";
+  if (status === "hidden") return "Masquée";
+  if (status === "archived") return "Archivée";
+  return "Brouillon";
+}
+
 export default async function Page() {
   const session = await getOrganizerSession();
 
@@ -94,9 +101,15 @@ export default async function Page() {
             </p>
           </div>
 
-          <button type="button" className="button" disabled>
-            Créer une billetterie bientôt
-          </button>
+          {organizer.canCreateEvents ? (
+            <Link
+              href="/organisateur/billetteries/nouvelle"
+              className="button"
+              style={{ textDecoration: "none" }}
+            >
+              Créer une billetterie
+            </Link>
+          ) : null}
         </section>
 
         {events.length === 0 ? (
@@ -112,8 +125,7 @@ export default async function Page() {
             <h2 style={{ marginTop: 0 }}>Aucune billetterie pour le moment</h2>
 
             <p style={{ color: "#64748b", lineHeight: 1.6 }}>
-              La création de billetterie depuis l’espace organisateur sera
-              ajoutée à l’étape suivante.
+              Clique sur “Créer une billetterie” pour préparer ton premier formulaire.
             </p>
           </section>
         ) : (
@@ -136,8 +148,8 @@ export default async function Page() {
               >
                 <thead>
                   <tr>
-                    <th style={{ width: "260px" }}>Billetterie</th>
-                    <th style={{ width: "160px" }}>Statut</th>
+                    <th style={{ width: "280px" }}>Billetterie</th>
+                    <th style={{ width: "150px" }}>Statut</th>
                     <th style={{ width: "180px" }}>Créée le</th>
                     <th style={{ width: "180px" }}>Action</th>
                   </tr>
@@ -154,18 +166,21 @@ export default async function Page() {
                         </small>
                       </td>
 
-                      <td>{event.status}</td>
+                      <td>{statusLabel(event.status, event.isVisible)}</td>
 
                       <td>{formatDate(event.createdAt)}</td>
 
                       <td>
-                        <Link
-                          href={`/admin/billetteries/${event.slug}`}
+                        <span
                           className="button secondary small"
-                          style={{ textDecoration: "none" }}
+                          style={{
+                            display: "inline-flex",
+                            justifyContent: "center",
+                            opacity: 0.7,
+                          }}
                         >
-                          Ouvrir bientôt
-                        </Link>
+                          Gestion bientôt
+                        </span>
                       </td>
                     </tr>
                   ))}
