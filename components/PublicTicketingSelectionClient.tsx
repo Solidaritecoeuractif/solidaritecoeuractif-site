@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type {
   TicketingCustomField,
   TicketingEvent,
@@ -147,6 +147,22 @@ function applyPercentDiscount(amount: number, percent?: number) {
   return Math.max(0, Math.round(amount * (1 - safePercent / 100)));
 }
 
+function normalizeContributionPercent(value?: number) {
+  if (typeof value !== "number" || !Number.isFinite(value)) return 0;
+  return Math.max(0, Math.min(10, Math.round(value)));
+}
+
+function suggestedContributionAmountFromSubtotal(
+  subtotalAmount: number,
+  percent?: number
+) {
+  const safePercent = normalizeContributionPercent(percent);
+
+  if (subtotalAmount <= 0 || safePercent <= 0) return 0;
+
+  return Math.round((subtotalAmount * safePercent) / 100);
+}
+
 export default function PublicTicketingSelectionClient({
   event,
   rates,
@@ -159,6 +175,7 @@ export default function PublicTicketingSelectionClient({
   const [quantities, setQuantities] = useState<Record<string, number>>({});
   const [freeAmounts, setFreeAmounts] = useState<Record<string, string>>({});
   const [extraDonation, setExtraDonation] = useState("");
+  const [extraDonationTouched, setExtraDonationTouched] = useState(false);
 
   const [promoOpen, setPromoOpen] = useState<Record<string, boolean>>({});
   const [promoInputs, setPromoInputs] = useState<Record<string, string>>({});
@@ -360,9 +377,40 @@ export default function PublicTicketingSelectionClient({
     0
   );
 
-  const extraDonationAmount = event.allowExtraDonation
+  const suggestedContributionAmount =
+    event.allowExtraDonation && ticketsTotal > 0
+      ? suggestedContributionAmountFromSubtotal(
+          ticketsTotal,
+          event.extraDonationSuggestedPercent
+        )
+      : 0;
+
+  useEffect(() => {
+    if (!event.allowExtraDonation || suggestedContributionAmount <= 0) {
+      if (!extraDonationTouched) {
+        setExtraDonation("");
+      }
+
+      return;
+    }
+
+    if (!extraDonationTouched) {
+      setExtraDonation(euroInputFromCents(suggestedContributionAmount));
+    }
+  }, [
+    event.allowExtraDonation,
+    suggestedContributionAmount,
+    extraDonationTouched,
+  ]);
+
+  const rawExtraDonationAmount = event.allowExtraDonation
     ? centsFromEuroInput(extraDonation)
     : 0;
+
+  const extraDonationAmount =
+    suggestedContributionAmount > 0
+      ? Math.min(rawExtraDonationAmount, suggestedContributionAmount)
+      : 0;
 
   const totalAmount = ticketsTotal + extraDonationAmount;
   const hasSelection = selectedLines.length > 0;
@@ -405,6 +453,24 @@ export default function PublicTicketingSelectionClient({
       email: firstParticipant.email,
       phone: firstParticipant.phone,
     };
+  }
+
+  function updateExtraDonation(value: string) {
+    setExtraDonation(value);
+    setExtraDonationTouched(true);
+    resetServerState();
+  }
+
+  function removeExtraDonation() {
+    setExtraDonation("0");
+    setExtraDonationTouched(true);
+    resetServerState();
+  }
+
+  function restoreSuggestedDonation() {
+    setExtraDonation(euroInputFromCents(suggestedContributionAmount));
+    setExtraDonationTouched(false);
+    resetServerState();
   }
 
   function buildPayload() {
@@ -1002,53 +1068,107 @@ export default function PublicTicketingSelectionClient({
         </section>
       ) : null}
 
-      {event.allowExtraDonation ? (
+      {event.allowExtraDonation && suggestedContributionAmount > 0 ? (
         <div
           style={{
-            marginTop: "18px",
+            marginTop: "12px",
             border: "1px solid #e5e7eb",
-            borderRadius: "18px",
-            padding: "18px",
-            background: "#f8fafc",
+            borderRadius: "12px",
+            padding: "10px 12px",
+            background: "#fcfcfd",
+            color: "#64748b",
+            fontSize: "12px",
+            lineHeight: 1.35,
           }}
         >
-          <h3 style={{ marginTop: 0 }}>Contribution libre</h3>
-
-          <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
-            {event.suggestedDonationAmounts.map((amount) => (
-              <button
-                key={amount}
-                type="button"
-                className="button secondary"
-                onClick={() => {
-                  setExtraDonation(String(amount / 100));
-                  resetServerState();
-                }}
-              >
-                {formatAmount(amount)}
-              </button>
-            ))}
-          </div>
-
-          <label
+          <div
             style={{
-              display: "grid",
-              gap: "6px",
-              marginTop: "12px",
-              maxWidth: "240px",
+              display: "flex",
+              justifyContent: "space-between",
+              gap: "10px",
+              alignItems: "center",
+              flexWrap: "wrap",
             }}
           >
-            <span style={{ fontWeight: 700 }}>Autre montant</span>
+            <div style={{ maxWidth: "720px" }}>
+              <strong style={{ color: "#475569", fontSize: "12px" }}>
+                Contribution facultative à Solidarité Cœur Actif
+              </strong>{" "}
+              <span>
+                proposée automatiquement pour soutenir la plateforme et ses
+                actions solidaires. Elle est indépendante du tarif de
+                l’événement.
+              </span>
+            </div>
+
+            <strong style={{ color: "#475569", fontSize: "13px" }}>
+              {formatAmount(extraDonationAmount)}
+            </strong>
+          </div>
+
+          <div
+            style={{
+              display: "flex",
+              gap: "8px",
+              alignItems: "center",
+              flexWrap: "wrap",
+              marginTop: "8px",
+            }}
+          >
             <input
-              className="input"
               value={extraDonation}
-              onChange={(inputEvent) => {
-                setExtraDonation(inputEvent.target.value);
-                resetServerState();
+              onChange={(inputEvent) => updateExtraDonation(inputEvent.target.value)}
+              style={{
+                width: "90px",
+                border: "1px solid #cbd5e1",
+                borderRadius: "10px",
+                padding: "7px 9px",
+                fontSize: "12px",
+                color: "#475569",
+                background: "#ffffff",
               }}
-              placeholder="Ex. 10"
+              inputMode="decimal"
+              aria-label="Montant de la contribution facultative"
             />
-          </label>
+
+            <button
+              type="button"
+              onClick={removeExtraDonation}
+              style={{
+                border: "1px solid #e5e7eb",
+                borderRadius: "999px",
+                padding: "6px 9px",
+                background: "#ffffff",
+                color: "#64748b",
+                fontSize: "12px",
+                cursor: "pointer",
+              }}
+            >
+              Retirer
+            </button>
+
+            {extraDonationTouched ? (
+              <button
+                type="button"
+                onClick={restoreSuggestedDonation}
+                style={{
+                  border: "1px solid #e5e7eb",
+                  borderRadius: "999px",
+                  padding: "6px 9px",
+                  background: "#ffffff",
+                  color: "#64748b",
+                  fontSize: "12px",
+                  cursor: "pointer",
+                }}
+              >
+                Remettre la suggestion
+              </button>
+            ) : null}
+
+            <span style={{ fontSize: "11px", color: "#94a3b8" }}>
+              Suggestion maximale : {formatAmount(suggestedContributionAmount)}
+            </span>
+          </div>
         </div>
       ) : null}
 
@@ -1124,9 +1244,11 @@ export default function PublicTicketingSelectionClient({
                   justifyContent: "space-between",
                   gap: "12px",
                   flexWrap: "wrap",
+                  color: "#64748b",
+                  fontSize: "13px",
                 }}
               >
-                <span>Contribution libre</span>
+                <span>Contribution SCA facultative</span>
                 <strong>{formatAmount(extraDonationAmount)}</strong>
               </div>
             ) : null}
@@ -1266,8 +1388,8 @@ export default function PublicTicketingSelectionClient({
           ) : null}
 
           {preparedSummary.extraDonationAmount > 0 ? (
-            <div>
-              <strong>Contribution libre :</strong>{" "}
+            <div style={{ color: "#64748b" }}>
+              <strong>Contribution facultative SCA :</strong>{" "}
               {formatAmount(preparedSummary.extraDonationAmount)}
             </div>
           ) : null}

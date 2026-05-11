@@ -3,6 +3,7 @@ import { stripe } from "@/lib/stripe";
 import { ticketingStorage } from "@/lib/ticketing";
 import type {
   TicketingCustomField,
+  TicketingEvent,
   TicketingOrder,
   TicketingParticipant,
   TicketingRate,
@@ -61,6 +62,14 @@ function normalizePercent(value: unknown) {
   if (!Number.isFinite(number)) return 0;
 
   return Math.max(0, Math.min(100, Math.round(number)));
+}
+
+function normalizeContributionPercent(value: unknown) {
+  const number = Number(value);
+
+  if (!Number.isFinite(number)) return 0;
+
+  return Math.max(0, Math.min(10, Math.round(number)));
 }
 
 function applyPercentDiscount(amount: number, percent: number) {
@@ -152,6 +161,25 @@ function computePromoForLine(rate: TicketingRate, promoCodeInput: unknown) {
   };
 }
 
+function computeExtraDonationAmount(
+  event: TicketingEvent,
+  subtotalAmount: number,
+  submittedExtraDonationAmount: unknown
+) {
+  if (!event.allowExtraDonation) return 0;
+
+  const percent = normalizeContributionPercent(
+    event.extraDonationSuggestedPercent
+  );
+
+  if (subtotalAmount <= 0 || percent <= 0) return 0;
+
+  const suggestedAmount = Math.round((subtotalAmount * percent) / 100);
+  const requestedAmount = toPositiveCents(submittedExtraDonationAmount);
+
+  return Math.min(requestedAmount, suggestedAmount);
+}
+
 export async function POST(request: Request) {
   try {
     const payload = await request.json();
@@ -178,7 +206,7 @@ export async function POST(request: Request) {
       ? payload.participants
       : [];
 
-    const extraDonationAmount = toPositiveCents(payload.extraDonationAmount);
+    const submittedExtraDonationAmount = payload.extraDonationAmount;
 
     if (!eventSlug) {
       return NextResponse.json(
@@ -427,9 +455,11 @@ export async function POST(request: Request) {
       0
     );
 
-    const finalExtraDonationAmount = event.allowExtraDonation
-      ? extraDonationAmount
-      : 0;
+    const finalExtraDonationAmount = computeExtraDonationAmount(
+      event,
+      subtotalAmount,
+      submittedExtraDonationAmount
+    );
 
     const totalAmount = subtotalAmount + finalExtraDonationAmount;
 
@@ -531,8 +561,8 @@ export async function POST(request: Request) {
                   currency: process.env.STRIPE_CURRENCY || "eur",
                   unit_amount: finalExtraDonationAmount,
                   product_data: {
-                    name: "Contribution libre",
-                    description: `Contribution libre pour l’inscription ${reference}`,
+                    name: "Contribution libre à Solidarité Cœur Actif",
+                    description: `Contribution facultative SCA pour l’inscription ${reference}`,
                   },
                 },
               },
