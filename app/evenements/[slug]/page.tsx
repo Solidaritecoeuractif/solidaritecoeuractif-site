@@ -46,11 +46,17 @@ export default async function Page({
   searchParams,
 }: {
   params: Promise<{ slug: string }>;
-  searchParams?: Promise<{ preview?: string }>;
+  searchParams?: Promise<{
+    preview?: string;
+    paiement?: string;
+    reference?: string;
+  }>;
 }) {
   const { slug } = await params;
   const query = searchParams ? await searchParams : {};
   const previewRequested = query.preview === "organizer";
+  const paymentSucceeded = query.paiement === "success";
+  const paymentReference = String(query.reference || "").trim();
 
   const storage = ticketingStorage();
   const event = await storage.getTicketingEventBySlug(slug);
@@ -108,6 +114,61 @@ export default async function Page({
         gap: "22px",
       }}
     >
+      {paymentSucceeded ? (
+        <section
+          style={{
+            border: "1px solid #bbf7d0",
+            borderRadius: "22px",
+            padding: "22px",
+            background: "#f0fdf4",
+            color: "#14532d",
+            display: "grid",
+            gap: "10px",
+          }}
+        >
+          <div
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              justifyContent: "center",
+              width: "42px",
+              height: "42px",
+              borderRadius: "999px",
+              background: "#dcfce7",
+              color: "#166534",
+              fontWeight: 900,
+              fontSize: "22px",
+            }}
+          >
+            ✓
+          </div>
+
+          <div>
+            <h2 style={{ margin: 0, fontSize: "28px" }}>
+              Inscription confirmée
+            </h2>
+
+            <p style={{ margin: "8px 0 0", lineHeight: 1.6 }}>
+              Votre paiement a bien été reçu et votre inscription à{" "}
+              <strong>{event.title}</strong> est enregistrée.
+            </p>
+
+            {paymentReference ? (
+              <p style={{ margin: "8px 0 0", lineHeight: 1.6 }}>
+                Référence de l’inscription :{" "}
+                <strong>{paymentReference}</strong>
+              </p>
+            ) : null}
+
+            <p style={{ margin: "8px 0 0", lineHeight: 1.6 }}>
+              Un email de confirmation vient de vous être envoyé. Pensez à
+              vérifier aussi vos courriers indésirables si vous ne le voyez pas
+              dans votre boîte principale.
+            </p>
+          </div>
+        </section>
+      ) : null}
+
       {isOrganizerPreview ? (
         <section
           style={{
