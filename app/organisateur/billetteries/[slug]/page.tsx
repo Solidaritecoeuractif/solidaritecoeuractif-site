@@ -79,8 +79,14 @@ export default async function Page({
   ]);
 
   const paidOrders = orders.filter((order) => order.paymentStatus === "paid");
+
   const participantsCount = paidOrders.reduce(
     (sum, order) => sum + order.participants.length,
+    0
+  );
+
+  const eventAmount = paidOrders.reduce(
+    (sum, order) => sum + order.subtotalAmount,
     0
   );
 
@@ -103,6 +109,13 @@ export default async function Page({
             className="button"
           >
             Modifier
+          </Link>
+
+          <Link
+            href={`/organisateur/billetteries/${event.slug}/inscriptions`}
+            className="button secondary"
+          >
+            Inscriptions
           </Link>
 
           {event.status === "published" && event.isVisible ? (
@@ -138,8 +151,9 @@ export default async function Page({
           <h1 style={{ margin: 0 }}>{event.title}</h1>
 
           <p style={{ color: "#64748b", lineHeight: 1.6, marginBottom: 0 }}>
-            Cette page affiche les informations de ta billetterie. La publication
-            publique sera gérée dans une étape dédiée.
+            Cette page affiche les informations de ta billetterie. La
+            contribution Solidarité Cœur Actif reste gérée uniquement par
+            l’admin général.
           </p>
         </section>
 
@@ -189,6 +203,20 @@ export default async function Page({
             <strong>Participants</strong>
             <div style={{ fontSize: "28px", fontWeight: 900, marginTop: "6px" }}>
               {participantsCount}
+            </div>
+          </div>
+
+          <div
+            style={{
+              border: "1px solid #dbe3ee",
+              borderRadius: "16px",
+              padding: "16px",
+              background: "#ffffff",
+            }}
+          >
+            <strong>Montant événement</strong>
+            <div style={{ fontSize: "28px", fontWeight: 900, marginTop: "6px" }}>
+              {formatAmount(eventAmount)}
             </div>
           </div>
         </section>
