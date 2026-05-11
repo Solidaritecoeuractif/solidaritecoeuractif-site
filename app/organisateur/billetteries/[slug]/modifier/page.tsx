@@ -1,5 +1,6 @@
 import { notFound, redirect } from "next/navigation";
 import OrganizerEditTicketingClient from "@/components/OrganizerEditTicketingClient";
+import OrganizerFieldsEditorClient from "@/components/OrganizerFieldsEditorClient";
 import { getOrganizerSession } from "@/lib/auth";
 import { ticketingStorage } from "@/lib/ticketing";
 
@@ -31,7 +32,10 @@ export default async function Page({
     notFound();
   }
 
-  const rates = await storage.getTicketingRates(event.id);
+  const [rates, customFields] = await Promise.all([
+    storage.getTicketingRates(event.id),
+    storage.getTicketingCustomFields(event.id),
+  ]);
 
   return (
     <main className="panel">
@@ -64,12 +68,16 @@ export default async function Page({
           <h1 style={{ margin: 0 }}>Modifier la billetterie</h1>
 
           <p style={{ color: "#64748b", lineHeight: 1.6, marginBottom: 0 }}>
-            Modifie les informations de ta billetterie. Les paramètres de
-            contribution Solidarité Cœur Actif ne sont pas visibles dans cet espace.
+            Modifie les informations de ta billetterie, ses tarifs et les
+            informations demandées aux participants. Les paramètres de
+            contribution Solidarité Cœur Actif restent réservés à l’admin
+            général.
           </p>
         </section>
 
         <OrganizerEditTicketingClient event={event} rates={rates} />
+
+        <OrganizerFieldsEditorClient event={event} fields={customFields} />
       </div>
     </main>
   );
