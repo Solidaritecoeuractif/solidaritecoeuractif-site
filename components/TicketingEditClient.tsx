@@ -160,10 +160,12 @@ export default function TicketingEditClient({
   event,
   rates,
   fields,
+  canManagePlatformContribution = true,
 }: {
   event: TicketingEvent;
   rates: TicketingRate[];
   fields: TicketingCustomField[];
+  canManagePlatformContribution?: boolean;
 }) {
   const [title, setTitle] = useState(event.title);
   const [formTypeLabel, setFormTypeLabel] = useState(event.formTypeLabel || "");
@@ -399,6 +401,19 @@ export default function TicketingEditClient({
             </select>
           </label>
         </div>
+
+        <label style={{ ...labelStyle(), marginTop: "14px" }}>
+          <span style={labelTitleStyle()}>Description courte de l’événement</span>
+          <textarea
+            className="input"
+            value={shortDescription}
+            onChange={(inputEvent) =>
+              setShortDescription(inputEvent.target.value)
+            }
+            rows={5}
+            placeholder="Présentation courte affichée sur la page publique de la billetterie."
+          />
+        </label>
       </section>
 
       <section style={sectionStyle("#c4b5fd", "#fbfaff")}>
@@ -922,9 +937,7 @@ export default function TicketingEditClient({
       </section>
 
       <section style={sectionStyle("#99f6e4", "#f5fffd")}>
-        <h2 style={sectionHeadingStyle("#0f766e")}>
-          Contact, description et contribution
-        </h2>
+        <h2 style={sectionHeadingStyle("#0f766e")}>Contact organisateur</h2>
 
         <div style={gridStyle()}>
           <label style={labelStyle()}>
@@ -948,47 +961,52 @@ export default function TicketingEditClient({
               }
             />
           </label>
-
-          <label style={labelStyle()}>
-            <span style={labelTitleStyle()}>Contribution libre</span>
-            <select
-              className="input"
-              value={allowExtraDonation ? "yes" : "no"}
-              onChange={(inputEvent) =>
-                setAllowExtraDonation(inputEvent.target.value === "yes")
-              }
-            >
-              <option value="yes">Proposer une contribution en plus</option>
-              <option value="no">Ne pas proposer de contribution</option>
-            </select>
-          </label>
-
-          <label style={labelStyle()}>
-            <span style={labelTitleStyle()}>Montants proposés</span>
-            <input
-              className="input"
-              value={suggestedDonationAmounts}
-              onChange={(inputEvent) =>
-                setSuggestedDonationAmounts(inputEvent.target.value)
-              }
-              placeholder="Ex. 5, 10, 20"
-            />
-          </label>
         </div>
-
-        <label style={{ ...labelStyle(), marginTop: "14px" }}>
-          <span style={labelTitleStyle()}>Description courte</span>
-          <textarea
-            className="input"
-            value={shortDescription}
-            onChange={(inputEvent) =>
-              setShortDescription(inputEvent.target.value)
-            }
-            rows={6}
-            placeholder="Présentation courte affichée sur la page publique de la billetterie."
-          />
-        </label>
       </section>
+
+      {canManagePlatformContribution ? (
+        <section style={sectionStyle("#bbf7d0", "#f7fef9")}>
+          <h2 style={sectionHeadingStyle("#15803d")}>
+            Contribution libre à Solidarité Cœur Actif
+          </h2>
+
+          <p style={{ marginTop: 0, color: "#64748b", lineHeight: 1.6 }}>
+            Lorsqu’elle est activée, cette contribution est versée à Solidarité
+            Cœur Actif. Elle permet de soutenir la mise à disposition de la
+            plateforme, les frais techniques, le développement des outils et les
+            actions solidaires de l’association. Elle est facultative et
+            indépendante du tarif de l’événement.
+          </p>
+
+          <div style={gridStyle()}>
+            <label style={labelStyle()}>
+              <span style={labelTitleStyle()}>Contribution libre</span>
+              <select
+                className="input"
+                value={allowExtraDonation ? "yes" : "no"}
+                onChange={(inputEvent) =>
+                  setAllowExtraDonation(inputEvent.target.value === "yes")
+                }
+              >
+                <option value="yes">Proposer une contribution à SCA</option>
+                <option value="no">Ne pas proposer de contribution</option>
+              </select>
+            </label>
+
+            <label style={labelStyle()}>
+              <span style={labelTitleStyle()}>Montants proposés</span>
+              <input
+                className="input"
+                value={suggestedDonationAmounts}
+                onChange={(inputEvent) =>
+                  setSuggestedDonationAmounts(inputEvent.target.value)
+                }
+                placeholder="Ex. 5, 10, 20"
+              />
+            </label>
+          </div>
+        </section>
+      ) : null}
 
       <div
         style={{
