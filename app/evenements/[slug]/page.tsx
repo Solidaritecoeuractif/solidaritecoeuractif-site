@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import PublicTicketingSelectionClient from "@/components/PublicTicketingSelectionClient";
+import { getOrganizerSession } from "@/lib/auth";
 import { ticketingStorage } from "@/lib/ticketing";
 
 export const dynamic = "force-dynamic";
@@ -24,17 +25,60 @@ function durationLabel(value: string) {
   return "Durée à préciser";
 }
 
+function formatAmount(amount?: number) {
+  if (typeof amount !== "number") return "—";
+
+  return new Intl.NumberFormat("fr-FR", {
+    style: "currency",
+    currency: "EUR",
+  }).format(amount / 100);
+}
+
+function rateTypeLabel(type: string) {
+  if (type === "fixed") return "Prix fixe";
+  if (type === "free_amount") return "Prix libre";
+  if (type === "free") return "Gratuit";
+  return type;
+}
+
 export default async function Page({
   params,
+  searchParams,
 }: {
   params: Promise<{ slug: string }>;
+  searchParams?: Promise<{ preview?: string }>;
 }) {
   const { slug } = await params;
+  const query = searchParams ? await searchParams : {};
+  const previewRequested = query.preview === "organizer";
 
   const storage = ticketingStorage();
   const event = await storage.getTicketingEventBySlug(slug);
 
-  if (!event || !event.isVisible || event.status !== "published") {
+  if (!event) {
+    notFound();
+  }
+
+  const isPublic = event.isVisible && event.status === "published";
+
+  let canPreviewAsOrganizer = false;
+
+  if (!isPublic && previewRequested) {
+    const session = await getOrganizerSession();
+
+    if (session) {
+      const organizer = await storage.getTicketingOrganizerAccountById(
+        session.organizerId
+      );
+
+      canPreviewAsOrganizer =
+        Boolean(organizer) &&
+        organizer?.status === "active" &&
+        event.ownerOrganizerId === organizer.id;
+    }
+  }
+
+  if (!isPublic && !canPreviewAsOrganizer) {
     notFound();
   }
 
@@ -51,6 +95,9 @@ export default async function Page({
   const startsAt = formatDate(event.startsAt);
   const endsAt = formatDate(event.endsAt);
 
+  const isOrganizerPreview = previewRequested && canPreviewAsOrganizer;
+  const readOnlyPreview = isOrganizerPreview && !isPublic;
+
   return (
     <main
       style={{
@@ -61,6 +108,26 @@ export default async function Page({
         gap: "22px",
       }}
     >
+      {isOrganizerPreview ? (
+        <section
+          style={{
+            border: "1px solid #fde68a",
+            borderRadius: "18px",
+            padding: "14px 16px",
+            background: "#fffbeb",
+            color: "#92400e",
+            fontWeight: 800,
+            lineHeight: 1.5,
+          }}
+        >
+          Aperçu organisateur : cette page permet de vérifier le rendu public
+          avant publication.{" "}
+          {readOnlyPreview
+            ? "La billetterie n’est pas encore publiée, donc l’inscription est désactivée dans cet aperçu."
+            : "La billetterie est déjà publiée."}
+        </section>
+      ) : null}
+
       <section
         style={{
           border: "1px solid #dbe3ee",
@@ -198,11 +265,77 @@ export default async function Page({
         </div>
       </section>
 
-      <PublicTicketingSelectionClient
-        event={event}
-        rates={activeRates}
-        customFields={activeParticipantFields}
-      />
+      {readOnlyPreview ? (
+        <section
+          style={{
+            border: "1px solid #dbe3ee",
+            borderRadius: "22px",
+            padding: "22px",
+            background: "#ffffff",
+            display: "grid",
+            gap: "14px",
+          }}
+        >
+          <div>
+            <h2 style={{ margin: 0 }}>Tarifs disponibles</h2>
+            <p style={{ margin: "8px 0 0", color: "#64748b", lineHeight: 1.6 }}>
+              Aperçu en lecture seule. Publie la billetterie pour activer les
+              inscriptions.
+            </p>
+          </div>
+
+          {activeRates.length === 0 ? (
+            <p style={{ color: "#64748b", marginBottom: 0 }}>
+              Aucun tarif actif pour le moment.
+            </p>
+          ) : (
+            <div style={{ display: "grid", gap: "12px" }}>
+              {activeRates.map((rate) => (
+                <article
+                  key={rate.id}
+                  style={{
+                    border: "1px solid #e5e7eb",
+                    borderRadius: "16px",
+                    padding: "16px",
+                    background: "#f8fafc",
+                  }}
+                >
+                  <strong>{rate.name}</strong>
+
+                  {rate.description ? (
+                    <p
+                      style={{
+                        margin: "8px 0 0",
+                        color: "#64748b",
+                        lineHeight: 1.5,
+                      }}
+                    >
+                      {rate.description}
+                    </p>
+                  ) : null}
+
+                  <p style={{ margin: "10px 0 0", color: "#334155" }}>
+                    {rateTypeLabel(rate.type)} —{" "}
+                    <strong>
+                      {rate.type === "fixed"
+                        ? formatAmount(rate.amount)
+                        : rate.type === "free_amount"
+                          ? `Dès ${formatAmount(rate.minimumAmount)}`
+                          : "Gratuit"}
+                    </strong>
+                  </p>
+                </article>
+              ))}
+            </div>
+          )}
+        </section>
+      ) : (
+        <PublicTicketingSelectionClient
+          event={event}
+          rates={activeRates}
+          customFields={activeParticipantFields}
+        />
+      )}
     </main>
   );
 }

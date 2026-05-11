@@ -13,19 +13,20 @@ export default function OrganizerTicketingPublicationActions({
 
   const isPublic = event.status === "published" && event.isVisible;
   const publicPath = `/evenements/${event.slug}`;
+  const previewPath = `/evenements/${event.slug}?preview=organizer`;
 
-  function getPublicUrl() {
+  function getAbsoluteUrl(path: string) {
     if (typeof window === "undefined") {
-      return publicPath;
+      return path;
     }
 
-    return `${window.location.origin}${publicPath}`;
+    return `${window.location.origin}${path}`;
   }
 
   async function copyPublicLink() {
     setMessage("");
 
-    const publicUrl = getPublicUrl();
+    const publicUrl = getAbsoluteUrl(publicPath);
 
     try {
       if (navigator.clipboard?.writeText) {
@@ -119,7 +120,7 @@ export default function OrganizerTicketingPublicationActions({
         >
           {isPublic
             ? "Cette billetterie est publiée. Les participants peuvent accéder à la page publique et s’inscrire."
-            : "Cette billetterie n’est pas encore publique. Publie-la pour obtenir un lien accessible aux participants."}
+            : "Cette billetterie n’est pas encore publique. Tu peux la prévisualiser avant de la publier."}
         </p>
 
         {isPublic ? (
@@ -135,7 +136,7 @@ export default function OrganizerTicketingPublicationActions({
               wordBreak: "break-word",
             }}
           >
-            {getPublicUrl()}
+            {getAbsoluteUrl(publicPath)}
           </div>
         ) : null}
       </div>
@@ -158,6 +159,15 @@ export default function OrganizerTicketingPublicationActions({
       ) : null}
 
       <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
+        <a
+          href={previewPath}
+          target="_blank"
+          className="button secondary"
+          style={{ textDecoration: "none" }}
+        >
+          Prévisualiser la page
+        </a>
+
         {isPublic ? (
           <>
             <a
