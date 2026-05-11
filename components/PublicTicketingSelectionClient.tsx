@@ -1095,9 +1095,8 @@ export default function PublicTicketingSelectionClient({
                 Contribution facultative à Solidarité Cœur Actif
               </strong>{" "}
               <span>
-                proposée automatiquement pour soutenir la plateforme et ses
-                actions solidaires. Elle est indépendante du tarif de
-                l’événement.
+                proposée pour soutenir la plateforme et ses actions solidaires.
+Elle est indépendante du tarif de l’événement.
               </span>
             </div>
 
@@ -1165,9 +1164,6 @@ export default function PublicTicketingSelectionClient({
               </button>
             ) : null}
 
-            <span style={{ fontSize: "11px", color: "#94a3b8" }}>
-              Suggestion maximale : {formatAmount(suggestedContributionAmount)}
-            </span>
           </div>
         </div>
       ) : null}
