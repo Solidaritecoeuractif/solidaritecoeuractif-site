@@ -3,6 +3,7 @@ import type {
   TicketingCustomField,
   TicketingEvent,
   TicketingOrder,
+  TicketingOrganizerAccount,
   TicketingRate,
 } from "@/lib/ticketing/types";
 
@@ -35,6 +36,21 @@ type TicketingStorage = {
     reference: string,
     order: TicketingOrder
   ): Promise<TicketingOrder>;
+
+  getTicketingOrganizerAccounts(): Promise<TicketingOrganizerAccount[]>;
+  getTicketingOrganizerAccountById(
+    id: string
+  ): Promise<TicketingOrganizerAccount | undefined>;
+  getTicketingOrganizerAccountByEmail(
+    email: string
+  ): Promise<TicketingOrganizerAccount | undefined>;
+  saveTicketingOrganizerAccount(
+    account: TicketingOrganizerAccount
+  ): Promise<TicketingOrganizerAccount>;
+  updateTicketingOrganizerAccount(
+    id: string,
+    account: TicketingOrganizerAccount
+  ): Promise<TicketingOrganizerAccount>;
 
   getTicketingCollaboratorAccesses(
     eventId: string
@@ -87,6 +103,17 @@ export function ticketingStorage(): TicketingStorage {
       saveTicketingOrder: postgres.savePostgresTicketingOrder,
       updateTicketingOrder: postgres.updatePostgresTicketingOrder,
 
+      getTicketingOrganizerAccounts:
+        postgres.getPostgresTicketingOrganizerAccounts,
+      getTicketingOrganizerAccountById:
+        postgres.getPostgresTicketingOrganizerAccountById,
+      getTicketingOrganizerAccountByEmail:
+        postgres.getPostgresTicketingOrganizerAccountByEmail,
+      saveTicketingOrganizerAccount:
+        postgres.savePostgresTicketingOrganizerAccount,
+      updateTicketingOrganizerAccount:
+        postgres.updatePostgresTicketingOrganizerAccount,
+
       getTicketingCollaboratorAccesses:
         postgres.getPostgresTicketingCollaboratorAccesses,
       saveTicketingCollaboratorAccess:
@@ -119,6 +146,13 @@ export function ticketingStorage(): TicketingStorage {
     getTicketingOrderByReference: local.getTicketingOrderByReference,
     saveTicketingOrder: local.saveTicketingOrder,
     updateTicketingOrder: local.updateTicketingOrder,
+
+    getTicketingOrganizerAccounts: local.getTicketingOrganizerAccounts,
+    getTicketingOrganizerAccountById: local.getTicketingOrganizerAccountById,
+    getTicketingOrganizerAccountByEmail:
+      local.getTicketingOrganizerAccountByEmail,
+    saveTicketingOrganizerAccount: local.saveTicketingOrganizerAccount,
+    updateTicketingOrganizerAccount: local.updateTicketingOrganizerAccount,
 
     getTicketingCollaboratorAccesses: local.getTicketingCollaboratorAccesses,
     saveTicketingCollaboratorAccess: local.saveTicketingCollaboratorAccess,

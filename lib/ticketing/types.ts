@@ -66,6 +66,12 @@ export type TicketingEvent = {
    */
   extraDonationSuggestedPercent?: number;
 
+  /**
+   * Plus tard, quand un organisateur créera lui-même une billetterie,
+   * cette billetterie pourra être rattachée à son compte organisateur.
+   */
+  ownerOrganizerId?: string;
+
   totalParticipantLimit?: number;
   salesOpenAt?: string;
   salesCloseAt?: string;
@@ -165,6 +171,29 @@ export type TicketingOrder = {
 
   confirmationEmailSentAt?: string;
   adminNotificationSentAt?: string;
+
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type TicketingOrganizerAccount = {
+  id: string;
+
+  email: string;
+  displayName?: string;
+
+  passwordHash?: string;
+
+  status: TicketingAccessStatus;
+
+  canCreateEvents: boolean;
+  canReceiveNotifications: boolean;
+
+  validatedAt?: string;
+  blockedAt?: string;
+  deletedAt?: string;
+
+  lastLoginAt?: string;
 
   createdAt: string;
   updatedAt: string;

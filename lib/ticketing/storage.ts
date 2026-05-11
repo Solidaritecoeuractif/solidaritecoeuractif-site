@@ -5,6 +5,7 @@ import type {
   TicketingCustomField,
   TicketingEvent,
   TicketingOrder,
+  TicketingOrganizerAccount,
   TicketingRate,
 } from "@/lib/ticketing/types";
 
@@ -13,6 +14,7 @@ export type TicketingStoreData = {
   rates: TicketingRate[];
   customFields: TicketingCustomField[];
   orders: TicketingOrder[];
+  organizerAccounts: TicketingOrganizerAccount[];
   collaboratorAccesses: TicketingCollaboratorAccess[];
 };
 
@@ -24,6 +26,7 @@ const EMPTY_TICKETING_STORE: TicketingStoreData = {
   rates: [],
   customFields: [],
   orders: [],
+  organizerAccounts: [],
   collaboratorAccesses: [],
 };
 
@@ -43,6 +46,127 @@ function normalizePercent(value: unknown) {
   if (!Number.isFinite(number)) return 0;
 
   return Math.max(0, Math.min(100, Math.round(number)));
+}
+
+function normalizeContributionPercent(value: unknown) {
+  const number = Number(value);
+
+  if (!Number.isFinite(number)) return 0;
+
+  return Math.max(0, Math.min(10, Math.round(number)));
+}
+
+function normalizeStatus(value: unknown) {
+  if (value === "active") return "active";
+  if (value === "blocked") return "blocked";
+  if (value === "deleted") return "deleted";
+  return "pending_validation";
+}
+
+function normalizeEvent(event: any): TicketingEvent {
+  return {
+    id: String(event?.id || crypto.randomUUID()),
+    slug: String(event?.slug || ""),
+    title: String(event?.title || "Billetterie sans nom"),
+    formTypeLabel:
+      typeof event?.formTypeLabel === "string"
+        ? event.formTypeLabel
+        : undefined,
+    status:
+      event?.status === "published" ||
+      event?.status === "hidden" ||
+      event?.status === "archived"
+        ? event.status
+        : "draft",
+    isVisible: Boolean(event?.isVisible),
+
+    locationName:
+      typeof event?.locationName === "string" ? event.locationName : undefined,
+    addressLine:
+      typeof event?.addressLine === "string" ? event.addressLine : undefined,
+    postalCode:
+      typeof event?.postalCode === "string" ? event.postalCode : undefined,
+    city: typeof event?.city === "string" ? event.city : undefined,
+    country: typeof event?.country === "string" ? event.country : undefined,
+
+    durationType:
+      event?.durationType === "one_day" ||
+      event?.durationType === "several_days"
+        ? event.durationType
+        : "none",
+    startsAt: typeof event?.startsAt === "string" ? event.startsAt : undefined,
+    endsAt: typeof event?.endsAt === "string" ? event.endsAt : undefined,
+
+    organizerEmail:
+      typeof event?.organizerEmail === "string"
+        ? event.organizerEmail
+        : undefined,
+    organizerPhone:
+      typeof event?.organizerPhone === "string"
+        ? event.organizerPhone
+        : undefined,
+
+    shortDescription:
+      typeof event?.shortDescription === "string"
+        ? event.shortDescription
+        : undefined,
+    longDescription:
+      typeof event?.longDescription === "string"
+        ? event.longDescription
+        : undefined,
+
+    primaryColor:
+      typeof event?.primaryColor === "string" ? event.primaryColor : undefined,
+    bannerImageUrl:
+      typeof event?.bannerImageUrl === "string"
+        ? event.bannerImageUrl
+        : undefined,
+    thumbnailImageUrl:
+      typeof event?.thumbnailImageUrl === "string"
+        ? event.thumbnailImageUrl
+        : undefined,
+
+    allowExtraDonation: Boolean(event?.allowExtraDonation),
+    suggestedDonationAmounts: Array.isArray(event?.suggestedDonationAmounts)
+      ? event.suggestedDonationAmounts
+      : [],
+    extraDonationSuggestedPercent: normalizeContributionPercent(
+      event?.extraDonationSuggestedPercent
+    ),
+
+    ownerOrganizerId:
+      typeof event?.ownerOrganizerId === "string" && event.ownerOrganizerId
+        ? event.ownerOrganizerId
+        : undefined,
+
+    totalParticipantLimit:
+      typeof event?.totalParticipantLimit === "number"
+        ? event.totalParticipantLimit
+        : event?.totalParticipantLimit ?? undefined,
+    salesOpenAt:
+      typeof event?.salesOpenAt === "string" ? event.salesOpenAt : undefined,
+    salesCloseAt:
+      typeof event?.salesCloseAt === "string" ? event.salesCloseAt : undefined,
+
+    confirmationEmailSubject:
+      typeof event?.confirmationEmailSubject === "string"
+        ? event.confirmationEmailSubject
+        : undefined,
+    confirmationEmailMessage:
+      typeof event?.confirmationEmailMessage === "string"
+        ? event.confirmationEmailMessage
+        : undefined,
+    confirmationEmailEnabled: event?.confirmationEmailEnabled !== false,
+
+    createdAt:
+      typeof event?.createdAt === "string"
+        ? event.createdAt
+        : new Date().toISOString(),
+    updatedAt:
+      typeof event?.updatedAt === "string"
+        ? event.updatedAt
+        : new Date().toISOString(),
+  };
 }
 
 function normalizeRate(rate: any): TicketingRate {
@@ -114,7 +238,6 @@ function normalizeCustomField(field: any): TicketingCustomField {
         ? field.type
         : "short_text",
 
-    // Les informations complémentaires sont toujours demandées aux participants.
     target: "participant",
 
     isRequired: Boolean(field?.isRequired),
@@ -134,6 +257,46 @@ function normalizeCustomField(field: any): TicketingCustomField {
     updatedAt:
       typeof field?.updatedAt === "string"
         ? field.updatedAt
+        : new Date().toISOString(),
+  };
+}
+
+function normalizeOrganizerAccount(account: any): TicketingOrganizerAccount {
+  return {
+    id: String(account?.id || crypto.randomUUID()),
+    email: String(account?.email || "").trim().toLowerCase(),
+    displayName:
+      typeof account?.displayName === "string" && account.displayName.trim()
+        ? account.displayName.trim()
+        : undefined,
+    passwordHash:
+      typeof account?.passwordHash === "string" && account.passwordHash
+        ? account.passwordHash
+        : undefined,
+    status: normalizeStatus(account?.status),
+    canCreateEvents:
+      typeof account?.canCreateEvents === "boolean"
+        ? Boolean(account.canCreateEvents)
+        : true,
+    canReceiveNotifications:
+      typeof account?.canReceiveNotifications === "boolean"
+        ? Boolean(account.canReceiveNotifications)
+        : true,
+    validatedAt:
+      typeof account?.validatedAt === "string" ? account.validatedAt : undefined,
+    blockedAt:
+      typeof account?.blockedAt === "string" ? account.blockedAt : undefined,
+    deletedAt:
+      typeof account?.deletedAt === "string" ? account.deletedAt : undefined,
+    lastLoginAt:
+      typeof account?.lastLoginAt === "string" ? account.lastLoginAt : undefined,
+    createdAt:
+      typeof account?.createdAt === "string"
+        ? account.createdAt
+        : new Date().toISOString(),
+    updatedAt:
+      typeof account?.updatedAt === "string"
+        ? account.updatedAt
         : new Date().toISOString(),
   };
 }
@@ -159,7 +322,9 @@ async function readTicketingStore(): Promise<TicketingStoreData> {
   const parsed = JSON.parse(content) as Partial<TicketingStoreData>;
 
   return {
-    events: Array.isArray(parsed.events) ? parsed.events : [],
+    events: Array.isArray(parsed.events)
+      ? parsed.events.map(normalizeEvent)
+      : [],
     rates: Array.isArray(parsed.rates)
       ? parsed.rates.map(normalizeRate)
       : [],
@@ -167,6 +332,9 @@ async function readTicketingStore(): Promise<TicketingStoreData> {
       ? parsed.customFields.map(normalizeCustomField)
       : [],
     orders: Array.isArray(parsed.orders) ? parsed.orders : [],
+    organizerAccounts: Array.isArray(parsed.organizerAccounts)
+      ? parsed.organizerAccounts.map(normalizeOrganizerAccount)
+      : [],
     collaboratorAccesses: Array.isArray(parsed.collaboratorAccesses)
       ? parsed.collaboratorAccesses
       : [],
@@ -196,16 +364,22 @@ export async function getTicketingEventBySlug(slug: string) {
 export async function saveTicketingEvent(event: TicketingEvent) {
   const store = await readTicketingStore();
 
-  const alreadyExists = store.events.some((entry) => entry.id === event.id);
+  const normalizedEvent = normalizeEvent(event);
+
+  const alreadyExists = store.events.some(
+    (entry) => entry.id === normalizedEvent.id
+  );
 
   if (alreadyExists) {
-    throw new Error(`Une billetterie existe déjà avec l’identifiant ${event.id}.`);
+    throw new Error(
+      `Une billetterie existe déjà avec l’identifiant ${normalizedEvent.id}.`
+    );
   }
 
-  store.events.push(event);
+  store.events.push(normalizedEvent);
   await writeTicketingStore(store);
 
-  return event;
+  return normalizedEvent;
 }
 
 export async function updateTicketingEvent(id: string, event: TicketingEvent) {
@@ -217,10 +391,14 @@ export async function updateTicketingEvent(id: string, event: TicketingEvent) {
     throw new Error(`Billetterie introuvable pour l’identifiant ${id}.`);
   }
 
-  store.events = store.events.map((entry) => (entry.id === id ? event : entry));
+  const normalizedEvent = normalizeEvent(event);
+
+  store.events = store.events.map((entry) =>
+    entry.id === id ? normalizedEvent : entry
+  );
   await writeTicketingStore(store);
 
-  return event;
+  return normalizedEvent;
 }
 
 export async function deleteTicketingEvent(id: string) {
@@ -248,19 +426,21 @@ export async function replaceTicketingRates(
 ) {
   const store = await readTicketingStore();
 
+  const normalizedRates = rates.map((rate) =>
+    normalizeRate({
+      ...rate,
+      eventId,
+    })
+  );
+
   store.rates = [
     ...store.rates.filter((rate) => rate.eventId !== eventId),
-    ...rates.map((rate) =>
-      normalizeRate({
-        ...rate,
-        eventId,
-      })
-    ),
+    ...normalizedRates,
   ];
 
   await writeTicketingStore(store);
 
-  return rates;
+  return normalizedRates;
 }
 
 export async function getTicketingCustomFields(eventId: string) {
@@ -277,19 +457,21 @@ export async function replaceTicketingCustomFields(
 ) {
   const store = await readTicketingStore();
 
+  const normalizedFields = customFields.map((field) =>
+    normalizeCustomField({
+      ...field,
+      eventId,
+    })
+  );
+
   store.customFields = [
     ...store.customFields.filter((field) => field.eventId !== eventId),
-    ...customFields.map((field) =>
-      normalizeCustomField({
-        ...field,
-        eventId,
-      })
-    ),
+    ...normalizedFields,
   ];
 
   await writeTicketingStore(store);
 
-  return customFields;
+  return normalizedFields;
 }
 
 export async function getTicketingOrders(eventId?: string) {
@@ -347,6 +529,92 @@ export async function updateTicketingOrder(
   return order;
 }
 
+export async function getTicketingOrganizerAccounts() {
+  const store = await readTicketingStore();
+
+  return store.organizerAccounts
+    .filter((account) => account.status !== "deleted")
+    .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+}
+
+export async function getTicketingOrganizerAccountById(id: string) {
+  const store = await readTicketingStore();
+
+  return store.organizerAccounts.find(
+    (account) => account.id === id && account.status !== "deleted"
+  );
+}
+
+export async function getTicketingOrganizerAccountByEmail(email: string) {
+  const store = await readTicketingStore();
+  const normalizedEmail = String(email || "").trim().toLowerCase();
+
+  return store.organizerAccounts.find(
+    (account) =>
+      account.email.toLowerCase() === normalizedEmail &&
+      account.status !== "deleted"
+  );
+}
+
+export async function saveTicketingOrganizerAccount(
+  account: TicketingOrganizerAccount
+) {
+  const store = await readTicketingStore();
+
+  const normalizedAccount = normalizeOrganizerAccount(account);
+
+  const alreadyExists = store.organizerAccounts.some(
+    (entry) =>
+      entry.id === normalizedAccount.id ||
+      entry.email.toLowerCase() === normalizedAccount.email.toLowerCase()
+  );
+
+  if (alreadyExists) {
+    throw new Error(
+      `Un organisateur existe déjà avec cet identifiant ou cet email.`
+    );
+  }
+
+  store.organizerAccounts.push(normalizedAccount);
+  await writeTicketingStore(store);
+
+  return normalizedAccount;
+}
+
+export async function updateTicketingOrganizerAccount(
+  id: string,
+  account: TicketingOrganizerAccount
+) {
+  const store = await readTicketingStore();
+
+  const exists = store.organizerAccounts.some((entry) => entry.id === id);
+
+  if (!exists) {
+    throw new Error(`Compte organisateur introuvable pour l’identifiant ${id}.`);
+  }
+
+  const normalizedAccount = normalizeOrganizerAccount(account);
+
+  const duplicateEmail = store.organizerAccounts.some(
+    (entry) =>
+      entry.id !== id &&
+      entry.status !== "deleted" &&
+      entry.email.toLowerCase() === normalizedAccount.email.toLowerCase()
+  );
+
+  if (duplicateEmail) {
+    throw new Error(`Un autre organisateur utilise déjà cet email.`);
+  }
+
+  store.organizerAccounts = store.organizerAccounts.map((entry) =>
+    entry.id === id ? normalizedAccount : entry
+  );
+
+  await writeTicketingStore(store);
+
+  return normalizedAccount;
+}
+
 export async function getTicketingCollaboratorAccesses(eventId: string) {
   const store = await readTicketingStore();
 
@@ -383,7 +651,7 @@ export async function updateTicketingCollaboratorAccess(
   const exists = store.collaboratorAccesses.some((entry) => entry.id === id);
 
   if (!exists) {
-    throw new Error(`Accès collaborateur introuvable pour l’identifiant ${id}.`);
+    throw new Error(`Accès organisateur introuvable pour l’identifiant ${id}.`);
   }
 
   store.collaboratorAccesses = store.collaboratorAccesses.map((entry) =>

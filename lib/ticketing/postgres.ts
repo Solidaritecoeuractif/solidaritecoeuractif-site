@@ -6,6 +6,7 @@ import type {
   TicketingCustomFieldType,
   TicketingEvent,
   TicketingOrder,
+  TicketingOrganizerAccount,
   TicketingParticipant,
   TicketingRate,
 } from "@/lib/ticketing/types";
@@ -88,6 +89,7 @@ function rowToTicketingEvent(row: any): TicketingEvent {
     extraDonationSuggestedPercent: normalizeContributionPercent(
       row.extra_donation_suggested_percent
     ),
+    ownerOrganizerId: row.owner_organizer_id ?? undefined,
     totalParticipantLimit: row.total_participant_limit ?? undefined,
     salesOpenAt: toIso(row.sales_open_at),
     salesCloseAt: toIso(row.sales_close_at),
@@ -178,6 +180,24 @@ function rowToTicketingOrder(
   };
 }
 
+function rowToTicketingOrganizerAccount(row: any): TicketingOrganizerAccount {
+  return {
+    id: row.id,
+    email: row.email,
+    displayName: row.display_name ?? undefined,
+    passwordHash: row.password_hash ?? undefined,
+    status: row.status,
+    canCreateEvents: Boolean(row.can_create_events),
+    canReceiveNotifications: Boolean(row.can_receive_notifications),
+    validatedAt: toIso(row.validated_at),
+    blockedAt: toIso(row.blocked_at),
+    deletedAt: toIso(row.deleted_at),
+    lastLoginAt: toIso(row.last_login_at),
+    createdAt: toIso(row.created_at) || new Date().toISOString(),
+    updatedAt: toIso(row.updated_at) || new Date().toISOString(),
+  };
+}
+
 function rowToTicketingCollaboratorAccess(
   row: any
 ): TicketingCollaboratorAccess {
@@ -256,14 +276,15 @@ export async function savePostgresTicketingEvent(event: TicketingEvent) {
         duration_type, starts_at, ends_at, organizer_email, organizer_phone,
         short_description, long_description, primary_color, banner_image_url,
         thumbnail_image_url, allow_extra_donation, suggested_donation_amounts,
-        extra_donation_suggested_percent,
+        extra_donation_suggested_percent, owner_organizer_id,
         total_participant_limit, sales_open_at, sales_close_at,
         confirmation_email_subject, confirmation_email_message, confirmation_email_enabled,
         created_at, updated_at
       ) values (
         $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,
         $11,$12,$13,$14,$15,$16,$17,$18,$19,$20,
-        $21,$22,$23,$24,$25,$26,$27,$28,$29,$30,$31,$32
+        $21,$22,$23,$24,$25,$26,$27,$28,$29,$30,
+        $31,$32,$33
       )`,
       [
         event.id,
@@ -290,6 +311,7 @@ export async function savePostgresTicketingEvent(event: TicketingEvent) {
         event.allowExtraDonation,
         event.suggestedDonationAmounts,
         normalizeContributionPercent(event.extraDonationSuggestedPercent),
+        event.ownerOrganizerId ?? null,
         event.totalParticipantLimit ?? null,
         event.salesOpenAt ?? null,
         event.salesCloseAt ?? null,
@@ -339,13 +361,14 @@ export async function updatePostgresTicketingEvent(
            allow_extra_donation = $22,
            suggested_donation_amounts = $23,
            extra_donation_suggested_percent = $24,
-           total_participant_limit = $25,
-           sales_open_at = $26,
-           sales_close_at = $27,
-           confirmation_email_subject = $28,
-           confirmation_email_message = $29,
-           confirmation_email_enabled = $30,
-           updated_at = $31
+           owner_organizer_id = $25,
+           total_participant_limit = $26,
+           sales_open_at = $27,
+           sales_close_at = $28,
+           confirmation_email_subject = $29,
+           confirmation_email_message = $30,
+           confirmation_email_enabled = $31,
+           updated_at = $32
        where id = $1`,
       [
         id,
@@ -372,6 +395,7 @@ export async function updatePostgresTicketingEvent(
         event.allowExtraDonation,
         event.suggestedDonationAmounts,
         normalizeContributionPercent(event.extraDonationSuggestedPercent),
+        event.ownerOrganizerId ?? null,
         event.totalParticipantLimit ?? null,
         event.salesOpenAt ?? null,
         event.salesCloseAt ?? null,
@@ -825,6 +849,156 @@ export async function updatePostgresTicketingOrder(
   } catch (error) {
     await client.query("rollback");
     throw error;
+  } finally {
+    client.release();
+  }
+}
+
+export async function getPostgresTicketingOrganizerAccounts() {
+  const client = await pool().connect();
+
+  try {
+    const result = await client.query(
+      `select * from ticketing_organizer_accounts
+       where status <> 'deleted'
+       order by created_at desc`
+    );
+
+    return result.rows.map(rowToTicketingOrganizerAccount);
+  } finally {
+    client.release();
+  }
+}
+
+export async function getPostgresTicketingOrganizerAccountById(id: string) {
+  const client = await pool().connect();
+
+  try {
+    const result = await client.query(
+      `select * from ticketing_organizer_accounts
+       where id = $1
+       and status <> 'deleted'
+       limit 1`,
+      [id]
+    );
+
+    return result.rows[0]
+      ? rowToTicketingOrganizerAccount(result.rows[0])
+      : undefined;
+  } finally {
+    client.release();
+  }
+}
+
+export async function getPostgresTicketingOrganizerAccountByEmail(
+  email: string
+) {
+  const client = await pool().connect();
+
+  try {
+    const normalizedEmail = String(email || "").trim().toLowerCase();
+
+    const result = await client.query(
+      `select * from ticketing_organizer_accounts
+       where lower(email) = lower($1)
+       and status <> 'deleted'
+       limit 1`,
+      [normalizedEmail]
+    );
+
+    return result.rows[0]
+      ? rowToTicketingOrganizerAccount(result.rows[0])
+      : undefined;
+  } finally {
+    client.release();
+  }
+}
+
+export async function savePostgresTicketingOrganizerAccount(
+  account: TicketingOrganizerAccount
+) {
+  const client = await pool().connect();
+
+  try {
+    await client.query(
+      `insert into ticketing_organizer_accounts (
+        id,
+        email,
+        display_name,
+        password_hash,
+        status,
+        can_create_events,
+        can_receive_notifications,
+        validated_at,
+        blocked_at,
+        deleted_at,
+        last_login_at,
+        created_at,
+        updated_at
+      ) values (
+        $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13
+      )`,
+      [
+        account.id,
+        account.email,
+        account.displayName ?? null,
+        account.passwordHash ?? null,
+        account.status,
+        account.canCreateEvents,
+        account.canReceiveNotifications,
+        account.validatedAt ?? null,
+        account.blockedAt ?? null,
+        account.deletedAt ?? null,
+        account.lastLoginAt ?? null,
+        account.createdAt,
+        account.updatedAt,
+      ]
+    );
+
+    return account;
+  } finally {
+    client.release();
+  }
+}
+
+export async function updatePostgresTicketingOrganizerAccount(
+  id: string,
+  account: TicketingOrganizerAccount
+) {
+  const client = await pool().connect();
+
+  try {
+    await client.query(
+      `update ticketing_organizer_accounts
+       set email = $2,
+           display_name = $3,
+           password_hash = $4,
+           status = $5,
+           can_create_events = $6,
+           can_receive_notifications = $7,
+           validated_at = $8,
+           blocked_at = $9,
+           deleted_at = $10,
+           last_login_at = $11,
+           updated_at = $12
+       where id = $1`,
+      [
+        id,
+        account.email,
+        account.displayName ?? null,
+        account.passwordHash ?? null,
+        account.status,
+        account.canCreateEvents,
+        account.canReceiveNotifications,
+        account.validatedAt ?? null,
+        account.blockedAt ?? null,
+        account.deletedAt ?? null,
+        account.lastLoginAt ?? null,
+        account.updatedAt,
+      ]
+    );
+
+    return account;
   } finally {
     client.release();
   }
