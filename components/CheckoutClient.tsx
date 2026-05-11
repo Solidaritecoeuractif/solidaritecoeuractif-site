@@ -734,17 +734,17 @@ export function CheckoutClient({ products }: { products: Product[] }) {
             >
               <div style={{ minWidth: 0 }}>
                 <strong style={{ fontSize: "0.76rem" }}>
-                  Participation libre
-                </strong>{" "}
-                <span
-                  style={{
-                    color: "#64748b",
-                    fontSize: "0.72rem",
-                    lineHeight: 1.25,
-                  }}
-                >
-                  pour soutenir l’association.
-                </span>
+  Participation libre à l’Association Solidarité Cœur Actif
+</strong>{" "}
+<span
+  style={{
+    color: "#64748b",
+    fontSize: "0.72rem",
+    lineHeight: 1.25,
+  }}
+>
+  pour soutenir la plateforme et ses actions solidaires.
+</span>
               </div>
 
               <strong
