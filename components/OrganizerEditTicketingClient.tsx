@@ -125,6 +125,93 @@ function labelTitleStyle() {
   } as const;
 }
 
+async function compressImageFile(file: File) {
+  const allowedTypes = ["image/jpeg", "image/png", "image/webp"];
+
+  if (!allowedTypes.includes(file.type)) {
+    throw new Error("Merci de choisir une image JPG, PNG ou WebP.");
+  }
+
+  if (file.size > 8 * 1024 * 1024) {
+    throw new Error(
+      "Cette image est trop lourde. Merci de choisir une image de moins de 8 Mo."
+    );
+  }
+
+  const originalDataUrl = await new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+
+    reader.onload = () => {
+      const result = typeof reader.result === "string" ? reader.result : "";
+
+      if (!result.startsWith("data:image/")) {
+        reject(new Error("Impossible de lire cette image."));
+        return;
+      }
+
+      resolve(result);
+    };
+
+    reader.onerror = () => reject(new Error("Impossible de lire cette image."));
+    reader.readAsDataURL(file);
+  });
+
+  const image = await new Promise<HTMLImageElement>((resolve, reject) => {
+    const img = new Image();
+
+    img.onload = () => resolve(img);
+    img.onerror = () => reject(new Error("Impossible de préparer cette image."));
+    img.src = originalDataUrl;
+  });
+
+  const maxWidth = 1400;
+  const maxHeight = 900;
+
+  let width = image.width;
+  let height = image.height;
+
+  const ratio = Math.min(maxWidth / width, maxHeight / height, 1);
+
+  width = Math.round(width * ratio);
+  height = Math.round(height * ratio);
+
+  const canvas = document.createElement("canvas");
+  canvas.width = width;
+  canvas.height = height;
+
+  const context = canvas.getContext("2d");
+
+  if (!context) {
+    throw new Error("Impossible de compresser cette image.");
+  }
+
+  context.fillStyle = "#ffffff";
+  context.fillRect(0, 0, width, height);
+  context.drawImage(image, 0, 0, width, height);
+
+  const qualities = [0.86, 0.78, 0.7, 0.62, 0.54];
+
+  for (const quality of qualities) {
+    const compressed = canvas.toDataURL("image/jpeg", quality);
+
+    if (compressed.length <= 1_000_000) {
+      return {
+        dataUrl: compressed,
+        originalSize: file.size,
+        finalSizeEstimate: Math.round((compressed.length * 3) / 4),
+      };
+    }
+  }
+
+  const compressed = canvas.toDataURL("image/jpeg", 0.5);
+
+  return {
+    dataUrl: compressed,
+    originalSize: file.size,
+    finalSizeEstimate: Math.round((compressed.length * 3) / 4),
+  };
+}
+
 export default function OrganizerEditTicketingClient({
   event,
   rates,
@@ -234,44 +321,38 @@ export default function OrganizerEditTicketingClient({
     setDraftRates((current) => current.filter((rate) => rate.id !== id));
   }
 
-  function handleImageSelection(file?: File) {
+  async function handleImageSelection(file?: File) {
     setImageMessage("");
 
     if (!file) return;
 
-    const allowedTypes = ["image/jpeg", "image/png", "image/webp"];
+    try {
+      setImageMessage("Préparation de l’image en cours...");
 
-    if (!allowedTypes.includes(file.type)) {
-      setImageMessage("Merci de choisir une image JPG, PNG ou WebP.");
-      return;
-    }
+      const compressed = await compressImageFile(file);
 
-    if (file.size > 700 * 1024) {
-      setImageMessage(
-        "Cette image est trop lourde. Choisis une image plus légère, idéalement moins de 700 Ko."
-      );
-      return;
-    }
-
-    const reader = new FileReader();
-
-    reader.onload = () => {
-      const result = typeof reader.result === "string" ? reader.result : "";
-
-      if (!result.startsWith("data:image/")) {
-        setImageMessage("Impossible de lire cette image.");
+      if (compressed.dataUrl.length > 1_200_000) {
+        setImageMessage(
+          "Même après compression, cette image reste trop lourde. Merci d’utiliser une image plus simple ou moins grande."
+        );
         return;
       }
 
-      setBannerImageUrl(result);
-      setImageMessage("Image ajoutée. Pense à enregistrer les modifications.");
-    };
+      setBannerImageUrl(compressed.dataUrl);
 
-    reader.onerror = () => {
-      setImageMessage("Impossible de lire cette image.");
-    };
+      const originalKo = Math.round(compressed.originalSize / 1024);
+      const finalKo = Math.round(compressed.finalSizeEstimate / 1024);
 
-    reader.readAsDataURL(file);
+      setImageMessage(
+        `Image ajoutée et optimisée automatiquement (${originalKo} Ko → environ ${finalKo} Ko). Pense à enregistrer les modifications.`
+      );
+    } catch (error) {
+      setImageMessage(
+        error instanceof Error
+          ? error.message
+          : "Impossible de préparer cette image."
+      );
+    }
   }
 
   function removeImage() {
@@ -442,8 +523,8 @@ export default function OrganizerEditTicketingClient({
             </label>
 
             <small style={{ color: "#64748b", lineHeight: 1.5 }}>
-              Formats acceptés : JPG, PNG, WebP. Taille conseillée : moins de
-              700 Ko.
+              Formats acceptés : JPG, PNG, WebP. Les images sont réduites
+              automatiquement avant enregistrement.
             </small>
 
             {bannerImageUrl ? (
@@ -459,11 +540,12 @@ export default function OrganizerEditTicketingClient({
             {imageMessage ? (
               <div
                 style={{
-                  border: imageMessage.includes("trop") ||
+                  border:
+                    imageMessage.includes("trop") ||
                     imageMessage.includes("Impossible") ||
                     imageMessage.includes("Merci")
-                    ? "1px solid #fecaca"
-                    : "1px solid #bbf7d0",
+                      ? "1px solid #fecaca"
+                      : "1px solid #bbf7d0",
                   borderRadius: "14px",
                   padding: "10px 12px",
                   background:
