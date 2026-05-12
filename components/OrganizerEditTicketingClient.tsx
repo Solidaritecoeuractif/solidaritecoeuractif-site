@@ -154,6 +154,11 @@ export default function OrganizerEditTicketingClient({
     event.shortDescription || ""
   );
 
+  const [bannerImageUrl, setBannerImageUrl] = useState(
+    event.bannerImageUrl || event.thumbnailImageUrl || ""
+  );
+  const [imageMessage, setImageMessage] = useState("");
+
   const [confirmationEmailEnabled, setConfirmationEmailEnabled] = useState(
     event.confirmationEmailEnabled !== false
   );
@@ -229,6 +234,54 @@ export default function OrganizerEditTicketingClient({
     setDraftRates((current) => current.filter((rate) => rate.id !== id));
   }
 
+  function handleImageSelection(file?: File) {
+    setImageMessage("");
+
+    if (!file) return;
+
+    const allowedTypes = ["image/jpeg", "image/png", "image/webp"];
+
+    if (!allowedTypes.includes(file.type)) {
+      setImageMessage("Merci de choisir une image JPG, PNG ou WebP.");
+      return;
+    }
+
+    if (file.size > 700 * 1024) {
+      setImageMessage(
+        "Cette image est trop lourde. Choisis une image plus légère, idéalement moins de 700 Ko."
+      );
+      return;
+    }
+
+    const reader = new FileReader();
+
+    reader.onload = () => {
+      const result = typeof reader.result === "string" ? reader.result : "";
+
+      if (!result.startsWith("data:image/")) {
+        setImageMessage("Impossible de lire cette image.");
+        return;
+      }
+
+      setBannerImageUrl(result);
+      setImageMessage("Image ajoutée. Pense à enregistrer les modifications.");
+    };
+
+    reader.onerror = () => {
+      setImageMessage("Impossible de lire cette image.");
+    };
+
+    reader.readAsDataURL(file);
+  }
+
+  function removeImage() {
+    const confirmed = window.confirm("Voulez-vous retirer cette image ?");
+    if (!confirmed) return;
+
+    setBannerImageUrl("");
+    setImageMessage("Image retirée. Pense à enregistrer les modifications.");
+  }
+
   async function saveChanges() {
     if (saving) return;
 
@@ -253,6 +306,7 @@ export default function OrganizerEditTicketingClient({
           organizerEmail,
           organizerPhone,
           shortDescription,
+          bannerImageUrl,
           confirmationEmailEnabled,
           confirmationEmailSubject,
           confirmationEmailMessage,
@@ -345,6 +399,130 @@ export default function OrganizerEditTicketingClient({
             rows={5}
           />
         </label>
+      </section>
+
+      <section style={sectionStyle("#bae6fd", "#f8fcff")}>
+        <h2 style={{ marginTop: 0, color: "#0369a1" }}>
+          Image ou logo de la billetterie
+        </h2>
+
+        <p style={{ marginTop: 0, color: "#64748b", lineHeight: 1.6 }}>
+          Ajoute le logo de l’organisation ou une image représentative. Elle
+          apparaîtra sur la page publique de la billetterie.
+        </p>
+
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
+            gap: "14px",
+            alignItems: "start",
+          }}
+        >
+          <div
+            style={{
+              border: "1px dashed #93c5fd",
+              borderRadius: "18px",
+              padding: "16px",
+              background: "#ffffff",
+              display: "grid",
+              gap: "12px",
+            }}
+          >
+            <label style={{ display: "grid", gap: "8px" }}>
+              <span style={labelTitleStyle()}>Choisir une image</span>
+              <input
+                className="input"
+                type="file"
+                accept="image/png,image/jpeg,image/webp"
+                onChange={(inputEvent) =>
+                  handleImageSelection(inputEvent.target.files?.[0])
+                }
+              />
+            </label>
+
+            <small style={{ color: "#64748b", lineHeight: 1.5 }}>
+              Formats acceptés : JPG, PNG, WebP. Taille conseillée : moins de
+              700 Ko.
+            </small>
+
+            {bannerImageUrl ? (
+              <button
+                type="button"
+                className="button secondary"
+                onClick={removeImage}
+              >
+                Retirer l’image
+              </button>
+            ) : null}
+
+            {imageMessage ? (
+              <div
+                style={{
+                  border: imageMessage.includes("trop") ||
+                    imageMessage.includes("Impossible") ||
+                    imageMessage.includes("Merci")
+                    ? "1px solid #fecaca"
+                    : "1px solid #bbf7d0",
+                  borderRadius: "14px",
+                  padding: "10px 12px",
+                  background:
+                    imageMessage.includes("trop") ||
+                    imageMessage.includes("Impossible") ||
+                    imageMessage.includes("Merci")
+                      ? "#fef2f2"
+                      : "#f0fdf4",
+                  color:
+                    imageMessage.includes("trop") ||
+                    imageMessage.includes("Impossible") ||
+                    imageMessage.includes("Merci")
+                      ? "#991b1b"
+                      : "#166534",
+                  fontWeight: 800,
+                }}
+              >
+                {imageMessage}
+              </div>
+            ) : null}
+          </div>
+
+          <div
+            style={{
+              border: "1px solid #dbe3ee",
+              borderRadius: "18px",
+              padding: "14px",
+              background: "#ffffff",
+              minHeight: "180px",
+              display: "grid",
+              placeItems: "center",
+              overflow: "hidden",
+            }}
+          >
+            {bannerImageUrl ? (
+              <img
+                src={bannerImageUrl}
+                alt="Aperçu de l’image de la billetterie"
+                style={{
+                  maxWidth: "100%",
+                  maxHeight: "260px",
+                  objectFit: "contain",
+                  borderRadius: "14px",
+                }}
+              />
+            ) : (
+              <p
+                style={{
+                  color: "#64748b",
+                  textAlign: "center",
+                  margin: 0,
+                  lineHeight: 1.6,
+                }}
+              >
+                Aucune image ajoutée pour le moment.
+              </p>
+            )}
+          </div>
+        </div>
       </section>
 
       <section style={sectionStyle("#c4b5fd", "#fbfaff")}>
