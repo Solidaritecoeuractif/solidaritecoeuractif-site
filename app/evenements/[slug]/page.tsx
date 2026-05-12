@@ -107,6 +107,7 @@ export default async function Page({
 
   return (
     <main
+      className="ticketing-page-main"
       style={{
         maxWidth: "1100px",
         margin: "0 auto",
@@ -115,6 +116,52 @@ export default async function Page({
         gap: "22px",
       }}
     >
+      <style>{`
+        .ticketing-hero {
+          grid-template-columns: ${eventImageUrl ? "minmax(0, 1.4fr) minmax(240px, 0.6fr)" : "1fr"};
+        }
+
+        .ticketing-hero-title {
+          overflow-wrap: anywhere;
+        }
+
+        @media (max-width: 720px) {
+          .ticketing-page-main {
+            padding: 24px 14px 44px !important;
+            gap: 18px !important;
+          }
+
+          .ticketing-hero {
+            grid-template-columns: 1fr !important;
+            padding: 22px !important;
+            gap: 18px !important;
+          }
+
+          .ticketing-hero-image {
+            order: -1;
+            min-height: 140px !important;
+            padding: 10px !important;
+          }
+
+          .ticketing-hero-image img {
+            max-height: 210px !important;
+            width: auto !important;
+            max-width: 100% !important;
+          }
+
+          .ticketing-hero-title {
+            font-size: clamp(34px, 12vw, 48px) !important;
+            line-height: 1.05 !important;
+            letter-spacing: -0.035em !important;
+          }
+
+          .ticketing-hero-description {
+            font-size: 16px !important;
+            line-height: 1.65 !important;
+          }
+        }
+      `}</style>
+
       {paymentSucceeded ? (
         <section
           style={{
@@ -191,6 +238,7 @@ export default async function Page({
       ) : null}
 
       <section
+        className="ticketing-hero"
         style={{
           border: "1px solid #dbe3ee",
           borderRadius: "22px",
@@ -198,9 +246,6 @@ export default async function Page({
           background:
             "linear-gradient(135deg, rgba(248,250,252,1) 0%, rgba(255,255,255,1) 60%)",
           display: "grid",
-          gridTemplateColumns: eventImageUrl
-            ? "minmax(0, 1.4fr) minmax(240px, 0.6fr)"
-            : "1fr",
           gap: "24px",
           alignItems: "center",
         }}
@@ -218,6 +263,7 @@ export default async function Page({
           </p>
 
           <h1
+            className="ticketing-hero-title"
             style={{
               margin: 0,
               fontSize: "clamp(32px, 5vw, 54px)",
@@ -243,6 +289,7 @@ export default async function Page({
 
           {event.shortDescription ? (
             <p
+              className="ticketing-hero-description"
               style={{
                 margin: "22px 0 0",
                 color: "#334155",
@@ -259,6 +306,7 @@ export default async function Page({
 
         {eventImageUrl ? (
           <div
+            className="ticketing-hero-image"
             style={{
               border: "1px solid #e5e7eb",
               borderRadius: "20px",
