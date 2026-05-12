@@ -69,6 +69,35 @@ function normalizePercent(value: unknown) {
   return Math.max(0, Math.min(100, Math.round(number)));
 }
 
+function normalizeImageDataUrl(value: unknown) {
+  const text = cleanText(value);
+
+  if (!text) return undefined;
+
+  const isSupportedImage =
+    text.startsWith("data:image/jpeg;base64,") ||
+    text.startsWith("data:image/png;base64,") ||
+    text.startsWith("data:image/webp;base64,");
+
+  if (!isSupportedImage) {
+    throw new Error(
+      "L’image doit être au format JPG, PNG ou WebP."
+    );
+  }
+
+  /**
+   * Sécurité simple : on évite d’enregistrer une image trop lourde
+   * directement dans la billetterie.
+   */
+  if (text.length > 1_200_000) {
+    throw new Error(
+      "L’image est trop lourde. Merci d’utiliser une image plus légère, idéalement moins de 700 Ko."
+    );
+  }
+
+  return text;
+}
+
 async function getAuthorizedOrganizerEvent(eventId: string) {
   const session = await getOrganizerSession();
 
@@ -129,11 +158,15 @@ function normalizeRates(
     }
 
     if (type === "fixed" && amount <= 0) {
-      throw new Error("Chaque tarif à prix fixe doit avoir un montant supérieur à 0 €.");
+      throw new Error(
+        "Chaque tarif à prix fixe doit avoir un montant supérieur à 0 €."
+      );
     }
 
     if (type === "free_amount" && minimumAmount <= 0) {
-      throw new Error("Chaque tarif à prix libre doit avoir un minimum supérieur à 0 €.");
+      throw new Error(
+        "Chaque tarif à prix libre doit avoir un minimum supérieur à 0 €."
+      );
     }
 
     return {
@@ -219,6 +252,13 @@ export async function PUT(
       organizerPhone: cleanText(payload.organizerPhone) || undefined,
 
       shortDescription: cleanText(payload.shortDescription) || undefined,
+
+      /**
+       * Image / logo de la billetterie ajouté par l’organisateur.
+       * On l’enregistre dans bannerImageUrl pour l’afficher sur la page publique.
+       */
+      bannerImageUrl: normalizeImageDataUrl(payload.bannerImageUrl),
+      thumbnailImageUrl: normalizeImageDataUrl(payload.bannerImageUrl),
 
       confirmationEmailEnabled: payload.confirmationEmailEnabled !== false,
       confirmationEmailSubject:
