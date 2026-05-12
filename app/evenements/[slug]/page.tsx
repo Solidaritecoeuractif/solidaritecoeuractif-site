@@ -103,6 +103,7 @@ export default async function Page({
 
   const isOrganizerPreview = previewRequested && canPreviewAsOrganizer;
   const readOnlyPreview = isOrganizerPreview && !isPublic;
+  const eventImageUrl = event.bannerImageUrl || event.thumbnailImageUrl || "";
 
   return (
     <main
@@ -196,56 +197,90 @@ export default async function Page({
           padding: "28px",
           background:
             "linear-gradient(135deg, rgba(248,250,252,1) 0%, rgba(255,255,255,1) 60%)",
+          display: "grid",
+          gridTemplateColumns: eventImageUrl
+            ? "minmax(0, 1.4fr) minmax(240px, 0.6fr)"
+            : "1fr",
+          gap: "24px",
+          alignItems: "center",
         }}
       >
-        <p
-          style={{
-            margin: "0 0 10px",
-            color: "#64748b",
-            fontWeight: 700,
-            fontSize: "14px",
-          }}
-        >
-          Billetterie
-        </p>
-
-        <h1
-          style={{
-            margin: 0,
-            fontSize: "clamp(32px, 5vw, 54px)",
-            lineHeight: 1.05,
-            letterSpacing: "-0.04em",
-          }}
-        >
-          {event.title}
-        </h1>
-
-        {event.formTypeLabel ? (
+        <div>
           <p
             style={{
-              margin: "14px 0 0",
-              color: "#475569",
-              fontSize: "17px",
-              fontWeight: 600,
+              margin: "0 0 10px",
+              color: "#64748b",
+              fontWeight: 700,
+              fontSize: "14px",
             }}
           >
-            {event.formTypeLabel}
+            Billetterie
           </p>
-        ) : null}
 
-        {event.shortDescription ? (
-          <p
+          <h1
             style={{
-              margin: "22px 0 0",
-              color: "#334155",
-              fontSize: "17px",
-              lineHeight: 1.7,
-              whiteSpace: "pre-wrap",
-              maxWidth: "820px",
+              margin: 0,
+              fontSize: "clamp(32px, 5vw, 54px)",
+              lineHeight: 1.05,
+              letterSpacing: "-0.04em",
             }}
           >
-            {event.shortDescription}
-          </p>
+            {event.title}
+          </h1>
+
+          {event.formTypeLabel ? (
+            <p
+              style={{
+                margin: "14px 0 0",
+                color: "#475569",
+                fontSize: "17px",
+                fontWeight: 600,
+              }}
+            >
+              {event.formTypeLabel}
+            </p>
+          ) : null}
+
+          {event.shortDescription ? (
+            <p
+              style={{
+                margin: "22px 0 0",
+                color: "#334155",
+                fontSize: "17px",
+                lineHeight: 1.7,
+                whiteSpace: "pre-wrap",
+                maxWidth: "820px",
+              }}
+            >
+              {event.shortDescription}
+            </p>
+          ) : null}
+        </div>
+
+        {eventImageUrl ? (
+          <div
+            style={{
+              border: "1px solid #e5e7eb",
+              borderRadius: "20px",
+              padding: "14px",
+              background: "#ffffff",
+              display: "grid",
+              placeItems: "center",
+              minHeight: "180px",
+              overflow: "hidden",
+            }}
+          >
+            <img
+              src={eventImageUrl}
+              alt={`Image de la billetterie ${event.title}`}
+              style={{
+                width: "100%",
+                maxHeight: "260px",
+                objectFit: "contain",
+                borderRadius: "16px",
+              }}
+            />
+          </div>
         ) : null}
       </section>
 
