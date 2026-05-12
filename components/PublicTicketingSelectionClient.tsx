@@ -440,6 +440,8 @@ export default function PublicTicketingSelectionClient({
     });
 
   const formLooksReady = Boolean(hasSelection && participantsComplete);
+  const canValidateSummary = formLooksReady && !preparing && !preparedSummary;
+  const canPayWithStripe = Boolean(preparedSummary) && !checkoutLoading;
 
   function getMainParticipantAsPayer() {
     const firstRow = participantRows[0];
@@ -690,6 +692,63 @@ export default function PublicTicketingSelectionClient({
         background: "#ffffff",
       }}
     >
+      <style>{`
+        @keyframes ticketingCtaPulse {
+          0% {
+            transform: scale(1);
+            box-shadow: 0 14px 30px rgba(15, 23, 42, 0.18);
+          }
+          50% {
+            transform: scale(1.025);
+            box-shadow: 0 18px 42px rgba(15, 23, 42, 0.28);
+          }
+          100% {
+            transform: scale(1);
+            box-shadow: 0 14px 30px rgba(15, 23, 42, 0.18);
+          }
+        }
+
+        .ticketing-main-action {
+          width: 100%;
+          min-height: 58px;
+          border-radius: 16px !important;
+          font-size: 18px !important;
+          font-weight: 900 !important;
+          letter-spacing: -0.01em;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          gap: 10px;
+          transition:
+            transform 0.2s ease,
+            box-shadow 0.2s ease,
+            opacity 0.2s ease,
+            filter 0.2s ease;
+        }
+
+        .ticketing-main-action-ready {
+          animation: ticketingCtaPulse 1.45s ease-in-out infinite;
+          filter: saturate(1.05);
+        }
+
+        .ticketing-main-action-ready:hover {
+          transform: translateY(-1px) scale(1.02);
+        }
+
+        .ticketing-main-action-disabled {
+          animation: none;
+          box-shadow: none !important;
+        }
+
+        @media (max-width: 640px) {
+          .ticketing-main-action {
+            min-height: 62px;
+            font-size: 17px !important;
+            border-radius: 18px !important;
+          }
+        }
+      `}</style>
+
       <div
         style={{
           display: "flex",
@@ -1325,12 +1384,16 @@ export default function PublicTicketingSelectionClient({
 
         <button
           type="button"
-          className="button"
+          className={`button ticketing-main-action ${
+            canValidateSummary
+              ? "ticketing-main-action-ready"
+              : "ticketing-main-action-disabled"
+          }`}
           disabled={!formLooksReady || preparing}
           onClick={prepareRegistration}
           style={{
-            marginTop: "8px",
-            opacity: !formLooksReady || preparing ? 0.65 : 1,
+            marginTop: "12px",
+            opacity: !formLooksReady || preparing ? 0.58 : 1,
             cursor: !formLooksReady || preparing ? "not-allowed" : "pointer",
           }}
         >
@@ -1459,10 +1522,15 @@ export default function PublicTicketingSelectionClient({
 
           <button
             type="button"
-            className="button"
+            className={`button ticketing-main-action ${
+              canPayWithStripe
+                ? "ticketing-main-action-ready"
+                : "ticketing-main-action-disabled"
+            }`}
             disabled={checkoutLoading}
             onClick={startStripeCheckout}
             style={{
+              marginTop: "8px",
               opacity: checkoutLoading ? 0.65 : 1,
               cursor: checkoutLoading ? "not-allowed" : "pointer",
             }}
