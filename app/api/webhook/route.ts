@@ -7,6 +7,7 @@ import { ticketingStorage } from "@/lib/ticketing";
 import {
   sendPaymentConfirmationEmail,
   sendTicketingConfirmationEmail,
+  sendTicketingOrganizerNotificationEmail,
 } from "@/lib/email";
 
 export async function POST(request: Request) {
@@ -46,6 +47,9 @@ export async function POST(request: Request) {
         if (order) {
           const wasAlreadyPaid = order.paymentStatus === "paid";
           const confirmationAlreadySent = Boolean(order.confirmationEmailSentAt);
+          const organizerNotificationAlreadySent = Boolean(
+            order.adminNotificationSentAt
+          );
 
           order.paymentStatus = "paid";
           order.stripeSessionId = session.id;
@@ -57,37 +61,55 @@ export async function POST(request: Request) {
 
           await ticketing.updateTicketingOrder(reference, order);
 
-          if (!wasAlreadyPaid || !confirmationAlreadySent) {
-            try {
-              const ticketingEvent = await ticketing.getTicketingEventById(
-                order.eventId
-              );
+          const ticketingEvent = await ticketing.getTicketingEventById(
+            order.eventId
+          );
 
-              if (
-                ticketingEvent &&
-                ticketingEvent.confirmationEmailEnabled !== false
-              ) {
-                const rates = await ticketing.getTicketingRates(
-                  ticketingEvent.id
+          if (ticketingEvent) {
+            const rates = await ticketing.getTicketingRates(ticketingEvent.id);
+
+            if (!wasAlreadyPaid || !confirmationAlreadySent) {
+              try {
+                if (ticketingEvent.confirmationEmailEnabled !== false) {
+                  await sendTicketingConfirmationEmail({
+                    order,
+                    event: ticketingEvent,
+                    rates,
+                  });
+
+                  const now = new Date().toISOString();
+                  order.confirmationEmailSentAt = now;
+                  order.updatedAt = now;
+
+                  await ticketing.updateTicketingOrder(reference, order);
+                }
+              } catch (emailError) {
+                console.error(
+                  "Erreur envoi email confirmation billetterie",
+                  emailError
                 );
+              }
+            }
 
-                await sendTicketingConfirmationEmail({
+            if (!wasAlreadyPaid || !organizerNotificationAlreadySent) {
+              try {
+                await sendTicketingOrganizerNotificationEmail({
                   order,
                   event: ticketingEvent,
                   rates,
                 });
 
                 const now = new Date().toISOString();
-                order.confirmationEmailSentAt = now;
+                order.adminNotificationSentAt = now;
                 order.updatedAt = now;
 
                 await ticketing.updateTicketingOrder(reference, order);
+              } catch (emailError) {
+                console.error(
+                  "Erreur envoi email notification organisateur",
+                  emailError
+                );
               }
-            } catch (emailError) {
-              console.error(
-                "Erreur envoi email confirmation billetterie",
-                emailError
-              );
             }
           }
         }

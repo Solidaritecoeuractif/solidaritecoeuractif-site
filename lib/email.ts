@@ -53,6 +53,65 @@ function requireEmailConfig() {
   return from;
 }
 
+function buildTicketingParticipantsHtml({
+  order,
+  rates,
+}: {
+  order: TicketingOrder;
+  rates: TicketingRate[];
+}) {
+  const rateById = new Map(rates.map((rate) => [rate.id, rate.name]));
+
+  return order.participants
+    .map((participant, index) => {
+      const answers = participant.answers || {};
+      const complementaryAnswers = { ...answers };
+
+      delete complementaryAnswers.age;
+      delete complementaryAnswers.email;
+      delete complementaryAnswers.phone;
+      delete complementaryAnswers.origin_city;
+
+      const complementaryHtml = Object.entries(complementaryAnswers)
+        .filter(([, value]) => safeText(value))
+        .map(
+          ([key, value]) =>
+            `<li>${escapeHtml(key)} : <strong>${escapeHtml(value)}</strong></li>`
+        )
+        .join("");
+
+      return `
+        <div style="margin: 0 0 14px; padding: 14px; border: 1px solid #e5e7eb; border-radius: 12px;">
+          <p style="margin: 0 0 8px;"><strong>Participant ${index + 1}</strong></p>
+          <p style="margin: 0 0 4px;">Nom : <strong>${escapeHtml(
+            `${participant.firstName} ${participant.lastName}`.trim()
+          )}</strong></p>
+          <p style="margin: 0 0 4px;">Tarif : <strong>${escapeHtml(
+            rateById.get(participant.rateId) || participant.rateId
+          )}</strong></p>
+          <p style="margin: 0 0 4px;">Âge : <strong>${escapeHtml(
+            answers.age
+          )}</strong></p>
+          <p style="margin: 0 0 4px;">Email : <strong>${escapeHtml(
+            answers.email
+          )}</strong></p>
+          <p style="margin: 0 0 4px;">Téléphone : <strong>${escapeHtml(
+            answers.phone
+          )}</strong></p>
+          <p style="margin: 0 0 8px;">Ville d’origine : <strong>${escapeHtml(
+            answers.origin_city
+          )}</strong></p>
+          ${
+            complementaryHtml
+              ? `<p style="margin: 10px 0 6px;"><strong>Informations complémentaires</strong></p><ul style="margin-top: 0;">${complementaryHtml}</ul>`
+              : ""
+          }
+        </div>
+      `;
+    })
+    .join("");
+}
+
 export async function sendPaymentConfirmationEmail(order: Order) {
   const from = requireEmailConfig();
 
@@ -187,8 +246,6 @@ export async function sendTicketingConfirmationEmail({
 }) {
   const from = requireEmailConfig();
 
-  const rateById = new Map(rates.map((rate) => [rate.id, rate.name]));
-
   const subject =
     safeText(event.confirmationEmailSubject) ||
     `Confirmation d’inscription – ${event.title}`;
@@ -201,54 +258,7 @@ export async function sendTicketingConfirmationEmail({
     `
     : "";
 
-  const participantsHtml = order.participants
-    .map((participant, index) => {
-      const answers = participant.answers || {};
-      const complementaryAnswers = { ...answers };
-
-      delete complementaryAnswers.age;
-      delete complementaryAnswers.email;
-      delete complementaryAnswers.phone;
-      delete complementaryAnswers.origin_city;
-
-      const complementaryHtml = Object.entries(complementaryAnswers)
-        .filter(([, value]) => safeText(value))
-        .map(
-          ([key, value]) =>
-            `<li>${escapeHtml(key)} : <strong>${escapeHtml(value)}</strong></li>`
-        )
-        .join("");
-
-      return `
-        <div style="margin: 0 0 14px; padding: 14px; border: 1px solid #e5e7eb; border-radius: 12px;">
-          <p style="margin: 0 0 8px;"><strong>Participant ${index + 1}</strong></p>
-          <p style="margin: 0 0 4px;">Nom : <strong>${escapeHtml(
-            `${participant.firstName} ${participant.lastName}`.trim()
-          )}</strong></p>
-          <p style="margin: 0 0 4px;">Tarif : <strong>${escapeHtml(
-            rateById.get(participant.rateId) || participant.rateId
-          )}</strong></p>
-          <p style="margin: 0 0 4px;">Âge : <strong>${escapeHtml(
-            answers.age
-          )}</strong></p>
-          <p style="margin: 0 0 4px;">Email : <strong>${escapeHtml(
-            answers.email
-          )}</strong></p>
-          <p style="margin: 0 0 4px;">Téléphone : <strong>${escapeHtml(
-            answers.phone
-          )}</strong></p>
-          <p style="margin: 0 0 8px;">Ville d’origine : <strong>${escapeHtml(
-            answers.origin_city
-          )}</strong></p>
-          ${
-            complementaryHtml
-              ? `<p style="margin: 10px 0 6px;"><strong>Informations complémentaires</strong></p><ul style="margin-top: 0;">${complementaryHtml}</ul>`
-              : ""
-          }
-        </div>
-      `;
-    })
-    .join("");
+  const participantsHtml = buildTicketingParticipantsHtml({ order, rates });
 
   await resend.emails.send({
     from,
@@ -302,6 +312,77 @@ export async function sendTicketingConfirmationEmail({
 
         <p>
           Merci pour votre inscription.<br />
+          <strong>Solidarité Cœur Actif</strong>
+        </p>
+      </div>
+    `,
+  });
+}
+
+export async function sendTicketingOrganizerNotificationEmail({
+  order,
+  event,
+  rates,
+}: {
+  order: TicketingOrder;
+  event: TicketingEvent;
+  rates: TicketingRate[];
+}) {
+  const from = requireEmailConfig();
+  const organizerEmail = safeText(event.organizerEmail);
+
+  if (!organizerEmail) {
+    return;
+  }
+
+  const participantsHtml = buildTicketingParticipantsHtml({ order, rates });
+
+  await resend.emails.send({
+    from,
+    to: organizerEmail,
+    subject: `Nouvelle inscription payée – ${event.title}`,
+    html: `
+      <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #111;">
+        <h2 style="margin-bottom: 16px;">Nouvelle inscription payée</h2>
+
+        <p>
+          Une nouvelle inscription vient d’être confirmée pour la billetterie :
+          <strong>${escapeHtml(event.title)}</strong>.
+        </p>
+
+        <div style="margin: 18px 0; padding: 14px 16px; border: 1px solid #dbe3ee; border-radius: 12px; background: #f8fafc;">
+          <p style="margin: 0 0 4px;">Référence : <strong>${escapeHtml(
+            order.reference
+          )}</strong></p>
+          <p style="margin: 0 0 4px;">Statut : <strong>Payée</strong></p>
+          <p style="margin: 0 0 4px;">Nombre de participant(s) : <strong>${escapeHtml(
+            order.participants.length
+          )}</strong></p>
+          <p style="margin: 0;">Montant événement : <strong>${formatAmount(
+            order.subtotalAmount,
+            order.currency
+          )}</strong></p>
+        </div>
+
+        <p><strong>Contact principal</strong></p>
+        <p style="margin: 0 0 4px;">Nom : <strong>${escapeHtml(
+          `${order.payerFirstName} ${order.payerLastName}`.trim()
+        )}</strong></p>
+        <p style="margin: 0 0 4px;">Email : <strong>${escapeHtml(
+          order.payerEmail
+        )}</strong></p>
+        <p style="margin: 0 0 16px;">Téléphone : <strong>${escapeHtml(
+          order.payerPhone
+        )}</strong></p>
+
+        <p><strong>Participant(s)</strong></p>
+        ${participantsHtml || "<p>Aucun participant enregistré.</p>"}
+
+        <p style="margin-top: 18px;">
+          Cette inscription est désormais visible dans votre espace organisateur.
+        </p>
+
+        <p>
           <strong>Solidarité Cœur Actif</strong>
         </p>
       </div>
