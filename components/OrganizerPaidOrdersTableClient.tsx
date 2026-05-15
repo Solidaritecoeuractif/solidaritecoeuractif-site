@@ -52,12 +52,14 @@ export default function OrganizerPaidOrdersTableClient({
   eventSlug: string;
   orders: TicketingOrder[];
 }) {
+  const [visibleOrders, setVisibleOrders] = useState(orders);
   const [selectedReferences, setSelectedReferences] = useState<string[]>([]);
   const [message, setMessage] = useState("");
+  const [refundingReference, setRefundingReference] = useState("");
 
   const allReferences = useMemo(
-    () => orders.map((order) => order.reference),
-    [orders]
+    () => visibleOrders.map((order) => order.reference),
+    [visibleOrders]
   );
 
   const selectedSet = useMemo(
@@ -66,7 +68,7 @@ export default function OrganizerPaidOrdersTableClient({
   );
 
   const allSelected =
-    orders.length > 0 && selectedReferences.length === orders.length;
+    visibleOrders.length > 0 && selectedReferences.length === visibleOrders.length;
 
   function toggleOne(reference: string) {
     setMessage("");
@@ -101,6 +103,57 @@ export default function OrganizerPaidOrdersTableClient({
 
     if (format === "csv" || format === "xlsx") {
       window.location.href = exportUrl(eventId, format, selectedReferences);
+    }
+  }
+
+  async function refundOrder(order: TicketingOrder) {
+    setMessage("");
+
+    const confirmed = window.confirm(
+      `Voulez-vous vraiment rembourser l’inscription ${order.reference} ?\n\nCette action déclenchera un remboursement Stripe et l’inscription sera retirée de la liste des inscriptions payées.`
+    );
+
+    if (!confirmed) return;
+
+    setRefundingReference(order.reference);
+
+    try {
+      const response = await fetch(
+        `/api/organisateur/billetteries/${eventId}/orders/${order.reference}/refund`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+        }
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        setMessage(
+          typeof data?.error === "string"
+            ? data.error
+            : "Impossible de rembourser cette inscription."
+        );
+        return;
+      }
+
+      setVisibleOrders((current) =>
+        current.filter((item) => item.reference !== order.reference)
+      );
+
+      setSelectedReferences((current) =>
+        current.filter((item) => item !== order.reference)
+      );
+
+      setMessage(
+        typeof data?.message === "string"
+          ? data.message
+          : "Remboursement effectué. L’inscription a été annulée."
+      );
+    } catch {
+      setMessage("Erreur pendant le remboursement.");
+    } finally {
+      setRefundingReference("");
     }
   }
 
@@ -189,11 +242,20 @@ export default function OrganizerPaidOrdersTableClient({
       {message ? (
         <div
           style={{
-            border: "1px solid #fde68a",
+            border:
+              message.includes("Impossible") || message.includes("Erreur")
+                ? "1px solid #fecaca"
+                : "1px solid #bbf7d0",
             borderRadius: "14px",
             padding: "12px",
-            background: "#fffbeb",
-            color: "#92400e",
+            background:
+              message.includes("Impossible") || message.includes("Erreur")
+                ? "#fef2f2"
+                : "#f0fdf4",
+            color:
+              message.includes("Impossible") || message.includes("Erreur")
+                ? "#991b1b"
+                : "#166534",
             fontWeight: 800,
             marginBottom: "14px",
           }}
@@ -202,7 +264,7 @@ export default function OrganizerPaidOrdersTableClient({
         </div>
       ) : null}
 
-      {orders.length === 0 ? (
+      {visibleOrders.length === 0 ? (
         <p style={{ color: "#64748b", marginBottom: 0 }}>
           Aucune inscription payée enregistrée pour cette billetterie.
         </p>
@@ -212,7 +274,7 @@ export default function OrganizerPaidOrdersTableClient({
             className="table"
             style={{
               width: "100%",
-              minWidth: "1040px",
+              minWidth: "1180px",
               tableLayout: "fixed",
               borderCollapse: "collapse",
             }}
@@ -233,91 +295,114 @@ export default function OrganizerPaidOrdersTableClient({
                 <th style={{ width: "150px" }}>Montant événement</th>
                 <th style={{ width: "150px" }}>Créée le</th>
                 <th style={{ width: "260px" }}>Détail participants</th>
-                <th style={{ width: "120px" }}>Action</th>
+                <th style={{ width: "220px" }}>Actions</th>
               </tr>
             </thead>
 
             <tbody>
-              {orders.map((order) => (
-                <tr key={order.id}>
-                  <td>
-                    <input
-                      type="checkbox"
-                      checked={selectedSet.has(order.reference)}
-                      onChange={() => toggleOne(order.reference)}
-                      aria-label={`Sélectionner ${order.reference}`}
-                    />
-                  </td>
+              {visibleOrders.map((order) => {
+                const isRefunding = refundingReference === order.reference;
 
-                  <td>
-                    <strong>{order.reference}</strong>
-                  </td>
+                return (
+                  <tr key={order.id}>
+                    <td>
+                      <input
+                        type="checkbox"
+                        checked={selectedSet.has(order.reference)}
+                        onChange={() => toggleOne(order.reference)}
+                        aria-label={`Sélectionner ${order.reference}`}
+                      />
+                    </td>
 
-                  <td>
-                    <strong>
-                      {order.payerFirstName} {order.payerLastName}
-                    </strong>
-                    <br />
-                    <small style={{ color: "#64748b" }}>
-                      {order.payerEmail}
-                    </small>
-                    <br />
-                    <small style={{ color: "#64748b" }}>
-                      {order.payerPhone || "—"}
-                    </small>
-                  </td>
+                    <td>
+                      <strong>{order.reference}</strong>
+                    </td>
 
-                  <td>
-                    <strong>{order.participants.length}</strong>
-                  </td>
+                    <td>
+                      <strong>
+                        {order.payerFirstName} {order.payerLastName}
+                      </strong>
+                      <br />
+                      <small style={{ color: "#64748b" }}>
+                        {order.payerEmail}
+                      </small>
+                      <br />
+                      <small style={{ color: "#64748b" }}>
+                        {order.payerPhone || "—"}
+                      </small>
+                    </td>
 
-                  <td>
-                    <strong>{formatAmount(order.subtotalAmount)}</strong>
-                  </td>
+                    <td>
+                      <strong>{order.participants.length}</strong>
+                    </td>
 
-                  <td>{formatDate(order.createdAt)}</td>
+                    <td>
+                      <strong>{formatAmount(order.subtotalAmount)}</strong>
+                    </td>
 
-                  <td>
-                    {order.participants.length === 0 ? (
-                      <span style={{ color: "#64748b" }}>—</span>
-                    ) : (
-                      <div style={{ display: "grid", gap: "4px" }}>
-                        {order.participants
-                          .slice(0, 4)
-                          .map((participant, index) => (
-                            <div key={participant.id}>
-                              <small>
-                                {index + 1}. {participant.firstName}{" "}
-                                {participant.lastName}
-                              </small>
-                            </div>
-                          ))}
+                    <td>{formatDate(order.createdAt)}</td>
 
-                        {order.participants.length > 4 ? (
-                          <small style={{ color: "#64748b" }}>
-                            + {order.participants.length - 4} autre(s)
-                          </small>
-                        ) : null}
+                    <td>
+                      {order.participants.length === 0 ? (
+                        <span style={{ color: "#64748b" }}>—</span>
+                      ) : (
+                        <div style={{ display: "grid", gap: "4px" }}>
+                          {order.participants
+                            .slice(0, 4)
+                            .map((participant, index) => (
+                              <div key={participant.id}>
+                                <small>
+                                  {index + 1}. {participant.firstName}{" "}
+                                  {participant.lastName}
+                                </small>
+                              </div>
+                            ))}
+
+                          {order.participants.length > 4 ? (
+                            <small style={{ color: "#64748b" }}>
+                              + {order.participants.length - 4} autre(s)
+                            </small>
+                          ) : null}
+                        </div>
+                      )}
+                    </td>
+
+                    <td>
+                      <div style={{ display: "grid", gap: "8px" }}>
+                        <Link
+                          href={`/organisateur/billetteries/${eventSlug}/inscriptions/${order.reference}`}
+                          className="button secondary small"
+                          style={{
+                            display: "inline-flex",
+                            justifyContent: "center",
+                            width: "100%",
+                            textDecoration: "none",
+                          }}
+                        >
+                          Ouvrir
+                        </Link>
+
+                        <button
+                          type="button"
+                          className="button secondary small"
+                          disabled={isRefunding}
+                          onClick={() => refundOrder(order)}
+                          style={{
+                            width: "100%",
+                            borderColor: "#fecaca",
+                            color: "#991b1b",
+                            background: "#fffafa",
+                            cursor: isRefunding ? "not-allowed" : "pointer",
+                            opacity: isRefunding ? 0.65 : 1,
+                          }}
+                        >
+                          {isRefunding ? "Remboursement..." : "Rembourser"}
+                        </button>
                       </div>
-                    )}
-                  </td>
-
-                  <td>
-                    <Link
-                      href={`/organisateur/billetteries/${eventSlug}/inscriptions/${order.reference}`}
-                      className="button secondary small"
-                      style={{
-                        display: "inline-flex",
-                        justifyContent: "center",
-                        width: "100%",
-                        textDecoration: "none",
-                      }}
-                    >
-                      Ouvrir
-                    </Link>
-                  </td>
-                </tr>
-              ))}
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
