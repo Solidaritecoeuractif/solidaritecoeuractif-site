@@ -32,6 +32,18 @@ function toDateTimeLocalValue(value?: string) {
   return local.toISOString().slice(0, 16);
 }
 
+function dateTimeLocalToIso(value: string) {
+  if (!value) return "";
+
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return value;
+  }
+
+  return date.toISOString();
+}
+
 function centsToEuros(value?: number) {
   if (typeof value !== "number") return "";
   return String(value / 100);
@@ -382,8 +394,8 @@ export default function OrganizerEditTicketingClient({
           city,
           country,
           durationType,
-          startsAt,
-          endsAt,
+          startsAt: dateTimeLocalToIso(startsAt),
+          endsAt: dateTimeLocalToIso(endsAt),
           organizerEmail,
           organizerPhone,
           shortDescription,
