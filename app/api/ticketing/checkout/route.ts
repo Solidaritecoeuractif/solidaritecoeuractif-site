@@ -162,6 +162,52 @@ function computeExtraDonationAmount(
   return toPositiveCents(submittedExtraDonationAmount);
 }
 
+function organizerDisplayName(event: TicketingEvent) {
+  return (
+    cleanString(event.formTypeLabel) ||
+    cleanString(event.title) ||
+    "Organisation"
+  );
+}
+
+function eventContactDescription(event: TicketingEvent) {
+  const organizerName = organizerDisplayName(event);
+  const organizerEmail = cleanString(event.organizerEmail);
+  const organizerPhone = cleanString(event.organizerPhone);
+
+  const parts = [`Organisation : ${organizerName}`];
+
+  if (organizerEmail) {
+    parts.push(`Contact événement : ${organizerEmail}`);
+  }
+
+  if (organizerPhone) {
+    parts.push(`Téléphone : ${organizerPhone}`);
+  }
+
+  return parts.join(" — ");
+}
+
+function shortenStripeText(value: string, maxLength: number) {
+  const text = cleanString(value).replace(/\s+/g, " ");
+
+  if (text.length <= maxLength) return text;
+
+  return text.slice(0, Math.max(0, maxLength - 1)).trim() + "…";
+}
+
+function stripeStatementSuffix(value: string) {
+  const normalized = cleanString(value)
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-zA-Z0-9 ]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .toUpperCase();
+
+  return (normalized || "BILLETTERIE").slice(0, 22);
+}
+
 export async function POST(request: Request) {
   try {
     const payload = await request.json();
@@ -498,6 +544,10 @@ export async function POST(request: Request) {
     await storage.saveTicketingOrder(order);
 
     const fullName = `${payer.firstName} ${payer.lastName}`.trim();
+    const organizationName = organizerDisplayName(event);
+    const organizationEmail = cleanString(event.organizerEmail);
+    const organizationPhone = cleanString(event.organizerPhone);
+    const contactDescription = eventContactDescription(event);
 
     const session = await stripe().checkout.sessions.create({
       mode: "payment",
@@ -509,12 +559,22 @@ export async function POST(request: Request) {
       phone_number_collection: { enabled: true },
 
       payment_intent_data: {
-        description: `Inscription billetterie ${reference} — ${event.title} — ${fullName}`,
+        description: shortenStripeText(
+          `Inscription ${reference} — ${event.title} — ${contactDescription} — Payeur : ${fullName}`,
+          500
+        ),
+        statement_descriptor_suffix: stripeStatementSuffix(organizationName),
         metadata: {
           checkoutType: "ticketing",
           ticketingReference: reference,
           eventId: event.id,
           eventSlug: event.slug,
+          eventTitle: event.title,
+          organizationName,
+          organizationEmail,
+          organizationPhone,
+          payerEmail: payer.email,
+          payerName: fullName,
         },
       },
 
@@ -527,10 +587,20 @@ export async function POST(request: Request) {
               currency: process.env.STRIPE_CURRENCY || "eur",
               unit_amount: line.unitAmount,
               product_data: {
-                name: `${event.title} — ${line.rateName}`,
-                description: line.promoApplied
-                  ? `Référence ${reference} — code promo ${line.promoCode} (${line.promoDiscountPercent} %)`
-                  : `Référence ${reference}`,
+                name: `Inscription — ${event.title}`,
+                description: shortenStripeText(
+                  [
+                    `Tarif : ${line.rateName}`,
+                    `Référence : ${reference}`,
+                    contactDescription,
+                    line.promoApplied
+                      ? `Code promo : ${line.promoCode} (${line.promoDiscountPercent} %)`
+                      : "",
+                  ]
+                    .filter(Boolean)
+                    .join(" — "),
+                  500
+                ),
               },
             },
           })),
@@ -542,8 +612,11 @@ export async function POST(request: Request) {
                   currency: process.env.STRIPE_CURRENCY || "eur",
                   unit_amount: finalExtraDonationAmount,
                   product_data: {
-                    name: "Contribution libre à Solidarité Cœur Actif",
-                    description: `Contribution facultative SCA pour l’inscription ${reference}`,
+                    name: "Contribution facultative à Solidarité Cœur Actif",
+                    description: shortenStripeText(
+                      `Soutien facultatif à la plateforme Solidarité Cœur Actif — inscription ${reference} — distinct de l’organisation ${organizationName}`,
+                      500
+                    ),
                   },
                 },
               },
@@ -557,6 +630,9 @@ export async function POST(request: Request) {
         eventId: event.id,
         eventSlug: event.slug,
         eventTitle: event.title,
+        organizationName,
+        organizationEmail,
+        organizationPhone,
         payerEmail: payer.email,
         payerName: fullName,
         originalSubtotalAmount: String(originalSubtotalAmount),
@@ -590,6 +666,9 @@ export async function POST(request: Request) {
         id: event.id,
         slug: event.slug,
         title: event.title,
+        organizationName,
+        organizationEmail,
+        organizationPhone,
       },
     });
   } catch (error) {
