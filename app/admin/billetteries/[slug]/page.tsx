@@ -72,6 +72,13 @@ export default async function Page({
 
   const publicVisible = isPubliclyVisible(event.status, event.isVisible);
 
+  const paidOrders = orders.filter((order) => order.paymentStatus === "paid");
+
+  const paidParticipantsCount = paidOrders.reduce(
+    (sum, order) => sum + order.participants.length,
+    0
+  );
+
   return (
     <main className="panel">
       <div
@@ -166,9 +173,9 @@ export default async function Page({
               background: "#ffffff",
             }}
           >
-            <strong>Inscriptions</strong>
+            <strong>Inscriptions payées</strong>
             <div style={{ fontSize: "28px", fontWeight: 800, marginTop: "6px" }}>
-              {orders.length}
+              {paidOrders.length}
             </div>
           </div>
 
@@ -180,12 +187,9 @@ export default async function Page({
               background: "#ffffff",
             }}
           >
-            <strong>Participants</strong>
+            <strong>Participants payés</strong>
             <div style={{ fontSize: "28px", fontWeight: 800, marginTop: "6px" }}>
-              {orders.reduce(
-                (sum, order) => sum + order.participants.length,
-                0
-              )}
+              {paidParticipantsCount}
             </div>
           </div>
         </section>

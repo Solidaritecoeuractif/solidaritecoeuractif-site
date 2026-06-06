@@ -81,7 +81,7 @@ export default async function Page({
 
   const paidOrders = orders.filter((order) => order.paymentStatus === "paid");
 
-  const participantsCount = paidOrders.reduce(
+  const paidParticipantsCount = paidOrders.reduce(
     (sum, order) => sum + order.participants.length,
     0
   );
@@ -205,9 +205,9 @@ export default async function Page({
               background: "#ffffff",
             }}
           >
-            <strong>Participants</strong>
+            <strong>Participants payés</strong>
             <div style={{ fontSize: "28px", fontWeight: 900, marginTop: "6px" }}>
-              {participantsCount}
+              {paidParticipantsCount}
             </div>
           </div>
 
@@ -219,7 +219,7 @@ export default async function Page({
               background: "#ffffff",
             }}
           >
-            <strong>Montant événement</strong>
+            <strong>Montant événement payé</strong>
             <div style={{ fontSize: "28px", fontWeight: 900, marginTop: "6px" }}>
               {formatAmount(eventAmount)}
             </div>
