@@ -114,21 +114,29 @@ export function AddToCartForm({ product }: { product: Product }) {
       {product.pricingMode === "flexible" ? (
         <div className="shipping-preview-box">
           <p className="shipping-preview-title">
-            Repères pour les frais de livraison
+            Repères du montant minimum selon la destination
           </p>
+
           <small>
             France métropolitaine :{" "}
             <strong>à partir de {formatEuroFromCents(franceMinimum)}</strong>
           </small>
+
           <small>
             Outre-mer :{" "}
             <strong>à partir de {formatEuroFromCents(overseasMinimum)}</strong>
           </small>
+
           <small>
             Hors France :{" "}
             <strong>
               à partir de {formatEuroFromCents(internationalMinimum)}
             </strong>
+          </small>
+
+          <small style={{ marginTop: 6, color: "#64748b" }}>
+            Le montant exact sera automatiquement appliqué dans le panier selon
+            l’adresse indiquée.
           </small>
         </div>
       ) : null}

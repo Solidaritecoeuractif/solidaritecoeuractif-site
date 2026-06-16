@@ -26,6 +26,7 @@ export default async function ProductEditPage({
 
       <section className="panel">
         <h1>Modifier l’offre</h1>
+
         <form
           action={`/api/products/${product.id}`}
           method="post"
@@ -106,7 +107,7 @@ export default async function ProductEditPage({
           </label>
 
           <label>
-            <span>Minimum métropole (centimes)</span>
+            <span>Montant minimum France métropolitaine (centimes)</span>
             <input
               name="minimumAmount"
               type="number"
@@ -115,7 +116,7 @@ export default async function ProductEditPage({
           </label>
 
           <label>
-            <span>Minimum Outre-Mer (centimes)</span>
+            <span>Montant minimum Outre-mer (centimes)</span>
             <input
               name="minimumAmountOutreMer"
               type="number"
@@ -124,7 +125,7 @@ export default async function ProductEditPage({
           </label>
 
           <label>
-            <span>Minimum International (centimes)</span>
+            <span>Montant minimum hors France (centimes)</span>
             <input
               name="minimumAmountInternational"
               type="number"
@@ -177,12 +178,16 @@ export default async function ProductEditPage({
           </label>
 
           <label>
-            <span>Montant livraison (centimes)</span>
+            <span>Livraison fixe supplémentaire (centimes)</span>
             <input
               name="shippingFeeAmount"
               type="number"
               defaultValue={product.shippingFeeAmount}
             />
+            <small style={{ display: "block", marginTop: 6, color: "#64748b" }}>
+              À laisser vide ou à 0 si les montants minimums ci-dessus incluent
+              déjà la livraison selon la destination.
+            </small>
           </label>
 
           <label>
