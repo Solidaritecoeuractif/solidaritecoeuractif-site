@@ -155,23 +155,27 @@ export function AddToCartForm({ product }: { product: Product }) {
             </button>
 
             <input
-              type="number"
-              min={1}
-              max={maxQuantity}
-              value={quantityInput}
-              onChange={(e) => updateQuantity(e.target.value)}
-              onBlur={() => setQuantityInput(String(quantity))}
-              style={{
-                border: "2px solid #cfd8e6",
-                borderRadius: "18px",
-                padding: "14px 16px",
-                width: "100%",
-                maxWidth: "180px",
-                textAlign: "center",
-                fontSize: "1.25rem",
-                fontWeight: 800,
-              }}
-            />
+  type="text"
+  inputMode="numeric"
+  pattern="[0-9]*"
+  value={quantityInput}
+  onChange={(e) => updateQuantity(e.target.value)}
+  onBlur={() => setQuantityInput(String(quantity))}
+  style={{
+    border: "2px solid #cfd8e6",
+    borderRadius: "18px",
+    padding: "0 12px",
+    width: "96px",
+    minWidth: "96px",
+    height: "54px",
+    lineHeight: "54px",
+    textAlign: "center",
+    fontSize: "1.35rem",
+    fontWeight: 900,
+    appearance: "textfield",
+    WebkitAppearance: "none",
+  }}
+/>
 
             <button
               type="button"
