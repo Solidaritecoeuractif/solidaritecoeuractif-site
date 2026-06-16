@@ -114,6 +114,10 @@ export async function POST(request: Request) {
       billing_address_collection: "auto",
       phone_number_collection: { enabled: true },
 
+      adaptive_pricing: {
+        enabled: true,
+      },
+
       payment_intent_data: {
         description: `Commande ${reference} — ${fullName}`,
       },
