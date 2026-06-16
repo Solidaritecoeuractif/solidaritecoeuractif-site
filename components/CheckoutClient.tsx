@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type CSSProperties } from "react";
 import type { Product } from "@/lib/types";
 import { euros } from "@/lib/utils";
 import {
@@ -39,6 +39,14 @@ function formatEuroInputFromCents(amount: number) {
   return (amount / 100).toFixed(2).replace(".", ",");
 }
 
+function isBlank(value: string) {
+  return !String(value || "").trim();
+}
+
+function isValidEmail(value: string) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(value || "").trim());
+}
+
 export function CheckoutClient({ products }: { products: Product[] }) {
   const [items, setItems] = useState<ClientItem[]>([]);
   const [quote, setQuote] = useState<Quote | null>(null);
@@ -52,6 +60,9 @@ export function CheckoutClient({ products }: { products: Product[] }) {
     {}
   );
   const [invalidShippingInputs, setInvalidShippingInputs] = useState<number[]>(
+    []
+  );
+  const [invalidRequiredFields, setInvalidRequiredFields] = useState<string[]>(
     []
   );
   const [form, setForm] = useState({
@@ -257,9 +268,70 @@ export function CheckoutClient({ products }: { products: Product[] }) {
     allFlexibleAmountsEntered,
   ]);
 
+  function collectInvalidRequiredFields() {
+    const invalidFields: string[] = [];
+
+    if (isBlank(form.firstName)) invalidFields.push("firstName");
+    if (isBlank(form.lastName)) invalidFields.push("lastName");
+    if (isBlank(form.email) || !isValidEmail(form.email)) {
+      invalidFields.push("email");
+    }
+    if (isBlank(form.phone)) invalidFields.push("phone");
+    if (isBlank(form.country)) invalidFields.push("country");
+
+    if (requiresShipping) {
+      if (isBlank(form.address1)) invalidFields.push("address1");
+      if (isBlank(form.postalCode)) invalidFields.push("postalCode");
+      if (isBlank(form.city)) invalidFields.push("city");
+    }
+
+    return invalidFields;
+  }
+
+  function focusFirstInvalidField(fields: string[]) {
+    const firstField = fields[0];
+    if (!firstField) return;
+
+    window.requestAnimationFrame(() => {
+      const element = document.querySelector(
+        `[data-required-field="${firstField}"]`
+      ) as HTMLElement | null;
+
+      element?.focus();
+      element?.scrollIntoView({ behavior: "smooth", block: "center" });
+    });
+  }
+
+  function requiredFieldStyle(fieldKey: string, baseStyle?: CSSProperties) {
+    const isInvalid = invalidRequiredFields.includes(fieldKey);
+
+    return {
+      ...(baseStyle || {}),
+      ...(isInvalid
+        ? {
+            border: "1.5px solid #dc2626",
+            boxShadow: "0 0 0 4px rgba(220, 38, 38, 0.12)",
+            background: "#fffafa",
+            animation: "requiredFieldBlink 1s ease-in-out infinite",
+          }
+        : {}),
+    } as CSSProperties;
+  }
+
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     setError("");
+
+    const invalidFields = collectInvalidRequiredFields();
+
+    if (invalidFields.length) {
+      setInvalidRequiredFields(invalidFields);
+      setError("Merci de compléter les champs obligatoires encadrés en rouge.");
+      focusFirstInvalidField(invalidFields);
+      return;
+    }
+
+    setInvalidRequiredFields([]);
 
     if (!allFlexibleAmountsEntered) {
       setError("Merci de renseigner les frais de livraison avant de continuer.");
@@ -314,6 +386,10 @@ export function CheckoutClient({ products }: { products: Product[] }) {
 
   function update(key: string, value: string) {
     setForm((prev) => ({ ...prev, [key]: value }));
+
+    setInvalidRequiredFields((prev) =>
+      prev.filter((fieldKey) => fieldKey !== key)
+    );
   }
 
   function updateFlexibleLineAmount(index: number, amountInEuros: string) {
@@ -491,7 +567,7 @@ export function CheckoutClient({ products }: { products: Product[] }) {
 
   return (
     <div className="checkout-layout">
-      <form onSubmit={submit} className="panel">
+      <form onSubmit={submit} className="panel" noValidate>
         <h1>Finaliser votre demande</h1>
 
         <div className="form-grid">
@@ -499,8 +575,10 @@ export function CheckoutClient({ products }: { products: Product[] }) {
             <span>Prénom</span>
             <input
               required
+              data-required-field="firstName"
               value={form.firstName}
               onChange={(e) => update("firstName", e.target.value)}
+              style={requiredFieldStyle("firstName")}
             />
           </label>
 
@@ -508,8 +586,10 @@ export function CheckoutClient({ products }: { products: Product[] }) {
             <span>Nom</span>
             <input
               required
+              data-required-field="lastName"
               value={form.lastName}
               onChange={(e) => update("lastName", e.target.value)}
+              style={requiredFieldStyle("lastName")}
             />
           </label>
 
@@ -518,8 +598,10 @@ export function CheckoutClient({ products }: { products: Product[] }) {
             <input
               type="email"
               required
+              data-required-field="email"
               value={form.email}
               onChange={(e) => update("email", e.target.value)}
+              style={requiredFieldStyle("email")}
             />
           </label>
 
@@ -527,8 +609,10 @@ export function CheckoutClient({ products }: { products: Product[] }) {
             <span>Téléphone</span>
             <input
               required
+              data-required-field="phone"
               value={form.phone}
               onChange={(e) => update("phone", e.target.value)}
+              style={requiredFieldStyle("phone")}
             />
           </label>
         </div>
@@ -539,8 +623,11 @@ export function CheckoutClient({ products }: { products: Product[] }) {
           <label>
             <span>Pays / destination</span>
             <select
+              required
+              data-required-field="country"
               value={form.country}
               onChange={(e) => update("country", e.target.value)}
+              style={requiredFieldStyle("country")}
             >
               {DESTINATION_OPTIONS.map((country) => (
                 <option key={country.code} value={country.code}>
@@ -560,8 +647,10 @@ export function CheckoutClient({ products }: { products: Product[] }) {
                 <span>Adresse</span>
                 <input
                   required
+                  data-required-field="address1"
                   value={form.address1}
                   onChange={(e) => update("address1", e.target.value)}
+                  style={requiredFieldStyle("address1")}
                 />
               </label>
 
@@ -577,10 +666,12 @@ export function CheckoutClient({ products }: { products: Product[] }) {
                 <span>Code postal</span>
                 <input
                   required
+                  data-required-field="postalCode"
                   value={form.postalCode}
                   onChange={(e) => update("postalCode", e.target.value)}
                   readOnly={isPostalCodeForced}
-                  style={
+                  style={requiredFieldStyle(
+                    "postalCode",
                     isPostalCodeForced
                       ? {
                           background: "#f1f5f9",
@@ -588,7 +679,7 @@ export function CheckoutClient({ products }: { products: Product[] }) {
                           cursor: "not-allowed",
                         }
                       : undefined
-                  }
+                  )}
                 />
                 {isPostalCodeForced ? (
                   <p
@@ -608,8 +699,10 @@ export function CheckoutClient({ products }: { products: Product[] }) {
                 <span>Ville / commune</span>
                 <input
                   required
+                  data-required-field="city"
                   value={form.city}
                   onChange={(e) => update("city", e.target.value)}
+                  style={requiredFieldStyle("city")}
                 />
               </label>
             </div>
@@ -734,17 +827,17 @@ export function CheckoutClient({ products }: { products: Product[] }) {
             >
               <div style={{ minWidth: 0 }}>
                 <strong style={{ fontSize: "0.76rem" }}>
-  Participation libre à l’Association Solidarité Cœur Actif
-</strong>{" "}
-<span
-  style={{
-    color: "#64748b",
-    fontSize: "0.72rem",
-    lineHeight: 1.25,
-  }}
->
-  pour soutenir la plateforme et ses actions solidaires.
-</span>
+                  Participation libre à l’Association Solidarité Cœur Actif
+                </strong>{" "}
+                <span
+                  style={{
+                    color: "#64748b",
+                    fontSize: "0.72rem",
+                    lineHeight: 1.25,
+                  }}
+                >
+                  pour soutenir la plateforme et ses actions solidaires.
+                </span>
               </div>
 
               <strong
@@ -946,6 +1039,18 @@ export function CheckoutClient({ products }: { products: Product[] }) {
             }
             50% {
               box-shadow: 0 0 0 7px rgba(220, 38, 38, 0.16);
+            }
+            100% {
+              box-shadow: 0 0 0 4px rgba(220, 38, 38, 0.1);
+            }
+          }
+
+          @keyframes requiredFieldBlink {
+            0% {
+              box-shadow: 0 0 0 4px rgba(220, 38, 38, 0.1);
+            }
+            50% {
+              box-shadow: 0 0 0 7px rgba(220, 38, 38, 0.22);
             }
             100% {
               box-shadow: 0 0 0 4px rgba(220, 38, 38, 0.1);
