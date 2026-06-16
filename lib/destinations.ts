@@ -592,7 +592,7 @@ export function calculateZoneAdjustedLineMinimum(
   destinationCode: string
 ) {
   const minimum = getProductMinimumForDestination(product, destinationCode);
-  return roundUpToUpperEuro(minimum * quantity);
+  return minimum * quantity;
 }
 
 export function isOverseasDestination(code: string) {
