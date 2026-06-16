@@ -19,17 +19,19 @@ function formatEuroFromCents(amount: number) {
 }
 
 export function AddToCartForm({ product }: { product: Product }) {
-  const [quantityInput, setQuantityInput] = useState("");
+  const maxQuantity = product.maxQuantity || 50;
+
+  const [quantityInput, setQuantityInput] = useState("1");
   const [message, setMessage] = useState("");
 
+  function normalizeQuantity(value: number) {
+    if (!Number.isFinite(value) || value <= 0) return 1;
+    return Math.max(1, Math.min(Math.floor(value), maxQuantity));
+  }
+
   const quantity = useMemo(() => {
-    const numeric = Number(quantityInput);
-    if (!Number.isFinite(numeric) || numeric <= 0) return 1;
-    return Math.max(
-      1,
-      Math.min(Math.floor(numeric), product.maxQuantity || 50)
-    );
-  }, [quantityInput, product.maxQuantity]);
+    return normalizeQuantity(Number(quantityInput));
+  }, [quantityInput, maxQuantity]);
 
   const franceMinimum = useMemo(
     () => calculateZoneAdjustedLineMinimum(product, quantity, "FR"),
@@ -46,6 +48,33 @@ export function AddToCartForm({ product }: { product: Product }) {
     [product, quantity]
   );
 
+  function decreaseQuantity() {
+    setMessage("");
+    setQuantityInput((prev) => String(normalizeQuantity(Number(prev) - 1)));
+  }
+
+  function increaseQuantity() {
+    setMessage("");
+    setQuantityInput((prev) => String(normalizeQuantity(Number(prev) + 1)));
+  }
+
+  function updateQuantity(value: string) {
+    setMessage("");
+
+    if (value === "") {
+      setQuantityInput("");
+      return;
+    }
+
+    const numeric = Number(value);
+
+    if (!Number.isFinite(numeric)) {
+      return;
+    }
+
+    setQuantityInput(String(normalizeQuantity(numeric)));
+  }
+
   function addToCart() {
     const parsed = Number(quantityInput);
 
@@ -54,10 +83,7 @@ export function AddToCartForm({ product }: { product: Product }) {
       return;
     }
 
-    const sanitizedQuantity = Math.max(
-      1,
-      Math.min(Math.floor(parsed), product.maxQuantity || 50)
-    );
+    const sanitizedQuantity = normalizeQuantity(parsed);
 
     const raw = localStorage.getItem("sca_cart");
     const current: CartLine[] = raw ? JSON.parse(raw) : [];
@@ -73,7 +99,7 @@ export function AddToCartForm({ product }: { product: Product }) {
         ...current[index],
         quantity: Math.min(
           (current[index].quantity || 0) + sanitizedQuantity,
-          product.maxQuantity || 50
+          maxQuantity
         ),
       };
     } else {
@@ -94,20 +120,95 @@ export function AddToCartForm({ product }: { product: Product }) {
       <div className="form-grid compact">
         <label>
           <span>Quantité</span>
-          <input
-            type="number"
-            min={1}
-            max={product.maxQuantity || 50}
-            value={quantityInput}
-            onChange={(e) => setQuantityInput(e.target.value)}
-            placeholder=""
+
+          <div
             style={{
-              border: "2px solid #cfd8e6",
-              borderRadius: "18px",
-              padding: "14px 16px",
-              maxWidth: "360px",
+              display: "flex",
+              alignItems: "center",
+              gap: 10,
+              maxWidth: 360,
             }}
-          />
+          >
+            <button
+              type="button"
+              onClick={decreaseQuantity}
+              aria-label="Diminuer la quantité"
+              disabled={quantity <= 1}
+              style={{
+                width: 54,
+                height: 54,
+                borderRadius: "16px",
+                border: "2px solid #d99a2b",
+                background: quantity <= 1 ? "#f8fafc" : "#fff7ed",
+                color: quantity <= 1 ? "#94a3b8" : "#8a4b12",
+                fontSize: 30,
+                fontWeight: 900,
+                lineHeight: 1,
+                cursor: quantity <= 1 ? "not-allowed" : "pointer",
+                boxShadow:
+                  quantity <= 1
+                    ? "none"
+                    : "0 8px 18px rgba(217, 154, 43, 0.18)",
+              }}
+            >
+              –
+            </button>
+
+            <input
+              type="number"
+              min={1}
+              max={maxQuantity}
+              value={quantityInput}
+              onChange={(e) => updateQuantity(e.target.value)}
+              onBlur={() => setQuantityInput(String(quantity))}
+              style={{
+                border: "2px solid #cfd8e6",
+                borderRadius: "18px",
+                padding: "14px 16px",
+                width: "100%",
+                maxWidth: "180px",
+                textAlign: "center",
+                fontSize: "1.25rem",
+                fontWeight: 800,
+              }}
+            />
+
+            <button
+              type="button"
+              onClick={increaseQuantity}
+              aria-label="Augmenter la quantité"
+              disabled={quantity >= maxQuantity}
+              style={{
+                width: 54,
+                height: 54,
+                borderRadius: "16px",
+                border: "2px solid #d99a2b",
+                background: quantity >= maxQuantity ? "#f8fafc" : "#fff7ed",
+                color: quantity >= maxQuantity ? "#94a3b8" : "#8a4b12",
+                fontSize: 30,
+                fontWeight: 900,
+                lineHeight: 1,
+                cursor: quantity >= maxQuantity ? "not-allowed" : "pointer",
+                boxShadow:
+                  quantity >= maxQuantity
+                    ? "none"
+                    : "0 8px 18px rgba(217, 154, 43, 0.18)",
+              }}
+            >
+              +
+            </button>
+          </div>
+
+          <small
+            style={{
+              display: "block",
+              marginTop: 8,
+              color: "#64748b",
+              fontSize: "0.9rem",
+            }}
+          >
+            Utilisez + ou – pour choisir le nombre d’exemplaires.
+          </small>
         </label>
       </div>
 
