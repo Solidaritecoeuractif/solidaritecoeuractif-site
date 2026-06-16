@@ -1032,7 +1032,7 @@ export function CheckoutClient({ products }: { products: Product[] }) {
           métropolitaine, Outre-mer ou international.
         </p>
 
-        <style jsx>{`
+        <style jsx global>{`
           @keyframes shippingBlink {
             0% {
               box-shadow: 0 0 0 4px rgba(220, 38, 38, 0.1);
