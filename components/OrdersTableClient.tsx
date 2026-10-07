@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { euros } from "@/lib/utils";
 import { getDestinationZone } from "@/lib/destinations";
+import LaPosteExportButton from "@/components/LaPosteExportButton";
 
 type OrderItem = {
   productTitle: string;
@@ -629,23 +630,35 @@ export default function OrdersTableClient({ orders }: { orders: Order[] }) {
 
           <div style={sectionCardStyle()}>
             <div style={sectionTitleStyle()}>Exports commandes</div>
-            <select
-              className="input"
-              defaultValue=""
-              disabled={selected.length === 0}
-              onChange={(e) => {
-                handleExportAction(e.target.value);
-                e.currentTarget.value = "";
-              }}
-            >
-              <option value="" disabled>
-                Choisir un export
-              </option>
-              <option value="csv">Exporter CSV</option>
-              <option value="xlsx">Exporter Excel</option>
-              <option value="chronopost">Exporter Chronopost</option>
-              <option value="word">Exporter Word</option>
-            </select>
+            <LaPosteExportButton references={selected}>
+              {(openLaPoste, laPosteBusy) => (
+                <select
+                  className="input"
+                  aria-label="Exports commandes"
+                  defaultValue=""
+                  disabled={selected.length === 0 || laPosteBusy}
+                  onChange={(e) => {
+                    const menu = e.currentTarget;
+                    const value = menu.value;
+                    menu.value = "";
+                    if (value === "laposte") {
+                      openLaPoste(menu);
+                    } else {
+                      handleExportAction(value);
+                    }
+                  }}
+                >
+                  <option value="" disabled>
+                    Choisir un export
+                  </option>
+                  <option value="csv">Exporter CSV</option>
+                  <option value="xlsx">Exporter Excel</option>
+                  <option value="chronopost">Exporter Chronopost</option>
+                  <option value="laposte">La Poste Pro Expéditions — Excel</option>
+                  <option value="word">Exporter Word</option>
+                </select>
+              )}
+            </LaPosteExportButton>
           </div>
 
           <div style={sectionCardStyle()}>
