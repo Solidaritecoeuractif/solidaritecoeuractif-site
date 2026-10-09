@@ -78,7 +78,7 @@ export async function isAdminAuthenticated() {
   const token = store.get(ADMIN_COOKIE_NAME)?.value;
   const value = verifySignedToken(token);
 
-  const match = /^admin:(\\d{13})$/.exec(value || "");
+  const match = /^admin:(\d{13})$/.exec(value || "");
   if (!match) return false;
   const issuedAt = Number(match[1]);
   const age = Date.now() - issuedAt;
