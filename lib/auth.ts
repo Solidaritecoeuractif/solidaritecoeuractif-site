@@ -5,7 +5,15 @@ const ADMIN_COOKIE_NAME = "sca_admin_session";
 const ORGANIZER_COOKIE_NAME = "sca_organizer_session";
 
 function getSecret() {
-  return process.env.ADMIN_SESSION_SECRET || "change-me";
+  const secret = process.env.ADMIN_SESSION_SECRET;
+  // Ne jamais utiliser la clé de démonstration pour signer des sessions réelles.
+  if (!secret || Buffer.byteLength(secret, "utf8") < 32) {
+    if (process.env.NODE_ENV === "production") {
+      throw new Error("ADMIN_SESSION_SECRET doit être configuré et suffisamment long.");
+    }
+    return "local-development-only-session-key-not-for-production";
+  }
+  return secret;
 }
 
 function sign(value: string) {
@@ -56,6 +64,7 @@ export async function createAdminSession() {
     secure: process.env.NODE_ENV === "production",
     sameSite: "lax",
     path: "/",
+    maxAge: 12 * 60 * 60,
   });
 }
 
@@ -69,7 +78,11 @@ export async function isAdminAuthenticated() {
   const token = store.get(ADMIN_COOKIE_NAME)?.value;
   const value = verifySignedToken(token);
 
-  return Boolean(value?.startsWith("admin:"));
+  const match = /^admin:(\\d{13})$/.exec(value || "");
+  if (!match) return false;
+  const issuedAt = Number(match[1]);
+  const age = Date.now() - issuedAt;
+  return age >= -60_000 && age <= 12 * 60 * 60 * 1000;
 }
 
 export async function createOrganizerSession(organizerId: string) {
