@@ -4,6 +4,10 @@ import { AddToCartForm } from "@/components/AddToCartForm";
 import { storage } from "@/lib/storage";
 import { euros } from "@/lib/utils";
 import type { Product } from "@/lib/types";
+import { readDigitalVisibility } from "@/lib/sevlogos-publication";
+import { showSevlogosDiscovery } from "@/lib/sevlogos-publication-policy.mjs";
+
+export const dynamic = "force-dynamic";
 
 const baseUrl =
   process.env.NEXT_PUBLIC_BASE_URL || "https://www.solidaritecoeuractif.com";
@@ -106,6 +110,14 @@ export default async function ProductPage({
       ? euros(product.fixedPrice || 0)
       : `À partir de ${euros(product.minimumAmount || 0)}`;
 
+  const eligiblePaper = product.isPhysical &&
+    ["livre-gratuit-365-jours-avec-le-seigneur-jesus-christ",
+      "365-jours-avec-le-seigneur-jesus-christ"].includes(product.slug);
+  const visibility = eligiblePaper
+    ? await readDigitalVisibility()
+    : { ready: false, enabled: false };
+  const showDigital = showSevlogosDiscovery(product, visibility);
+
   return (
     <main className="product-page">
       <div className="container product-detail">
@@ -136,10 +148,7 @@ export default async function ProductPage({
             <AddToCartForm product={product} />
           </div>
 
-          {process.env.SCA_SEVLOGOS_DIGITAL_VISIBLE === "true" &&
-            ["livre-gratuit-365-jours-avec-le-seigneur-jesus-christ",
-            "365-jours-avec-le-seigneur-jesus-christ"].includes(product.slug) &&
-            product.isPhysical ? (
+          {showDigital ? (
               <aside className="sevlogos-discovery" aria-label="Découvrir Sevlogos">
                 <p className="sevlogos-discovery-label">LIVRES &amp; LECTURE NUMÉRIQUE</p>
                 <h2>Découvrir Sevlogos</h2>
