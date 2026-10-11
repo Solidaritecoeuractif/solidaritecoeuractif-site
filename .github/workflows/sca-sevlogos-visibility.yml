@@ -1,0 +1,23 @@
+name: SCA Sevlogos manual-visibility tests
+on:
+  pull_request:
+    paths:
+      - 'lib/sevlogos-*'
+      - 'app/produit/**'
+      - 'app/admin/numerique/**'
+      - 'app/api/admin/sevlogos-visibilite/**'
+      - 'tests/sevlogos-visibility.test.mjs'
+      - '.github/workflows/sca-sevlogos-visibility.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - run: node --test tests/sevlogos-visibility.test.mjs

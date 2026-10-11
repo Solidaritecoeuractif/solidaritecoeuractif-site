@@ -4,6 +4,10 @@ import { AddToCartForm } from "@/components/AddToCartForm";
 import { storage } from "@/lib/storage";
 import { euros } from "@/lib/utils";
 import type { Product } from "@/lib/types";
+import { readDigitalVisibility } from "@/lib/sevlogos-publication";
+import { showSevlogosDiscovery } from "@/lib/sevlogos-publication-policy.mjs";
+
+export const dynamic = "force-dynamic";
 
 const baseUrl =
   process.env.NEXT_PUBLIC_BASE_URL || "https://www.solidaritecoeuractif.com";
@@ -106,6 +110,14 @@ export default async function ProductPage({
       ? euros(product.fixedPrice || 0)
       : `À partir de ${euros(product.minimumAmount || 0)}`;
 
+  const eligiblePaper = product.isPhysical &&
+    ["livre-gratuit-365-jours-avec-le-seigneur-jesus-christ",
+      "365-jours-avec-le-seigneur-jesus-christ"].includes(product.slug);
+  const visibility = eligiblePaper
+    ? await readDigitalVisibility()
+    : { ready: false, enabled: false };
+  const showDigital = showSevlogosDiscovery(product, visibility);
+
   return (
     <main className="product-page">
       <div className="container product-detail">
@@ -135,6 +147,27 @@ export default async function ProductPage({
           <div className="product-detail-action">
             <AddToCartForm product={product} />
           </div>
+
+          {showDigital ? (
+              <aside className="sevlogos-discovery" aria-label="Découvrir Sevlogos">
+                <p className="sevlogos-discovery-label">LIVRES &amp; LECTURE NUMÉRIQUE</p>
+                <h2>Découvrir Sevlogos</h2>
+                <p>
+                  Sevlogos est une plateforme distincte pour découvrir et lire
+                  des livres numériques. Retrouvez directement la fiche du
+                  même titre, son descriptif et son extrait public lorsqu'il existe.
+                </p>
+                <p>
+                  Votre demande du livre imprimé reste ici, sur Solidarité Cœur
+                  Actif. Ce lien n&apos;ajoute aucun achat numérique à votre panier.
+                </p>
+                <a href="https://seve-ten.vercel.app/livres/365-jours-avec-le-seigneur-jesus-christ"
+                  className="button secondary small"
+                  target="_blank" rel="noopener noreferrer">
+                  Voir la fiche numérique sur Sevlogos <span aria-hidden="true">↗</span>
+                </a>
+              </aside>
+            ) : null}
         </div>
       </div>
     </main>

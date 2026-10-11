@@ -37,6 +37,11 @@ export function AdminNav() {
         Billetteries
       </Link>
 
+      <Link href="/admin/numerique"
+        className={adminLinkClass(pathname.startsWith("/admin/numerique"))}>
+        Visibilité numérique
+      </Link>
+
       <Link
         href="/admin/import-commandes-privees"
         className={adminLinkClass(
