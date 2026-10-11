@@ -136,7 +136,8 @@ export default async function ProductPage({
             <AddToCartForm product={product} />
           </div>
 
-          {product.slug === "365-jours-avec-le-seigneur-jesus-christ" &&
+          {["livre-gratuit-365-jours-avec-le-seigneur-jesus-christ",
+            "365-jours-avec-le-seigneur-jesus-christ"].includes(product.slug) &&
             product.isPhysical ? (
               <aside className="sevlogos-discovery" aria-label="Découvrir Sevlogos">
                 <p className="sevlogos-discovery-label">LIVRES &amp; LECTURE NUMÉRIQUE</p>
