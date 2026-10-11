@@ -136,7 +136,8 @@ export default async function ProductPage({
             <AddToCartForm product={product} />
           </div>
 
-          {["livre-gratuit-365-jours-avec-le-seigneur-jesus-christ",
+          {process.env.SCA_SEVLOGOS_DIGITAL_VISIBLE === "true" &&
+            ["livre-gratuit-365-jours-avec-le-seigneur-jesus-christ",
             "365-jours-avec-le-seigneur-jesus-christ"].includes(product.slug) &&
             product.isPhysical ? (
               <aside className="sevlogos-discovery" aria-label="Découvrir Sevlogos">
