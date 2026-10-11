@@ -135,6 +135,28 @@ export default async function ProductPage({
           <div className="product-detail-action">
             <AddToCartForm product={product} />
           </div>
+
+          {product.slug === "365-jours-avec-le-seigneur-jesus-christ" &&
+            product.isPhysical ? (
+              <aside className="sevlogos-discovery" aria-label="Découvrir Sevlogos">
+                <p className="sevlogos-discovery-label">LIVRES &amp; LECTURE NUMÉRIQUE</p>
+                <h2>Découvrir Sevlogos</h2>
+                <p>
+                  Sevlogos est une plateforme distincte pour découvrir et lire
+                  des livres numériques. Consultez son catalogue et ses extraits
+                  publics pour connaître les éditions disponibles.
+                </p>
+                <p>
+                  Votre demande du livre imprimé reste ici, sur Solidarité Cœur
+                  Actif. Ce lien n&apos;ajoute aucun achat numérique à votre panier.
+                </p>
+                <a href="https://seve-ten.vercel.app/decouvrir"
+                  className="button secondary small"
+                  target="_blank" rel="noopener noreferrer">
+                  Visiter Sevlogos <span aria-hidden="true">↗</span>
+                </a>
+              </aside>
+            ) : null}
         </div>
       </div>
     </main>
