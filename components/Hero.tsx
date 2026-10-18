@@ -1,59 +1,42 @@
 import type { Product } from "@/lib/types";
-import { AddToCartForm } from "@/components/AddToCartForm";
+import Link from "next/link";
 
 export function Hero({ featuredProduct }: { featuredProduct?: Product }) {
   return (
-    <section className="hero">
+    <section className="hero solidarity-hero">
       <div className="container hero-grid">
-        <div>
-          <span className="eyebrow">Association solidaire</span>
+        <div className="solidarity-intro">
+          <span className="eyebrow">Solidarité Cœur Actif · Association</span>
           <h1>
-            Actions de solidarité, soutiens, collectes et participations au
-            service des personnes en situation de précarité et de vulnérabilité
+            La solidarité<br />prend vie<br /><em>avec vous.</em>
           </h1>
           <p>
-            Cette plateforme permet de présenter les actions de l’association,
-            d’accueillir des soutiens, d’organiser des collectes et de proposer
-            des participations, notamment pour les frais de livraison et
-            certaines initiatives solidaires, dans un cadre clair et sécurisé.
+            Un livre à partager, une attention à offrir, une initiative à soutenir.
+            Ensemble, faisons une place à celles et ceux qui en ont besoin.
           </p>
+          <div className="solidarity-actions">
+            <a className="button primary" href="#catalogue">Découvrir nos initiatives <span aria-hidden="true">↗</span></a>
+            <Link className="solidarity-text-link" href="/contact">Échangeons ensemble <span aria-hidden="true">→</span></Link>
+          </div>
+          <p className="solidarity-mission">Aux côtés des personnes en situation de précarité et de vulnérabilité.</p>
         </div>
 
-        <div className="hero-card">
+        <div className="solidarity-feature">
           {featuredProduct ? (
             <>
-              {featuredProduct.image ? (
-                <img
-                  src={featuredProduct.image}
-                  alt={featuredProduct.title}
-                  className="product-image"
-                  style={{ marginBottom: 16 }}
-                />
-              ) : null}
-
-              <h3>{featuredProduct.title}</h3>
-
-              {featuredProduct.subtitle ? (
-                <p className="muted" style={{ marginBottom: 8 }}>
-                  {featuredProduct.subtitle}
-                </p>
-              ) : null}
-
-              <p className="hero-card-description">
-                {featuredProduct.longDescription}
-              </p>
-
-              <div className="hero-card-action">
-                <AddToCartForm product={featuredProduct} />
+              <span className="solidarity-feature-label">À découvrir en ce moment</span>
+              <Link className="solidarity-book-stage" href={`/produit/${featuredProduct.slug}`} aria-label={`Découvrir ${featuredProduct.title}`}>
+                {featuredProduct.image ? <img src={featuredProduct.image} alt={featuredProduct.title} width={280} height={380} fetchPriority="high" /> : <span className="solidarity-feature-placeholder">Un geste.<br />Du cœur.</span>}
+              </Link>
+              <div className="solidarity-feature-caption">
+                <div><span>Notre initiative à la une</span><h2><Link href={`/produit/${featuredProduct.slug}`}>{featuredProduct.title}</Link></h2></div>
+                <Link className="solidarity-round-link" href={`/produit/${featuredProduct.slug}`} aria-label={`Voir l’initiative : ${featuredProduct.title}`}>↗</Link>
               </div>
             </>
           ) : (
             <>
-              <h3>Aucune offre mise en avant</h3>
-              <p>
-                Sélectionne une offre depuis l’administration pour l’afficher
-                ici.
-              </p>
+              <p className="solidarity-feature-placeholder">De l’attention.<br />Des liens.<br />De l’espoir.</p>
+              <Link className="button secondary" href="/contact">Rencontrons-nous</Link>
             </>
           )}
         </div>

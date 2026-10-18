@@ -17,10 +17,11 @@ export function SiteChrome({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <>
+    <div className="public-site">
+      <a href="#public-content" className="public-skip-link">Aller au contenu</a>
       <BrandHeader />
-      {children}
+      <div id="public-content" tabIndex={-1}>{children}</div>
       <Footer />
-    </>
+    </div>
   );
 }

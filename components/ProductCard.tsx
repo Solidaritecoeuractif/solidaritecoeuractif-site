@@ -14,11 +14,14 @@ export function ProductCard({ product }: { product: Product }) {
   return (
     <article className="product-card">
       {product.image ? (
-        <img
+        <Link className="product-card-media" href={`/produit/${product.slug}`} aria-label={`Découvrir ${product.title}`}><img
           src={product.image}
           alt={product.title}
           className="product-image"
-        />
+          loading="lazy"
+          width={280}
+          height={380}
+        /></Link>
       ) : null}
 
       <div className="product-body">

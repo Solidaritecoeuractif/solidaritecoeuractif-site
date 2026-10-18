@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import "./public-design.css";
 import { SiteChrome } from "@/components/SiteChrome";
 
 const brand = process.env.NEXT_PUBLIC_BRAND_NAME || "Solidarité Cœur Actif";
