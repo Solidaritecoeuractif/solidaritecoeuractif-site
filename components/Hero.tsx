@@ -29,7 +29,7 @@ export function Hero({ featuredProduct }: { featuredProduct?: Product }) {
                 {featuredProduct.image ? <img src={featuredProduct.image} alt={featuredProduct.title} width={280} height={380} fetchPriority="high" /> : <span className="solidarity-feature-placeholder">Un geste.<br />Du cœur.</span>}
               </Link>
               <div className="solidarity-feature-caption">
-                <div><span>Notre initiative à la une</span><h2><Link href={`/produit/${featuredProduct.slug}`}>{featuredProduct.title}</Link></h2></div>
+                <div><span>Notre initiative à la une</span><h2><Link href={`/produit/${featuredProduct.slug}`}>{featuredProduct.title}</Link></h2>{featuredProduct.id === "prod_book_365" ? <p className="solidarity-feature-note">Livre offert · frais d’envoi à prévoir</p> : null}</div>
                 <Link className="solidarity-round-link" href={`/produit/${featuredProduct.slug}`} aria-label={`Voir l’initiative : ${featuredProduct.title}`}>↗</Link>
               </div>
             </>

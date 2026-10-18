@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { AddToCartForm } from "@/components/AddToCartForm";
 import { storage } from "@/lib/storage";
@@ -108,6 +109,7 @@ export default async function ProductPage({
 
   return (
     <main className="product-page">
+      <div className="container product-breadcrumb"><Link href="/#catalogue">← Toutes les initiatives</Link></div>
       <div className="container product-detail">
         <div className="panel product-media-panel">
           {product.image ? (
@@ -126,7 +128,7 @@ export default async function ProductPage({
 
           {product.subtitle ? <p className="muted">{product.subtitle}</p> : null}
 
-          <p className="product-detail-description">{product.longDescription}</p>
+          {product.shortDescription ? <p className="product-detail-intro">{product.shortDescription}</p> : null}
 
           <p className="product-price-highlight">
             <strong>{amountText}</strong>
@@ -135,6 +137,10 @@ export default async function ProductPage({
           <div className="product-detail-action">
             <AddToCartForm product={product} />
           </div>
+          {product.longDescription ? <details className="product-description-details">
+            <summary>En savoir plus sur cette initiative</summary>
+            <div className="product-detail-description">{product.longDescription.split(/\n\s*\n/).filter(Boolean).map((paragraph,index)=><p key={index}>{paragraph.split(/(\*\*[^*]+\*\*)/g).map((part,partIndex)=>part.startsWith("**") && part.endsWith("**") ? <strong key={partIndex}>{part.slice(2,-2)}</strong> : part)}</p>)}</div>
+          </details> : null}
         </div>
       </div>
     </main>

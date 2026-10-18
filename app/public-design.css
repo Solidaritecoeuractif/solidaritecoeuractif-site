@@ -38,6 +38,7 @@
 .solidarity-book-stage:hover img{transform:rotate(-2deg) translateY(-4px)}
 .solidarity-feature-caption{display:flex;align-items:center;justify-content:space-between;gap:20px;text-align:left;border-top:1px solid #cfc5b2;padding-top:20px}
 .solidarity-feature-caption span{font-size:10px;text-transform:uppercase;letter-spacing:.12em;color:#75684f}
+.public-site .solidarity-feature-note{font-size:11px;color:#665d4c;margin:10px 0 0;line-height:1.5}
 .public-site .solidarity-feature-caption h2{font-size:23px;line-height:1.3;margin:9px 0 0}
 .solidarity-round-link{width:44px;height:44px;display:grid;place-items:center;border-radius:50%;background:#fffaf1;color:var(--accent);font-size:25px;flex-shrink:0}
 .solidarity-feature-placeholder{font:italic 50px/1.2 Georgia,serif;color:var(--accent);padding:40px 0}
@@ -80,6 +81,12 @@
 .public-site .site-footer p,.public-site .site-footer a{color:#d8ddcf;font-size:13px;overflow-wrap:anywhere}
 .public-site .site-footer a{display:inline-flex;align-items:center;min-height:36px}
 .public-site .product-page,.public-site .contact-page,.public-site .cart-page{padding-block:48px 80px}
+.product-breadcrumb{margin-bottom:25px}.product-breadcrumb a{display:inline-flex;align-items:center;min-height:44px;font-size:12px;color:var(--muted);text-decoration:underline;text-underline-offset:4px}
+.public-site .product-detail-intro{font-size:14px;line-height:1.8;color:var(--muted);margin:0}
+.product-description-details{border-top:1px solid var(--line);padding-top:14px;margin-top:5px}
+.product-description-details summary{min-height:44px;padding:10px 0;cursor:pointer;font-size:14px;color:var(--accent);font-weight:600}
+.product-description-details .product-detail-description p{margin:12px 0 18px}
+.public-site .main-nav>a[href="/panier"]{min-height:44px;font-size:13px;justify-content:center}
 .public-site .panel{background:var(--panel);border-color:var(--line);box-shadow:none;border-radius:12px}
 .public-site .product-media-panel{background:#eee8db;padding:44px;align-self:start}
 .public-site .product-detail-image{height:auto;max-height:580px;width:100%;object-fit:contain;border-radius:0;filter:drop-shadow(10px 15px 12px #392c2020)}
