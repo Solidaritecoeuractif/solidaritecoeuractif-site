@@ -1,3 +1,4 @@
+import AdminGroupedShippingFields from "@/components/AdminGroupedShippingFields";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { storage } from "@/lib/storage";
@@ -233,6 +234,8 @@ export default async function ProductEditPage({
               Livraison requise
             </span>
           </label>
+
+          {product.isPhysical && product.pricingMode === "flexible" ? <AdminGroupedShippingFields value={product.groupedShipping} /> : null}
 
           <div className="actions-row">
             <button className="button primary" type="submit">

@@ -2,6 +2,9 @@
 
 import { useEffect, useMemo, useState, type CSSProperties } from "react";
 import type { Product } from "@/lib/types";
+import { normalizeCartItems } from "@/lib/cart";
+import { hasAutomaticShipping } from "@/lib/grouped-shipping";
+import { GroupedShippingOffer } from "@/components/GroupedShippingOffer";
 import { euros } from "@/lib/utils";
 import {
   DESTINATION_OPTIONS,
@@ -117,7 +120,7 @@ export function CheckoutClient({ products }: { products: Product[] }) {
 
   useEffect(() => {
     const raw = localStorage.getItem("sca_cart");
-    const parsedItems: ClientItem[] = raw ? JSON.parse(raw) : [];
+    const parsedItems: ClientItem[] = normalizeCartItems(raw ? JSON.parse(raw) : [], products);
     setItems(parsedItems);
 
     const initialInputs: Record<number, string> = {};
@@ -129,7 +132,7 @@ export function CheckoutClient({ products }: { products: Product[] }) {
       }
     });
     setShippingInputs(initialInputs);
-  }, []);
+  }, [products]);
 
   const resolvedPreview = useMemo(() => {
     return items
@@ -139,6 +142,7 @@ export function CheckoutClient({ products }: { products: Product[] }) {
         );
         if (!product) return null;
 
+        const automaticShipping = hasAutomaticShipping(product);
         const minimumLineAmount =
           product.pricingMode === "flexible"
             ? calculateZoneAdjustedLineMinimum(
@@ -156,8 +160,7 @@ export function CheckoutClient({ products }: { products: Product[] }) {
         const rawInput = String(shippingInputs[index] ?? "").trim();
         const parsedInput = parseEuroInput(rawInput);
         const hasTypedAmount = rawInput !== "";
-        const isValidTypedAmount =
-          parsedInput !== null && parsedInput >= minimumLineAmount;
+        const isValidTypedAmount = automaticShipping || (hasTypedAmount && parsedInput !== null && parsedInput >= minimumLineAmount);
 
         const unit =
           product.pricingMode === "fixed"
@@ -171,7 +174,8 @@ export function CheckoutClient({ products }: { products: Product[] }) {
           index,
           product,
           unit,
-          total: unit * item.quantity,
+          total: automaticShipping ? minimumLineAmount : unit * item.quantity,
+          automaticShipping,
           minimumLineAmount,
           minimumUnitAmount,
           hasTypedAmount,
@@ -184,6 +188,7 @@ export function CheckoutClient({ products }: { products: Product[] }) {
         product: Product;
         unit: number;
         total: number;
+        automaticShipping: boolean;
         minimumLineAmount: number;
         minimumUnitAmount: number;
         hasTypedAmount: boolean;
@@ -221,6 +226,7 @@ export function CheckoutClient({ products }: { products: Product[] }) {
   }, [suggestedSupport]);
 
   useEffect(() => {
+    const controller = new AbortController();
     async function refreshQuote() {
       if (!items.length || !allFlexibleAmountsEntered) {
         setQuote(null);
@@ -232,6 +238,7 @@ export function CheckoutClient({ products }: { products: Product[] }) {
 
       try {
         const response = await fetch("/api/cart/quote", {
+          signal: controller.signal,
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -245,6 +252,7 @@ export function CheckoutClient({ products }: { products: Product[] }) {
 
         const data = await response.json();
 
+        if (controller.signal.aborted) return;
         if (response.ok) {
           setQuote(data);
         } else {
@@ -252,12 +260,15 @@ export function CheckoutClient({ products }: { products: Product[] }) {
             typeof data.error === "string" ? data.error : "Erreur de calcul."
           );
         }
+      } catch {
+        if (!controller.signal.aborted) setError("Impossible de vérifier le montant. Merci de réessayer.");
       } finally {
-        setQuoting(false);
+        if (!controller.signal.aborted) setQuoting(false);
       }
     }
 
     refreshQuote();
+    return () => controller.abort();
   }, [
     items,
     effectiveDestinationCode,
@@ -348,6 +359,7 @@ export function CheckoutClient({ products }: { products: Product[] }) {
           items,
           supportEnabled,
           supportAmount: supportEnabled ? supportAmount : 0,
+          expectedTotalAmount: displayedTotal,
           customer: {
             firstName: form.firstName,
             lastName: form.lastName,
@@ -561,8 +573,10 @@ export function CheckoutClient({ products }: { products: Product[] }) {
 
   const displayedSupportAmount = supportEnabled ? supportAmount : 0;
 
+  const additionalShipping = resolvedPreview.reduce((sum, item) => sum + (item.product.isPhysical && item.product.requiresShipping ? (item.product.shippingFeeAmount ?? 0) * item.quantity : 0), 0);
+
   const displayedTotal = hasFlexibleItems
-    ? localSubtotal + displayedSupportAmount
+    ? localSubtotal + additionalShipping + displayedSupportAmount
     : quote?.totalAmount || 0;
 
   return (
@@ -737,7 +751,9 @@ export function CheckoutClient({ products }: { products: Product[] }) {
                 </strong>
               </div>
 
-              {item.product.pricingMode === "flexible" ? (
+              {item.automaticShipping ? (
+                <><small>Frais d’envoi calculés automatiquement pour votre destination et vos {item.quantity} exemplaire{item.quantity > 1 ? "s" : ""}.</small><GroupedShippingOffer product={item.product} quantity={item.quantity} compact /></>
+              ) : item.product.pricingMode === "flexible" ? (
                 <div style={{ marginTop: 8 }}>
                   <label style={{ display: "block" }}>
                     <span
@@ -793,14 +809,14 @@ export function CheckoutClient({ products }: { products: Product[] }) {
           </strong>
         </div>
 
-        {!hasFlexibleItems && (
+        {(!hasFlexibleItems || additionalShipping > 0) && (
           <div className="summary-row">
             <span>Livraison</span>
             <strong>
               {allFlexibleAmountsEntered
                 ? quoting
                   ? "Calcul..."
-                  : euros(quote?.shippingAmount || 0)
+                  : euros(additionalShipping)
                 : "—"}
             </strong>
           </div>

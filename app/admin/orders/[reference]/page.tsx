@@ -1,3 +1,4 @@
+import { orderItemTotal } from "@/lib/order-amounts";
 export const dynamic = "force-dynamic";
 
 import Link from "next/link";
@@ -10,9 +11,6 @@ function formatDate(value: string) {
   return new Date(value).toLocaleString("fr-FR");
 }
 
-function lineValue(unitAmount: number, quantity: number) {
-  return euros(unitAmount * quantity);
-}
 
 export default async function AdminOrderDetailPage({
   params,
@@ -59,8 +57,8 @@ export default async function AdminOrderDetailPage({
               <tr key={`${item.productTitle}-${index}`}>
                 <td>{item.productTitle}</td>
                 <td>{item.quantity}</td>
-                <td>{euros(item.unitAmount || 0)}</td>
-                <td>{lineValue(item.unitAmount || 0, item.quantity || 0)}</td>
+                <td>{item.lineTotal !== undefined ? "Tarif pour l’ensemble" : euros(item.unitAmount || 0)}</td>
+                <td>{euros(orderItemTotal(item))}</td>
               </tr>
             ))}
           </tbody>

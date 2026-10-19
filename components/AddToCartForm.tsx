@@ -3,6 +3,9 @@
 import { useMemo, useState } from "react";
 import type { Product } from "@/lib/types";
 import { calculateZoneAdjustedLineMinimum } from "@/lib/destinations";
+import { GroupedShippingOffer } from "@/components/GroupedShippingOffer";
+import { hasAutomaticShipping } from "@/lib/grouped-shipping";
+import { normalizeCartItems } from "@/lib/cart";
 import CartBadgeLink from "@/components/CartBadgeLink";
 
 type CartLine = {
@@ -86,7 +89,7 @@ export function AddToCartForm({ product }: { product: Product }) {
     const sanitizedQuantity = normalizeQuantity(parsed);
 
     const raw = localStorage.getItem("sca_cart");
-    const current: CartLine[] = raw ? JSON.parse(raw) : [];
+    const current: CartLine[] = normalizeCartItems(raw ? JSON.parse(raw) : [], [product]);
 
     const index = current.findIndex(
       (line) =>
@@ -117,9 +120,10 @@ export function AddToCartForm({ product }: { product: Product }) {
 
   return (
     <div className="panel">
+      <GroupedShippingOffer product={product} quantity={quantity} />
       <div className="form-grid compact">
         <label>
-          <span>Quantité</span>
+          <span>{hasAutomaticShipping(product) ? "Combien d’exemplaires souhaitez-vous recevoir ?" : "Quantité"}</span>
 
           <div
             style={{
@@ -219,7 +223,7 @@ export function AddToCartForm({ product }: { product: Product }) {
       {product.pricingMode === "flexible" ? (
         <div className="shipping-preview-box">
           <p className="shipping-preview-title">
-            Repères du montant minimum selon la destination
+            {hasAutomaticShipping(product) ? `Frais d’envoi pour ${quantity} exemplaire${quantity > 1 ? "s" : ""}` : "Repères du montant minimum selon la destination"}
           </p>
 
           <small>
@@ -245,6 +249,8 @@ export function AddToCartForm({ product }: { product: Product }) {
           </small>
         </div>
       ) : null}
+
+      <GroupedShippingOffer product={product} quantity={quantity} compact />
 
       <button className="button primary" onClick={addToCart} type="button">
         Ajouter au panier

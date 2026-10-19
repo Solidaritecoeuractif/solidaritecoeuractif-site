@@ -1,3 +1,5 @@
+import { isAdminAuthenticated } from "@/lib/auth";
+import { groupedShippingFromForm } from "@/lib/grouped-shipping-form";
 import { NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
 import { storage } from "@/lib/storage";
@@ -54,6 +56,7 @@ function fromForm(data: FormData, uploadedImage: string) {
     sku: String(data.get("sku") || ""),
     weightGrams: parseWeightGrams(data),
     category: String(data.get("category") || ""),
+    groupedShipping: groupedShippingFromForm(data),
   };
 }
 
@@ -63,6 +66,7 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
+  if (!(await isAdminAuthenticated())) return NextResponse.json({ error: "Accès refusé" }, { status: 401 });
   const formData = await request.formData();
   const imageFile = formData.get("imageFile");
   const uploadedImage =
@@ -72,7 +76,7 @@ export async function POST(request: Request) {
 
   if (!parsed.success) {
     return NextResponse.json(
-      { error: parsed.error.flatten() },
+      { error: parsed.error.issues.map(issue => issue.message).join(" ") },
       { status: 400 }
     );
   }

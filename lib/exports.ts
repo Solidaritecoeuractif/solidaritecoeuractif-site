@@ -1,3 +1,4 @@
+import { orderItemTotal } from "@/lib/order-amounts";
 import * as XLSX from "xlsx";
 import type { Order, Product } from "@/lib/types";
 
@@ -20,9 +21,7 @@ export function exportRows(orders: Order[]) {
     lignes_commande: order.items
       .map(
         (item) =>
-          `${item.productTitle} x${item.quantity} @ ${(
-            item.unitAmount / 100
-          ).toFixed(2)}€`
+          `${item.productTitle} x${item.quantity} — total ${(orderItemTotal(item) / 100).toFixed(2)}€`
       )
       .join(" | "),
     sous_total: (order.subtotalAmount / 100).toFixed(2),

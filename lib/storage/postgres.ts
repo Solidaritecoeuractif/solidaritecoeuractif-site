@@ -31,6 +31,7 @@ function rowToProduct(row: any): Product {
     isPhysical: row.is_physical,
     requiresShipping: row.requires_shipping,
     shippingFeeAmount: row.shipping_fee_amount ?? undefined,
+    groupedShipping: row.grouped_shipping ?? undefined,
     isFeatured: row.is_featured ?? false,
     maxQuantity: row.max_quantity ?? undefined,
     stock: row.stock ?? undefined,
@@ -71,6 +72,8 @@ function rowToOrder(row: any, items: any[]): Order {
       unitAmount: item.unit_amount,
       quantity: item.quantity,
       customAmount: item.custom_amount ?? undefined,
+      lineTotal: item.line_total ?? undefined,
+      shippingSavingsAmount: item.shipping_savings_amount ?? undefined,
     })),
     subtotalAmount: row.subtotal_amount,
     shippingAmount: row.shipping_amount,
@@ -167,9 +170,10 @@ export class PostgresStorageAdapter implements StorageAdapter {
           weight_grams,
           category,
           created_at,
-          updated_at
+          updated_at,
+          grouped_shipping
         ) values (
-          $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25,$26
+          $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25,$26,$27
         )`,
         [
           product.id,
@@ -198,6 +202,7 @@ export class PostgresStorageAdapter implements StorageAdapter {
           product.category || null,
           product.createdAt,
           product.updatedAt,
+          product.groupedShipping ? JSON.stringify(product.groupedShipping) : null,
         ]
       );
 
@@ -236,7 +241,8 @@ export class PostgresStorageAdapter implements StorageAdapter {
              sku = $22,
              weight_grams = $23,
              category = $24,
-             updated_at = $25
+             updated_at = $25,
+             grouped_shipping = $26
          where id = $1`,
         [
           id,
@@ -264,6 +270,7 @@ export class PostgresStorageAdapter implements StorageAdapter {
           product.weightGrams ?? null,
           product.category || null,
           product.updatedAt,
+          product.groupedShipping ? JSON.stringify(product.groupedShipping) : null,
         ]
       );
 
@@ -404,9 +411,11 @@ export class PostgresStorageAdapter implements StorageAdapter {
             unit_amount,
             quantity,
             custom_amount,
+            line_total,
+            shipping_savings_amount,
             created_at
           ) values (
-            $1,$2,$3,$4,$5,$6,$7,$8,$9,$10
+            $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12
           )`,
           [
             item.id,
@@ -418,6 +427,8 @@ export class PostgresStorageAdapter implements StorageAdapter {
             item.unitAmount,
             item.quantity,
             item.customAmount ?? null,
+            item.lineTotal ?? null,
+            item.shippingSavingsAmount ?? null,
             order.createdAt,
           ]
         );
@@ -518,9 +529,11 @@ export class PostgresStorageAdapter implements StorageAdapter {
             unit_amount,
             quantity,
             custom_amount,
+            line_total,
+            shipping_savings_amount,
             created_at
           ) values (
-            $1,$2,$3,$4,$5,$6,$7,$8,$9,$10
+            $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12
           )`,
           [
             item.id,
@@ -532,6 +545,8 @@ export class PostgresStorageAdapter implements StorageAdapter {
             item.unitAmount,
             item.quantity,
             item.customAmount ?? null,
+            item.lineTotal ?? null,
+            item.shippingSavingsAmount ?? null,
             order.updatedAt,
           ]
         );

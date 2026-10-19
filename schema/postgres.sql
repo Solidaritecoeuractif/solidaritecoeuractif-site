@@ -11,6 +11,7 @@ create table if not exists products (
   fixed_price integer,
   minimum_amount integer,
   suggested_amount integer,
+  grouped_shipping jsonb,
   is_active boolean not null default true,
   is_physical boolean not null default false,
   requires_shipping boolean not null default false,
@@ -58,5 +59,7 @@ create table if not exists order_items (
   unit_amount integer not null,
   quantity integer not null,
   custom_amount integer,
+  line_total integer,
+  shipping_savings_amount integer,
   created_at timestamptz not null default now()
 );

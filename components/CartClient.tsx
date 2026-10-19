@@ -3,6 +3,8 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import type { Product } from "@/lib/types";
+import { normalizeCartItems } from "@/lib/cart";
+import { GroupedShippingOffer } from "@/components/GroupedShippingOffer";
 import { euros } from "@/lib/utils";
 
 type ClientItem = {
@@ -17,9 +19,9 @@ export function CartClient({ products }: { products: Product[] }) {
 
   useEffect(() => {
     const raw = localStorage.getItem("sca_cart");
-    setItems(raw ? JSON.parse(raw) : []);
+    setItems(normalizeCartItems(raw ? JSON.parse(raw) : [], products));
     setIsHydrated(true);
-  }, []);
+  }, [products]);
 
   const resolved = useMemo(() => {
     return items
@@ -62,7 +64,7 @@ export function CartClient({ products }: { products: Product[] }) {
               ...item,
               quantity: Math.max(
                 1,
-                Math.min(quantity || 1, resolved[idx]?.product.maxQuantity || 50)
+                Math.min(Math.floor(quantity || 1), resolved[idx]?.product.maxQuantity || 50)
               ),
             }
           : item
@@ -114,6 +116,7 @@ export function CartClient({ products }: { products: Product[] }) {
               ) : (
                 <small>{euros(item.product.fixedPrice || 0)} / unité</small>
               )}
+              <GroupedShippingOffer product={item.product} quantity={item.quantity} compact />
             </div>
 
             <div className="cart-actions-inline">

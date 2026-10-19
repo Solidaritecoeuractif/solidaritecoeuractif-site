@@ -1,4 +1,5 @@
 import type { Product } from "@/lib/types";
+import { groupedShippingSavings } from "@/lib/grouped-shipping";
 
 export type DestinationZone =
   | "france_metropolitaine"
@@ -587,12 +588,12 @@ export function calculateZoneAdjustedLineMinimum(
   product: Pick<
     Product,
     "minimumAmount" | "minimumAmountOutreMer" | "minimumAmountInternational"
-  >,
+  > & Partial<Pick<Product, "isPhysical" | "requiresShipping" | "pricingMode" | "groupedShipping">>,
   quantity: number,
   destinationCode: string
 ) {
   const minimum = getProductMinimumForDestination(product, destinationCode);
-  return minimum * quantity;
+  return Math.max(0, minimum * quantity - groupedShippingSavings(product, quantity));
 }
 
 export function isOverseasDestination(code: string) {

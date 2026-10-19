@@ -173,6 +173,7 @@ test('real checkout handler preserves amount, cancellation and order writes whil
     const { POST } = loadRoute('app/api/checkout/route.ts', {
       'next/headers': { cookies: async () => ({ get: name => { assert.equal(name, QUALIM_COOKIE); return { value: '1' }; } }) },
       '@/lib/qualim-return': require('../lib/qualim-return.ts'),
+      '@/lib/order-amounts': require('../lib/order-amounts.ts'),
       '@/lib/storage': { storage: () => ({
         getProducts: async () => [],
         saveOrder: async value => writes.push(structuredClone(value)),

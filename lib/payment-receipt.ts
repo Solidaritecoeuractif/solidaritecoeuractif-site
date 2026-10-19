@@ -1,3 +1,4 @@
+import { orderItemTotal } from "@/lib/order-amounts";
 import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
 import type { Order } from "@/lib/types";
 import { readFile } from "node:fs/promises";
@@ -159,7 +160,7 @@ export async function generatePaymentReceiptPdf(order: Order) {
 
   for (const item of order.items) {
     const line = `• ${item.productTitle} × ${item.quantity} : ${formatAmount(
-      item.unitAmount * item.quantity,
+      orderItemTotal(item),
       order.currency
     )}`;
 

@@ -7,6 +7,7 @@ import { resolveCart, computeTotals } from "@/lib/cart";
 import { resolveDestinationCodeForPostalCode } from "@/lib/destinations";
 import { uniqueId, orderReference } from "@/lib/utils";
 import { stripe } from "@/lib/stripe";
+import { stripeOrderLine } from "@/lib/order-amounts";
 import type { Order } from "@/lib/types";
 
 export async function POST(request: Request) {
@@ -74,6 +75,9 @@ export async function POST(request: Request) {
         : Math.max(0, parsed.data.supportAmount || 0);
 
     const totalAmount = baseTotals.totalAmount + supportAmount;
+    if (parsed.data.expectedTotalAmount !== undefined && parsed.data.expectedTotalAmount !== totalAmount) {
+      return NextResponse.json({ error: "Les frais d’envoi ont été actualisés. Rechargez cette page pour vérifier le nouveau total avant de continuer." }, { status: 409 });
+    }
 
     const reference = orderReference();
     const now = new Date().toISOString();
@@ -94,6 +98,8 @@ export async function POST(request: Request) {
         unitAmount: item.unitAmount,
         quantity: item.quantity,
         customAmount: item.customAmount,
+        lineTotal: item.lineTotal,
+        shippingSavingsAmount: item.shippingSavingsAmount,
       })),
       subtotalAmount: baseTotals.subtotalAmount,
       shippingAmount: baseTotals.shippingAmount,
@@ -133,17 +139,7 @@ export async function POST(request: Request) {
       },
 
       line_items: [
-        ...order.items.map((item) => ({
-          quantity: item.quantity,
-          price_data: {
-            currency: process.env.STRIPE_CURRENCY || "eur",
-            unit_amount: item.unitAmount,
-            product_data: {
-              name: item.productTitle,
-              description: `${item.offerType} — référence ${reference}`,
-            },
-          },
-        })),
+        ...order.items.map(item => stripeOrderLine(item, process.env.STRIPE_CURRENCY || "eur", reference)),
         ...(order.shippingAmount > 0
           ? [
               {

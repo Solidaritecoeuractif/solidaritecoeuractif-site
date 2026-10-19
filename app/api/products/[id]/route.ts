@@ -1,3 +1,5 @@
+import { isAdminAuthenticated } from "@/lib/auth";
+import { groupedShippingFromForm } from "@/lib/grouped-shipping-form";
 import { NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
 import { storage } from "@/lib/storage";
@@ -54,6 +56,7 @@ function fromForm(data: FormData, fallbackImage: string) {
     sku: String(data.get("sku") || ""),
     weightGrams: parseWeightGrams(data),
     category: String(data.get("category") || ""),
+    groupedShipping: groupedShippingFromForm(data),
   };
 }
 
@@ -62,6 +65,7 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    if (!(await isAdminAuthenticated())) return NextResponse.json({ error: "Accès refusé" }, { status: 401 });
     const { id } = await params;
     const formData = await request.formData();
     const method =
@@ -88,11 +92,12 @@ export async function POST(
       imageFile instanceof File ? await fileToDataUrl(imageFile) : "";
     const finalImage = uploadedImage || current.image || "";
 
-    const parsed = productFormSchema.safeParse(fromForm(formData, finalImage));
+    const submitted = fromForm(formData, finalImage);
+    const parsed = productFormSchema.safeParse({ ...submitted, groupedShipping: submitted.groupedShipping ?? current.groupedShipping });
 
     if (!parsed.success) {
       return NextResponse.json(
-        { error: parsed.error.flatten() },
+        { error: parsed.error.issues.map(issue => issue.message).join(" ") },
         { status: 400 }
       );
     }
@@ -114,6 +119,7 @@ export async function POST(
     const updated = {
       ...current,
       ...parsed.data,
+      groupedShipping: parsed.data.groupedShipping ?? current.groupedShipping,
       slug: slugify(parsed.data.title),
       updatedAt: new Date().toISOString(),
     };
@@ -141,6 +147,7 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    if (!(await isAdminAuthenticated())) return NextResponse.json({ error: "Accès refusé" }, { status: 401 });
     const { id } = await params;
     await storage().deleteProduct(id);
     revalidatePath("/");

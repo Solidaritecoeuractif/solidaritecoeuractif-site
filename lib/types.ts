@@ -1,5 +1,12 @@
 export type OfferType = "product" | "donation" | "campaign" | "participation";
 export type PricingMode = "fixed" | "flexible";
+export type GroupedShipping = {
+  enabled: boolean;
+  tiers: { minQuantity: number; savingsAmount: number }[];
+  title: string;
+  description: string;
+  footer: string;
+};
 export type PaymentStatus = "pending" | "paid" | "cancelled";
 export type LogisticsStatus =
   | "to_process"
@@ -27,6 +34,7 @@ export type Product = {
   isPhysical: boolean;
   requiresShipping: boolean;
   shippingFeeAmount?: number;
+  groupedShipping?: GroupedShipping;
   isFeatured?: boolean;
   maxQuantity?: number;
   stock?: number;
@@ -68,6 +76,9 @@ export type OrderItem = {
   unitAmount: number;
   quantity: number;
   customAmount?: number;
+  /** Exact total in cents; absent on historical orders. */
+  lineTotal?: number;
+  shippingSavingsAmount?: number;
 };
 
 export type Order = {

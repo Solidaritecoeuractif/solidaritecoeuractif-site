@@ -1,3 +1,4 @@
+import { orderItemTotal } from "@/lib/order-amounts";
 import { Resend } from "resend";
 import type { Order } from "@/lib/types";
 import type {
@@ -126,7 +127,7 @@ export async function sendPaymentConfirmationEmail(order: Order) {
       (item) =>
         `<li>${escapeHtml(item.productTitle)} × ${escapeHtml(
           item.quantity
-        )} — ${formatAmount(item.unitAmount * item.quantity, order.currency)}</li>`
+        )} — ${formatAmount(orderItemTotal(item), order.currency)}</li>`
     )
     .join("");
 
