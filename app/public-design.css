@@ -1,5 +1,5 @@
 /* Public identity. Administration and organiser screens keep their own UI. */
-.public-site{--bg:#fbf8f2;--panel:#fffdf8;--text:#292c27;--muted:#666a60;--line:#deddd1;--accent:#92492f;--accent-soft:#f2e6da;--radius:14px;background:var(--bg);color:var(--text);min-height:100vh;font-family:Arial,Helvetica,sans-serif}
+.public-site{--bg:#ffffff;--panel:#ffffff;--text:#292c2a;--muted:#626963;--line:#e7e9e5;--accent:#98472f;--accent-soft:#fcf1eb;--radius:14px;background:var(--bg);color:var(--text);min-height:100vh;font-family:Arial,Helvetica,sans-serif}
 .public-site *{box-sizing:border-box}
 .public-site h1,.public-site h2,.public-site h3{font-family:Georgia,'Times New Roman',serif;font-weight:400;letter-spacing:-.035em;text-wrap:balance}
 .public-site h1 em,.public-site h2 em{color:var(--accent);font-weight:400}
@@ -7,7 +7,7 @@
 .public-site a:focus-visible,.public-site button:focus-visible,.public-site summary:focus-visible,.public-site input:focus-visible,.public-site select:focus-visible,.public-site textarea:focus-visible{outline:3px solid #92492f;outline-offset:4px}
 .public-skip-link{position:fixed;top:8px;left:16px;z-index:200;background:#fff;padding:14px 22px;transform:translateY(-180%);border:2px solid var(--accent)}
 .public-skip-link:focus{transform:translateY(0)}
-.public-site .site-header{background:#fbf8f2f5;border-bottom:1px solid var(--line);backdrop-filter:blur(14px)}
+.public-site .site-header{background:#fffffff5;border-bottom:1px solid var(--line);backdrop-filter:blur(14px)}
 .public-site .header-inner{min-height:100px;gap:24px}
 .public-site .brand-mark{gap:13px;min-width:0}
 .public-site .brand-mark strong{font-family:Georgia,serif;font-size:22px;letter-spacing:-.5px;font-weight:400}
@@ -16,14 +16,14 @@
 .public-site .brand-logo img{width:52px;height:52px;object-fit:contain}
 .public-site .main-nav{gap:12px;flex-shrink:0}
 .public-site .nav-link{min-height:44px;display:inline-flex;align-items:center;padding:10px 17px;color:var(--text);font-size:13px;border:1px solid transparent;box-shadow:none}
-.public-site .nav-link-active{border-color:var(--line);background:#f1eadf;color:var(--accent);box-shadow:none}
+.public-site .nav-link-active{border-color:var(--line);background:#fcf1eb;color:var(--accent);box-shadow:none}
 .public-site .button{min-height:48px;display:inline-flex;align-items:center;justify-content:center;gap:20px;border-radius:6px;padding:14px 22px;font-size:14px;font-weight:600;box-shadow:none;transition:background .18s,transform .18s}
 .public-site .button.primary{background:var(--accent);border-color:var(--accent);color:white}
 .public-site .button.primary:hover{background:#763b27;transform:translateY(-2px)}
-.public-site .button.secondary{background:transparent;border:1px solid #beb7a6;color:var(--text)}
-.public-site .button.secondary:hover{background:#f2e6da}
+.public-site .button.secondary{background:transparent;border:1px solid #c6ccc5;color:var(--text)}
+.public-site .button.secondary:hover{background:#fcf1eb}
 .public-site .eyebrow{background:none;border:0;border-radius:0;padding:0;color:var(--accent);font-size:10px;font-weight:700;letter-spacing:.18em;text-transform:uppercase}
-.public-site .solidarity-hero{padding:68px 0 62px;background:radial-gradient(ellipse at 100% 40%,#e9e8d9 0,transparent 53%),var(--bg);overflow:hidden}
+.public-site .solidarity-hero{padding:68px 0 62px;background:#fff;overflow:hidden}
 .public-site .hero-grid{grid-template-columns:1.04fr 1fr;gap:70px;align-items:center}
 .solidarity-intro{min-width:0}
 .public-site .solidarity-intro h1{font-size:clamp(54px,5.9vw,80px);line-height:1.04;margin:26px 0;letter-spacing:-.055em;max-width:600px}
@@ -31,18 +31,18 @@
 .solidarity-actions{display:flex;flex-wrap:wrap;align-items:center;gap:18px 26px;margin:30px 0}
 .solidarity-text-link{display:inline-flex;gap:12px;align-items:center;min-height:44px;font-size:13px;text-decoration:underline;text-underline-offset:5px}
 .public-site .solidarity-intro .solidarity-mission{font-size:12px;line-height:1.65;max-width:340px;border-left:2px solid #b38158;padding-left:16px;margin:28px 0 0}
-.solidarity-feature{position:relative;background:#eee8db;border:1px solid #ded5c3;border-radius:220px 220px 14px 14px;padding:44px 32px 28px;min-width:0;text-align:center}
+.solidarity-feature{position:relative;background:linear-gradient(155deg,#fff 20%,#fff9f5);border:1px solid #eee1d7;box-shadow:0 24px 70px -42px #8c4b3540;border-radius:220px 220px 14px 14px;padding:44px 32px 28px;min-width:0;text-align:center}
 .solidarity-feature-label{display:block;text-transform:uppercase;letter-spacing:.18em;font-size:9px;font-weight:700;color:#75684f}
 .solidarity-book-stage{display:grid;place-items:center;min-height:340px;padding:28px 20px}
 .solidarity-book-stage img{width:auto;height:300px;max-width:100%;object-fit:contain;filter:drop-shadow(12px 18px 10px #4d362e29);transform:rotate(-5deg);transition:transform .25s}
 .solidarity-book-stage:hover img{transform:rotate(-2deg) translateY(-4px)}
-.solidarity-feature-caption{display:flex;align-items:center;justify-content:space-between;gap:20px;text-align:left;border-top:1px solid #cfc5b2;padding-top:20px}
+.solidarity-feature-caption{display:flex;align-items:center;justify-content:space-between;gap:20px;text-align:left;border-top:1px solid #e8ddd3;padding-top:20px}
 .solidarity-feature-caption span{font-size:10px;text-transform:uppercase;letter-spacing:.12em;color:#75684f}
 .public-site .solidarity-feature-note{font-size:11px;color:#665d4c;margin:10px 0 0;line-height:1.5}
 .public-site .solidarity-feature-caption h2{font-size:23px;line-height:1.3;margin:9px 0 0}
 .solidarity-round-link{width:44px;height:44px;display:grid;place-items:center;border-radius:50%;background:#fffaf1;color:var(--accent);font-size:25px;flex-shrink:0}
 .solidarity-feature-placeholder{font:italic 50px/1.2 Georgia,serif;color:var(--accent);padding:40px 0}
-.solidarity-ribbon{background:#323e32;color:#f5efdf}
+.solidarity-ribbon{background:#fff;color:var(--accent);border-block:1px solid var(--line)}
 .solidarity-ribbon>.container{display:flex;justify-content:space-around;align-items:center;gap:20px;padding-block:22px;font:italic 23px Georgia,serif}
 .solidarity-ribbon [aria-hidden]{font:20px Arial;color:#d8b58c}
 .public-site .catalog-section{padding:88px 0;background:var(--bg);scroll-margin-top:125px}
@@ -51,7 +51,7 @@
 .public-site .section-heading p{max-width:560px;color:var(--muted);font-size:15px}
 .public-site .product-grid{gap:28px}
 .public-site .product-card{border:1px solid var(--line);border-radius:12px;background:var(--panel);box-shadow:none;overflow:hidden}
-.product-card-media{display:grid;place-items:center;padding:35px;background:#f0ece2;min-width:0}
+.product-card-media{display:grid;place-items:center;padding:35px;background:#fbf9f7;min-width:0}
 .public-site .product-card .product-image{height:260px;width:auto;max-width:100%;object-fit:contain;filter:drop-shadow(8px 12px 9px #362e2020);border-radius:0;transition:transform .22s}
 .product-card-media:hover .product-image{transform:translateY(-5px)}
 .public-site .product-body{padding:30px;min-width:0}
@@ -66,19 +66,19 @@
 .public-site .product-grid-single .product-body h3{font-size:34px;max-width:550px}
 .public-site .product-grid-single .product-card-media{padding:42px}
 .public-site .product-grid-single .product-image{height:310px}
-.solidarity-steps{padding:72px 0;background:#eeeade;border-block:1px solid var(--line)}
+.solidarity-steps{padding:72px 0;background:#fff;border-block:1px solid var(--line)}
 .solidarity-steps ol{list-style:none;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));padding:0;margin:0;gap:48px}
-.solidarity-steps li{border-top:1px solid #c7c3b5;padding-top:24px}
+.solidarity-steps li{border-top:1px solid #e7e9e5;padding-top:24px}
 .solidarity-steps li>span{font:italic 27px Georgia,serif;color:var(--accent)}
 .public-site .solidarity-steps h3{font-size:29px;margin:18px 0 12px}
 .solidarity-steps p{font-size:14px;color:var(--muted);margin:0}
 .solidarity-contact{padding:80px 0}
 .solidarity-contact>.container{display:flex;align-items:center;justify-content:space-between;gap:32px}
 .public-site .solidarity-contact h2{font-size:clamp(38px,4vw,55px);line-height:1.1;margin:18px 0 0}
-.public-site .site-footer{background:#29372e;border:0;color:#f6f0e3;padding:54px 0}
-.public-site .site-footer h3{font-size:27px;color:#fff6e4}
-.public-site .site-footer h4{color:#e3c29d;font-size:11px;text-transform:uppercase;letter-spacing:.12em}
-.public-site .site-footer p,.public-site .site-footer a{color:#d8ddcf;font-size:13px;overflow-wrap:anywhere}
+.public-site .site-footer{background:#fff;border:0;border-top:1px solid var(--line);color:var(--text);padding:54px 0}
+.public-site .site-footer h3{font-size:27px;color:var(--accent)}
+.public-site .site-footer h4{color:var(--accent);font-size:11px;text-transform:uppercase;letter-spacing:.12em}
+.public-site .site-footer p,.public-site .site-footer a{color:var(--muted);font-size:13px;overflow-wrap:anywhere}
 .public-site .site-footer a{display:inline-flex;align-items:center;min-height:36px}
 .public-site .product-page,.public-site .contact-page,.public-site .cart-page{padding-block:48px 80px}
 .product-breadcrumb{margin-bottom:25px}.product-breadcrumb a{display:inline-flex;align-items:center;min-height:44px;font-size:12px;color:var(--muted);text-decoration:underline;text-underline-offset:4px}
@@ -88,13 +88,13 @@
 .product-description-details .product-detail-description p{margin:12px 0 18px}
 .public-site .main-nav>a[href="/panier"]{min-height:44px;font-size:13px;justify-content:center}
 .public-site .panel{background:var(--panel);border-color:var(--line);box-shadow:none;border-radius:12px}
-.public-site .product-media-panel{background:#eee8db;padding:44px;align-self:start}
+.public-site .product-media-panel{background:#fbf9f7;padding:44px;align-self:start}
 .public-site .product-detail-image{height:auto;max-height:580px;width:100%;object-fit:contain;border-radius:0;filter:drop-shadow(10px 15px 12px #392c2020)}
 .public-site .product-content-panel h1{font-size:clamp(32px,3.6vw,48px);line-height:1.13}
 .public-site .product-detail-description{font-size:15px;line-height:1.85;white-space:pre-line}
 .public-site .product-price-highlight{color:var(--accent);font-size:19px}
-.public-site .shipping-preview-box{background:#f3eee2;border-color:#ded4c0;color:var(--text)}
-.public-site input,.public-site select,.public-site textarea{background:#fffefb;color:var(--text);border-color:#c9c9ba}
+.public-site .shipping-preview-box{background:#fbf9f7;border-color:var(--line);color:var(--text)}
+.public-site input,.public-site select,.public-site textarea{background:#fff;color:var(--text);border-color:#c6ccc5}
 @media(max-width:1050px){.public-site .hero-grid{gap:35px}.public-site .solidarity-intro h1{font-size:62px}.public-site .header-inner{gap:15px}.public-site .brand-mark strong{font-size:20px}.public-site .brand-mark small{font-size:10px}.public-site .nav-link{padding:10px 13px}.solidarity-book-stage img{height:270px}.solidarity-book-stage{min-height:310px}.public-site .product-grid-single .product-body{padding:32px}.public-site .product-grid-single .product-body h3{font-size:30px}}
 @media(max-width:760px){.public-site .header-inner{flex-direction:row;flex-wrap:wrap;min-height:auto;padding-block:14px;gap:12px}.public-site .brand-mark{flex:1}.public-site .brand-mark strong{font-size:20px}.public-site .brand-mark small{font-size:10px}.public-site .brand-logo{width:52px;height:52px;padding:3px}.public-site .brand-logo img{width:44px;height:44px}.public-site .main-nav{width:100%;justify-content:space-between;gap:6px}.public-site .main-nav .nav-link{flex:1;justify-content:center;font-size:12px}.public-site .solidarity-hero{padding:42px 0}.public-site .hero-grid{grid-template-columns:1fr;gap:38px}.public-site .solidarity-intro h1{font-size:clamp(49px,10.7vw,70px);margin:21px 0}.public-site .solidarity-intro>p{font-size:15px;max-width:540px}.solidarity-actions{margin:24px 0;gap:10px 20px}.public-site .solidarity-intro .solidarity-mission{margin-top:18px}.solidarity-feature{max-width:500px;width:100%;justify-self:center;padding:36px 26px 24px}.solidarity-book-stage{min-height:285px}.solidarity-book-stage img{height:255px}.public-site .solidarity-feature-caption h2{font-size:23px}.solidarity-ribbon>.container{font-size:18px;gap:12px;padding-block:20px}.solidarity-ribbon [aria-hidden]{font-size:15px}.public-site .catalog-section{padding:56px 0}.public-site .product-grid-single .product-card{grid-template-columns:1fr}.public-site .product-grid-single .product-card-media{padding:30px}.public-site .product-grid-single .product-image{height:260px}.public-site .product-grid-single .product-body{padding:26px}.public-site .product-grid-single .product-body h3{font-size:29px}.solidarity-steps{padding:50px 0}.solidarity-steps ol{grid-template-columns:1fr;gap:28px}.solidarity-steps li{padding-top:20px}.public-site .solidarity-steps h3{margin:10px 0}.solidarity-contact{padding:56px 0}.solidarity-contact>.container{flex-direction:column;align-items:flex-start}.public-site .site-footer{padding:40px 0}.public-site .product-detail{gap:24px}.public-site .product-media-panel{padding:30px}.public-site .product-detail-image{max-height:360px}.public-site .product-page{padding:28px 0 50px}}
 @media(max-width:380px){.public-site .brand-mark strong{font-size:18px}.public-site .brand-mark small{font-size:9px}.solidarity-ribbon>.container{font-size:16px;gap:8px}.public-site .button{padding-inline:17px}.public-site .solidarity-feature{padding-inline:20px}.public-site .product-body{padding:22px}.public-site .product-footer{align-items:stretch;flex-direction:column}}
@@ -107,7 +107,7 @@
   margin-bottom: 24px;
   border: 1px solid #d5dfd4;
   border-radius: 20px;
-  background: linear-gradient(135deg, #f1f5ec, #fff9ed);
+  background: #fff;
 }
 .public-site .grouped-shipping-offer h3 { margin: 0 0 10px; color: #263f34; font-size: 1.28rem; line-height: 1.3; }
 .public-site .grouped-shipping-offer p { margin: 0 0 14px; line-height: 1.6; color: #465247; }
@@ -122,3 +122,24 @@
   .public-site .grouped-shipping-offer { padding: 16px; }
   .public-site .grouped-shipping-tiers { grid-template-columns: 1fr; }
 }
+
+/* Bright white surfaces, with color reserved for the books and key actions. */
+.public-site { color-scheme: light; }
+.public-site .brand-logo { border-color: #ede8e2; box-shadow: 0 4px 16px #4a342c08; }
+.public-site .button.primary { box-shadow: 0 6px 18px #98472f18; }
+.public-site .button.secondary { background: #fff; }
+.public-site .button.secondary:hover { background: var(--accent-soft); }
+.public-site .solidarity-intro h1 em { text-decoration: underline; text-decoration-color: #efd5c5; text-decoration-thickness: 2px; text-underline-offset: .13em; }
+.solidarity-feature-label { color: #85614c; }
+.solidarity-round-link { background: #fff; border: 1px solid #e8ddd3; transition: background .18s, transform .18s; }
+.solidarity-round-link:hover { background: var(--accent-soft); transform: translateX(3px); }
+.solidarity-ribbon [aria-hidden] { color: #a76f45; }
+.public-site .product-card { box-shadow: 0 14px 40px -24px #3b31202b; }
+.public-site .product-card-media { background: radial-gradient(ellipse at 50% 55%, #f9ede3, #fff 74%); }
+.public-site .solidarity-steps li > span { display: inline-grid; place-items: center; width: 52px; height: 52px; border-radius: 50%; background: #fcf1eb; }
+.public-site .solidarity-contact { background: #fff; }
+.public-site .site-footer a:hover { color: var(--accent); text-decoration: underline; text-underline-offset: 4px; }
+.public-site .grouped-shipping-offer { border-color: #dae5dc; box-shadow: 0 8px 28px -20px #244d3326; }
+.public-site .grouped-tier { background: #fff; }
+.public-site .grouped-tier.is-current { background: #f3f8f2; }
+@media (prefers-reduced-motion: reduce) { .solidarity-round-link:hover { transform: none; } }
