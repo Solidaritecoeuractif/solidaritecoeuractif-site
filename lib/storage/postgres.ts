@@ -1,6 +1,7 @@
 import { Pool } from "pg";
 import type { StorageAdapter } from "./base";
 import type { Order, Product } from "@/lib/types";
+import type { CustomerMessages } from "@/lib/customer-messages";
 
 function pool() {
   const url = process.env.DATABASE_URL;
@@ -94,6 +95,29 @@ function rowToOrder(row: any, items: any[]): Order {
 }
 
 export class PostgresStorageAdapter implements StorageAdapter {
+  async getCustomerMessages(): Promise<CustomerMessages | undefined> {
+    const db = pool();
+    try {
+      const result = await db.query("select value from app_settings where key = $1", ["customer_messages"]);
+      return result.rows[0]?.value;
+    } finally {
+      await db.end();
+    }
+  }
+
+  async saveCustomerMessages(messages: CustomerMessages) {
+    const db = pool();
+    try {
+      await db.query(
+        `insert into app_settings (key, value) values ($1, $2::jsonb)
+         on conflict (key) do update set value = excluded.value, updated_at = now()`,
+        ["customer_messages", JSON.stringify(messages)]
+      );
+    } finally {
+      await db.end();
+    }
+  }
+
   async seedIfNeeded() {
     return;
   }

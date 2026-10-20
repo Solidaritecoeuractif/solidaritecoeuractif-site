@@ -1,12 +1,16 @@
 
 import type { Order, Product } from "@/lib/types";
+import type { CustomerMessages } from "@/lib/customer-messages";
 
 export type StoreData = {
   products: Product[];
   orders: Order[];
+  customerMessages?: CustomerMessages;
 };
 
 export interface StorageAdapter {
+  getCustomerMessages(): Promise<CustomerMessages | undefined>;
+  saveCustomerMessages(messages: CustomerMessages): Promise<void>;
   getProducts(): Promise<Product[]>;
   getProductById(id: string): Promise<Product | undefined>;
   getProductBySlug(slug: string): Promise<Product | undefined>;

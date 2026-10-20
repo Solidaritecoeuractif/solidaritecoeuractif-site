@@ -160,7 +160,10 @@ test('historical orders retain their amounts; new email and exports use exact li
   await h.module('app/api/checkout/route.ts').POST(new Request('https://sca.test/api/checkout', { method: 'POST', body: JSON.stringify(checkoutBody(7)) }));
   const order = h.writes.at(-1);
   let email;
-  const modules = loader({ resend: { Resend: class { emails = { send: async payload => { email = payload; } }; } } }, { EMAIL_FROM: 'test@example.test', RESEND_API_KEY: 'mock-only' });
+  const modules = loader({
+    resend: { Resend: class { emails = { send: async payload => { email = payload; } }; } },
+    '@/lib/storage': { storage: () => ({ getCustomerMessages: async () => undefined }) },
+  }, { EMAIL_FROM: 'test@example.test', RESEND_API_KEY: 'mock-only' });
   await modules('lib/email.ts').sendPaymentConfirmationEmail(order);
   assert.match(email.html, /91,86/);
   assert.doesNotMatch(email.html, /91,84/);

@@ -4,6 +4,7 @@ import path from "node:path";
 import { seedProducts } from "@/lib/catalog";
 import type { Order, Product } from "@/lib/types";
 import type { StorageAdapter, StoreData } from "./base";
+import type { CustomerMessages } from "@/lib/customer-messages";
 
 const DATA_DIR = path.join(process.cwd(), "data");
 const DATA_FILE = path.join(DATA_DIR, "store.json");
@@ -29,6 +30,16 @@ async function writeStore(data: StoreData) {
 }
 
 export class JsonStorageAdapter implements StorageAdapter {
+  async getCustomerMessages() {
+    return (await readStore()).customerMessages;
+  }
+
+  async saveCustomerMessages(messages: CustomerMessages) {
+    const store = await readStore();
+    store.customerMessages = messages;
+    await writeStore(store);
+  }
+
   async seedIfNeeded() {
     await ensureFile();
   }

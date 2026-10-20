@@ -31,6 +31,13 @@ export function AdminNav() {
       </Link>
 
       <Link
+        href="/admin/messages-clients"
+        className={adminLinkClass(pathname.startsWith("/admin/messages-clients"))}
+      >
+        Messages clients
+      </Link>
+
+      <Link
         href="/admin/billetteries"
         className={adminLinkClass(pathname.startsWith("/admin/billetteries"))}
       >

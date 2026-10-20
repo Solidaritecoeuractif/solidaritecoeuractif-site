@@ -1,4 +1,6 @@
 import { orderItemTotal } from "@/lib/order-amounts";
+import { storage } from "@/lib/storage";
+import { customerMessagesSchema, DEFAULT_CUSTOMER_MESSAGES } from "@/lib/customer-messages";
 import { Resend } from "resend";
 import type { Order } from "@/lib/types";
 import type {
@@ -116,6 +118,17 @@ function buildTicketingParticipantsHtml({
 export async function sendPaymentConfirmationEmail(order: Order) {
   const from = requireEmailConfig();
 
+  let deliveryMessage = DEFAULT_CUSTOMER_MESSAGES.deliveryMessage;
+  if (containsPhysicalProduct(order)) {
+    try {
+      const saved = customerMessagesSchema.safeParse(await storage().getCustomerMessages());
+      if (saved.success) deliveryMessage = saved.data.deliveryMessage;
+    } catch {
+      // Keep the confirmation available if the optional message settings cannot be read.
+      console.error("Lecture du message de livraison indisponible : utilisation du texte par défaut.");
+    }
+  }
+
   const subject = `Confirmation de paiement – ${order.reference}`;
   const supportAmount = Math.max(
     0,
@@ -164,7 +177,7 @@ export async function sendPaymentConfirmationEmail(order: Order) {
       )}</strong></p>
 
       <p>
-        Pour les produits physiques, les informations de suivi et de livraison vous seront communiquées dès que votre envoi sera traité par l’agence de livraison partenaire. Les délais peuvent varier de 3 à 10 jours en fonction de la densité des demandes.
+        ${paragraphHtml(deliveryMessage)}
       </p>
     `
     : "";
