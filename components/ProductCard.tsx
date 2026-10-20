@@ -7,6 +7,10 @@ function amountText(product: Product) {
     return euros(product.fixedPrice || 0);
   }
 
+  if (product.isPhysical && product.requiresShipping) {
+    return `Frais de traitement et d’expédition à partir de ${euros(product.minimumAmount || 0)}`;
+  }
+
   return `Participation à partir de ${euros(product.minimumAmount || 0)}`;
 }
 

@@ -7,8 +7,8 @@ export const DEFAULT_GROUPED_SHIPPING: GroupedShipping = {
     { minQuantity: 3, savingsAmount: 600 },
   ],
   title: "Faites-en profiter vos proches 💛",
-  description: "Regroupez vos exemplaires à la même adresse et économisez sur les frais d’envoi :",
-  footer: "Pour vous, votre famille, vos amis ou votre communauté… les livres sont offerts, seuls les frais d’envoi restent à votre charge.",
+  description: "Regroupez vos exemplaires à la même adresse et économisez sur les frais de traitement et d’expédition :",
+  footer: "Pour vous, votre famille, vos amis ou votre communauté… les livres sont offerts, seuls les frais de traitement et d’expédition restent à votre charge.",
 };
 
 type ShippingProduct = Partial<Pick<Product, "isPhysical" | "requiresShipping" | "pricingMode" | "groupedShipping">>;

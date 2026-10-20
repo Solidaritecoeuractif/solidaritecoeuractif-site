@@ -41,7 +41,7 @@ export function Footer() {
           <p>{email}</p>
           <p>
             Actions solidaires, collectes, soutiens associatifs et
-            participations aux frais de livraison.
+            participations aux frais de traitement et d’expédition.
           </p>
         </div>
       </div>

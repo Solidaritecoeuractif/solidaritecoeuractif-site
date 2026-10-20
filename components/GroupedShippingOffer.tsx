@@ -9,7 +9,7 @@ export function GroupedShippingOffer({ product, quantity, compact = false }: { p
   if (compact) return (
     <p className="grouped-shipping-status" role="status">
       {saving > 0
-        ? `Envoi groupé : ${euros(saving)} d’économie sur vos frais d’envoi.`
+        ? `Envoi groupé : ${euros(saving)} d’économie sur vos frais de traitement et d’expédition.`
         : `Dès ${config.tiers[0].minQuantity} exemplaires à la même adresse, profitez du tarif d’envoi groupé.`}
     </p>
   );

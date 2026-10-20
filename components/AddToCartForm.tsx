@@ -223,7 +223,7 @@ export function AddToCartForm({ product }: { product: Product }) {
       {product.pricingMode === "flexible" ? (
         <div className="shipping-preview-box">
           <p className="shipping-preview-title">
-            {hasAutomaticShipping(product) ? `Frais d’envoi pour ${quantity} exemplaire${quantity > 1 ? "s" : ""}` : "Repères du montant minimum selon la destination"}
+            {hasAutomaticShipping(product) ? `Frais de traitement et d’expédition pour ${quantity} exemplaire${quantity > 1 ? "s" : ""}` : "Repères du montant minimum selon la destination"}
           </p>
 
           <small>

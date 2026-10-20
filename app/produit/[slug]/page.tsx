@@ -105,7 +105,7 @@ export default async function ProductPage({
   const amountText =
     product.pricingMode === "fixed"
       ? euros(product.fixedPrice || 0)
-      : `À partir de ${euros(product.minimumAmount || 0)}`;
+      : `${product.isPhysical && product.requiresShipping ? "Frais de traitement et d’expédition à partir de" : "À partir de"} ${euros(product.minimumAmount || 0)}`;
 
   return (
     <main className="product-page">

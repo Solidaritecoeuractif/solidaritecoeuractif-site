@@ -8,7 +8,7 @@ export const seedProducts: Product[] = [
     id: uniqueId("prod"),
     slug: "365-jours-avec-le-seigneur-jesus-christ",
     title: "365 jours avec le Seigneur Jésus-Christ",
-    subtitle: "Livre imprimé – envoi avec participation aux frais de livraison",
+    subtitle: "Livre imprimé – envoi avec participation aux frais de traitement et d’expédition",
     shortDescription:
       "Un support imprimé pour accompagner la prière quotidienne, disponible en demande simple ou multiple.",
     longDescription:

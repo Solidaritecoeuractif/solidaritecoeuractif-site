@@ -76,7 +76,7 @@ export async function POST(request: Request) {
 
     const totalAmount = baseTotals.totalAmount + supportAmount;
     if (parsed.data.expectedTotalAmount !== undefined && parsed.data.expectedTotalAmount !== totalAmount) {
-      return NextResponse.json({ error: "Les frais d’envoi ont été actualisés. Rechargez cette page pour vérifier le nouveau total avant de continuer." }, { status: 409 });
+      return NextResponse.json({ error: "Les frais de traitement et d’expédition ont été actualisés. Rechargez cette page pour vérifier le nouveau total avant de continuer." }, { status: 409 });
     }
 
     const reference = orderReference();

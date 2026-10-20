@@ -14,7 +14,7 @@ export function stripeOrderLine(item: OrderItem, currency: string, reference: st
       currency,
       unit_amount: grouped ? total : item.unitAmount,
       product_data: {
-        name: grouped ? `Frais d’envoi groupé — ${item.quantity} exemplaires` : item.productTitle,
+        name: grouped ? `Traitement et expédition groupée — ${item.quantity} exemplaires` : item.productTitle,
         description: `${item.productTitle} — référence ${reference}`,
       },
     },

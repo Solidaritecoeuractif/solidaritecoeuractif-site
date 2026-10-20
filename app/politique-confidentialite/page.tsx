@@ -31,7 +31,7 @@ export default function Page() {
           <li>adresse postale de livraison ;</li>
           <li>pays, ville et code postal ;</li>
           <li>informations relatives à une demande ou à une commande ;</li>
-          <li>montant d’une participation ou de frais de livraison ;</li>
+          <li>montant d’une participation ou de frais de traitement et d’expédition ;</li>
           <li>messages, remarques ou informations transmises volontairement.</li>
         </ul>
         <p>
@@ -47,7 +47,7 @@ export default function Page() {
         <ul>
           <li>traiter les demandes effectuées sur le site ;</li>
           <li>organiser l’envoi des livres ou supports demandés ;</li>
-          <li>gérer les frais de livraison lorsque cela est nécessaire ;</li>
+          <li>gérer les frais de traitement et d’expédition lorsque cela est nécessaire ;</li>
           <li>enregistrer et suivre les participations libres ;</li>
           <li>envoyer des confirmations, reçus ou informations utiles ;</li>
           <li>répondre aux messages adressés à l’association ;</li>

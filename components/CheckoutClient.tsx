@@ -345,7 +345,7 @@ export function CheckoutClient({ products }: { products: Product[] }) {
     setInvalidRequiredFields([]);
 
     if (!allFlexibleAmountsEntered) {
-      setError("Merci de renseigner les frais de livraison avant de continuer.");
+      setError("Merci de renseigner les frais de traitement et d’expédition avant de continuer.");
       return;
     }
 
@@ -745,14 +745,14 @@ export function CheckoutClient({ products }: { products: Product[] }) {
                 <strong>
                   {item.product.pricingMode === "flexible"
                     ? item.isValidTypedAmount
-                      ? `Frais de livraison ${euros(item.total)}`
-                      : "Frais de livraison à renseigner"
+                      ? `Frais de traitement et d’expédition ${euros(item.total)}`
+                      : "Frais de traitement et d’expédition à renseigner"
                     : euros(item.total)}
                 </strong>
               </div>
 
               {item.automaticShipping ? (
-                <><small>Frais d’envoi calculés automatiquement pour votre destination et vos {item.quantity} exemplaire{item.quantity > 1 ? "s" : ""}.</small><GroupedShippingOffer product={item.product} quantity={item.quantity} compact /></>
+                <><small>Frais de traitement et d’expédition calculés automatiquement pour votre destination et vos {item.quantity} exemplaire{item.quantity > 1 ? "s" : ""}.</small><GroupedShippingOffer product={item.product} quantity={item.quantity} compact /></>
               ) : item.product.pricingMode === "flexible" ? (
                 <div style={{ marginTop: 8 }}>
                   <label style={{ display: "block" }}>
@@ -763,7 +763,7 @@ export function CheckoutClient({ products }: { products: Product[] }) {
                         fontWeight: 600,
                       }}
                     >
-                      Frais de livraison
+                      Frais de traitement et d’expédition
                     </span>
                     <input
                       type="text"

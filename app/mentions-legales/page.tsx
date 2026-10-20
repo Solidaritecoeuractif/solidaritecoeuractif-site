@@ -12,7 +12,7 @@ export default function Page() {
         <p>
           Le site a pour objet de présenter les actions solidaires de
           l’association, les collectes, les soutiens associatifs, les demandes de
-          livre gratuit, les participations libres et les frais de livraison liés
+          livre gratuit, les participations libres et les frais de traitement et d’expédition liés
           aux envois.
         </p>
         <p>
@@ -52,13 +52,13 @@ export default function Page() {
         <p>
           Solidarité Cœur Actif utilise ce site pour informer le public sur ses
           projets, recueillir des demandes, organiser des actions solidaires,
-          permettre des participations libres et traiter les frais de livraison
-          nécessaires à l’expédition de certains supports.
+          permettre des participations libres et collecter les frais de traitement
+          et d’expédition liés aux demandes de supports.
         </p>
         <p>
           Le livre proposé par l’association est présenté comme gratuit. Les
           sommes demandées ou proposées sur le site peuvent correspondre, selon
-          les cas, aux frais de livraison, à une participation libre ou à un
+          les cas, aux frais de traitement et d’expédition, à une participation libre ou à un
           soutien volontaire au projet associatif.
         </p>
       </section>

@@ -110,7 +110,7 @@ export function CartClient({ products }: { products: Product[] }) {
 
               {item.product.pricingMode === "flexible" ? (
                 <small>
-                  Frais de livraison calculés à l’étape suivante selon la
+                  Frais de traitement et d’expédition calculés à l’étape suivante selon la
                   destination, la quantité et le minimum applicable.
                 </small>
               ) : (

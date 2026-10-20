@@ -51,7 +51,7 @@ export default async function HomePage() {
         <div className="section-heading"><div><span className="eyebrow">Simplement, à votre rythme</span><h2>Chaque geste a sa place.</h2></div></div>
         <ol>
           <li><span>01</span><h3>Découvrez</h3><p>Chaque initiative présente son intention, son contenu et ses conditions de participation.</p></li>
-          <li><span>02</span><h3>Choisissez</h3><p>Consultez les détails de votre participation. Les frais d’envoi applicables sont précisés dans le parcours.</p></li>
+          <li><span>02</span><h3>Choisissez</h3><p>Consultez les détails de votre participation. Les frais de traitement et d’expédition applicables sont précisés dans le parcours.</p></li>
           <li><span>03</span><h3>Gardons le lien</h3><p>Une question sur un livre ou sur l’association ? Nous sommes là pour vous répondre.</p></li>
         </ol>
       </div></section>

@@ -9,7 +9,7 @@ export default function Page() {
           Le présent site est proposé par <strong>Solidarité Cœur Actif</strong>,
           association à but non lucratif. Il permet de présenter les actions de
           l’association, de recevoir des demandes, de gérer des participations
-          libres, de collecter certains frais de livraison et d’organiser l’envoi
+          libres, de collecter certains frais de traitement et d’expédition et d’organiser l’envoi
           de supports liés aux projets associatifs.
         </p>
         <p>
@@ -34,16 +34,16 @@ export default function Page() {
       </section>
 
       <section>
-        <h2>Livre gratuit et frais de livraison</h2>
+        <h2>Livre offert : traitement et expédition</h2>
         <p>
           Lorsque le site permet de demander un livre gratuit, le livre lui-même
-          est proposé sans prix de vente. Toutefois, les frais de livraison
+          est proposé sans prix de vente. Toutefois, les frais de traitement et d’expédition
           restent à la charge de la personne qui effectue la demande, sauf mention
           contraire explicite.
         </p>
         <p>
-          Ces frais servent à couvrir l’expédition, l’emballage, la préparation
-          et les coûts liés à l’acheminement. Leur montant peut varier selon le
+          Ces frais couvrent le traitement de la demande, la préparation de
+          l’envoi et son acheminement jusqu’à l’adresse indiquée. Leur montant peut varier selon le
           pays, la zone de livraison, la quantité demandée ou les contraintes
           logistiques.
         </p>
@@ -96,8 +96,7 @@ export default function Page() {
       <section>
         <h2>Paiement</h2>
         <p>
-          Les paiements effectués sur le site peuvent concerner des frais de
-          livraison, une participation libre ou un soutien volontaire. Ils sont
+          Les paiements effectués sur le site peuvent concerner des frais de traitement et d’expédition, une participation libre ou un soutien volontaire. Ils sont
           traités par un prestataire de paiement sécurisé.
         </p>
         <p>
