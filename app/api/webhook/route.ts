@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import Stripe from "stripe";
 import { stripe } from "@/lib/stripe";
 import { storage } from "@/lib/storage";
+import { paymentSessionMatchesOrder } from "@/lib/payment-integrity";
 import { ticketingStorage } from "@/lib/ticketing";
 import {
   sendPaymentConfirmationEmail,
@@ -33,8 +34,14 @@ export async function POST(request: Request) {
       webhookSecret
     );
 
-    if (event.type === "checkout.session.completed") {
+    if (event.type === "checkout.session.completed" || event.type === "checkout.session.async_payment_succeeded") {
       const session = event.data.object as Stripe.Checkout.Session;
+
+      // Une session terminée peut encore être impayée (moyen asynchrone).
+      // Aucun statut client ne vaut confirmation : seul Stripe fait foi.
+      if (session.status !== "complete" || session.payment_status !== "paid") {
+        return NextResponse.json({ received: true });
+      }
 
       const checkoutType = session.metadata?.checkoutType;
       const reference =
@@ -45,6 +52,14 @@ export async function POST(request: Request) {
         const order = await ticketing.getTicketingOrderByReference(reference);
 
         if (order) {
+          // Rapprocher la confirmation signée avec la session, le montant
+          // et la devise réellement figés dans la commande.
+          if (!paymentSessionMatchesOrder(session, order)) {
+            return NextResponse.json(
+              { error: "Rapprochement bancaire non confirmé. Réessai nécessaire." },
+              { status: 503 }
+            );
+          }
           const wasAlreadyPaid = order.paymentStatus === "paid";
           const confirmationAlreadySent = Boolean(order.confirmationEmailSentAt);
           const organizerNotificationAlreadySent = Boolean(
@@ -124,6 +139,14 @@ export async function POST(request: Request) {
         const order = await classicStorage.getOrderByReference(classicReference);
 
         if (order) {
+          // Rapprocher la confirmation signée avec la session, le montant
+          // et la devise réellement figés dans la commande.
+          if (!paymentSessionMatchesOrder(session, order)) {
+            return NextResponse.json(
+              { error: "Rapprochement bancaire non confirmé. Réessai nécessaire." },
+              { status: 503 }
+            );
+          }
           const wasAlreadyPaid = order.paymentStatus === "paid";
           const emailAlreadySent = Boolean(order.emailSentAt);
 
