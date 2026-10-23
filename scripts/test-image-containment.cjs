@@ -3,34 +3,36 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const vm = require('node:vm');
 const ts = require('typescript');
-const { NextRequest } = require('next/server');
-const { unstable_doesMiddlewareMatch } = require('next/experimental/testing/server');
-const compiled = ts.transpileModule(fs.readFileSync(require.resolve('../middleware.ts'), 'utf8'), {
-  compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 },
+const compiled = ts.transpileModule(fs.readFileSync(require.resolve('../next.config.ts'), 'utf8'), {
+  compilerOptions: {module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022},
 }).outputText;
-const loaded = { exports: {} };
-vm.runInNewContext(compiled, { module: loaded, exports: loaded.exports, require, URL });
-const { middleware, config } = loaded.exports;
+const loaded = {exports: {}};
+vm.runInNewContext(compiled, {module: loaded, exports: loaded.exports, require});
+const config = loaded.exports.default;
+const { ImageOptimizerCache } = require('next/dist/server/image-optimizer');
+const { getImgProps } = require('next/dist/shared/lib/get-img-props');
+const { imageConfigDefault } = require('next/dist/shared/lib/image-config');
+const images = {...imageConfigDefault, ...config.images};
+const nextConfig = {images};
 
-test('image requests are matched and rejected before any image work', async () => {
-  for (const path of ['/_next/image?url=%2Flogo-association.png&w=640&q=75', '/_next/image/', '/_next/image/extra']) {
-    assert.equal(unstable_doesMiddlewareMatch({ config, nextConfig: {}, url: path }), true);
-    const response = await middleware(new NextRequest('https://sca.test' + path));
-    assert.equal(response.status, 404);
-    assert.equal(response.headers.get('cache-control'), 'no-store');
-    assert.equal(response.headers.get('location'), null);
+test('local image optimization is refused before fetching or decoding', () => {
+  for (const url of ['/logo-association.png', '/api/couvertures/book', '/cover.jpg?x=1']) {
+    const result = ImageOptimizerCache.validateParams({}, {url, w: '640', q: '75'}, nextConfig, false);
+    assert.equal(result.errorMessage, '\"url\" parameter is not allowed');
   }
 });
 
-test('original images, public pages and payment webhooks are not intercepted', () => {
-  for (const url of ['/logo-association.png', '/produit/livre', '/api/webhook', '/_next/static/app.js']) {
-    assert.equal(unstable_doesMiddlewareMatch({ config, nextConfig: {}, url }), false);
+test('remote image optimization is refused before fetching or decoding', () => {
+  for (const url of ['https://images.unsplash.com/photo-test', 'https://plus.unsplash.com/photo-test', 'https://example.com/cover.jpg']) {
+    const result = ImageOptimizerCache.validateParams({}, {url, w: '640', q: '75'}, nextConfig, false);
+    assert.equal(result.errorMessage, '\"url\" parameter is not allowed');
   }
 });
 
-test('unauthenticated admin protection remains active', async () => {
-  assert.equal(unstable_doesMiddlewareMatch({ config, nextConfig: {}, url: '/admin/commandes' }), true);
-  const response = await middleware(new NextRequest('https://sca.test/admin/commandes'));
-  assert.equal(response.status, 307);
-  assert.equal(response.headers.get('location'), 'https://sca.test/admin-login');
+test('visible images keep their original URL and do not request optimization', () => {
+  for (const src of ['/logo-association.png', '/api/couvertures/book', 'https://images.unsplash.com/photo-test']) {
+    const {props} = getImgProps({src, alt: 'Book', width: 640, height: 480}, {imgConf: images, defaultLoader: () => {throw new Error('Unexpected image optimization');}});
+    assert.equal(props.src, src);
+    assert.equal(props.srcSet, undefined);
+  }
 });

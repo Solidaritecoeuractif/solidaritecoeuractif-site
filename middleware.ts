@@ -42,14 +42,6 @@ async function isValidAdminSession(request: NextRequest) {
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // Close the platform image endpoint while the Node.js patch is pending.
-  if (pathname === "/_next/image" || pathname.startsWith("/_next/image/")) {
-    return new NextResponse("Not found", {
-      status: 404,
-      headers: { "Cache-Control": "no-store" },
-    });
-  }
-
   const isAdminRoute =
     pathname === "/admin" || pathname.startsWith("/admin/");
 
@@ -68,5 +60,5 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/admin", "/admin/:path*", "/_next/image/:path*"],
+  matcher: ["/admin", "/admin/:path*"],
 };
