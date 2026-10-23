@@ -1,0 +1,12 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "routes": [
+    {
+      "src": "/_next/image(?:/.*)?",
+      "status": 404,
+      "headers": {
+        "Cache-Control": "no-store"
+      }
+    }
+  ]
+}
