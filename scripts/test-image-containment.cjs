@@ -32,7 +32,12 @@ test('remote image optimization is refused before fetching or decoding', () => {
 test('visible images keep their original URL and do not request optimization', () => {
   for (const src of ['/logo-association.png', '/api/couvertures/book', 'https://images.unsplash.com/photo-test']) {
     const {props} = getImgProps({src, alt: 'Book', width: 640, height: 480}, {imgConf: images, defaultLoader: () => {throw new Error('Unexpected image optimization');}});
-    assert.equal(props.src, src);
+    const actual = new URL(props.src, 'https://site.test');
+    if (actual.searchParams.has('dpl')) {
+      assert.equal(actual.searchParams.get('dpl'), process.env.NEXT_DEPLOYMENT_ID);
+      actual.searchParams.delete('dpl');
+    }
+    assert.equal(actual.href, new URL(src, 'https://site.test').href);
     assert.equal(props.srcSet, undefined);
   }
 });
