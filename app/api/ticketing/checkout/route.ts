@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { stripe } from "@/lib/stripe";
 import { ticketingStorage } from "@/lib/ticketing";
+import { qualimCheckoutOptions } from "@/lib/qualim-return";
 import type {
   TicketingCustomField,
   TicketingEvent,
@@ -549,11 +550,12 @@ export async function POST(request: Request) {
     const organizationPhone = cleanString(event.organizerPhone);
     const contactDescription = eventContactDescription(event);
 
+    const partnerReturn = qualimCheckoutOptions(baseUrl);
     const session = await stripe().checkout.sessions.create({
       mode: "payment",
       customer_email: payer.email,
       client_reference_id: reference,
-      success_url: `${baseUrl}/evenements/${event.slug}?paiement=success&reference=${reference}`,
+      success_url: partnerReturn.success_url,
       cancel_url: `${baseUrl}/evenements/${event.slug}?paiement=cancel&reference=${reference}`,
       billing_address_collection: "auto",
       phone_number_collection: { enabled: true },
@@ -625,6 +627,7 @@ export async function POST(request: Request) {
       ],
 
       metadata: {
+        ...partnerReturn.metadata,
         checkoutType: "ticketing",
         ticketingReference: reference,
         eventId: event.id,

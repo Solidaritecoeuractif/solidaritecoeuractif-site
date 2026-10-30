@@ -1,7 +1,8 @@
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import PublicTicketingSelectionClient from "@/components/PublicTicketingSelectionClient";
 import { getOrganizerSession } from "@/lib/auth";
 import { ticketingStorage } from "@/lib/ticketing";
+import { legacyQualimReturnPath } from "@/lib/qualim-return";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -55,7 +56,7 @@ export default async function Page({
   const { slug } = await params;
   const query = searchParams ? await searchParams : {};
   const previewRequested = query.preview === "organizer";
-  const paymentSucceeded = query.paiement === "success";
+  const paymentReturnRequested = query.paiement === "success";
   const paymentReference = String(query.reference || "").trim();
 
   const storage = ticketingStorage();
@@ -86,6 +87,17 @@ export default async function Page({
 
   if (!isPublic && !canPreviewAsOrganizer) {
     notFound();
+  }
+
+  if (paymentReturnRequested && paymentReference && paymentReference.length <= 120) {
+    let returnPath: string | null = null;
+    try {
+      const order = await storage.getTicketingOrderByReference(paymentReference);
+      if (order?.eventId === event.id) returnPath = legacyQualimReturnPath(paymentReference, order);
+    } catch {
+      // The URL alone is never proof of a confirmed registration.
+    }
+    if (returnPath) redirect(returnPath);
   }
 
   const [rates, customFields] = await Promise.all([
@@ -162,58 +174,13 @@ export default async function Page({
         }
       `}</style>
 
-      {paymentSucceeded ? (
-        <section
-          style={{
-            border: "1px solid #bbf7d0",
-            borderRadius: "22px",
-            padding: "22px",
-            background: "#f0fdf4",
-            color: "#14532d",
-            display: "grid",
-            gap: "10px",
-          }}
-        >
-          <div
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              justifyContent: "center",
-              width: "42px",
-              height: "42px",
-              borderRadius: "999px",
-              background: "#dcfce7",
-              color: "#166534",
-              fontWeight: 900,
-              fontSize: "22px",
-            }}
-          >
-            ✓
-          </div>
-
-          <div>
-            <h2 style={{ margin: 0, fontSize: "28px" }}>
-              Inscription confirmée
-            </h2>
-
-            <p style={{ margin: "8px 0 0", lineHeight: 1.6 }}>
-              Votre paiement a bien été reçu et votre inscription à{" "}
-              <strong>{event.title}</strong> est enregistrée.
-            </p>
-
-            {paymentReference ? (
-              <p style={{ margin: "8px 0 0", lineHeight: 1.6 }}>
-                Référence de l’inscription :{" "}
-                <strong>{paymentReference}</strong>
-              </p>
-            ) : null}
-
-            <p style={{ margin: "8px 0 0", lineHeight: 1.6 }}>
-              Un email de confirmation vient de vous être envoyé. Pensez à
-              vérifier aussi vos courriers indésirables si vous ne le voyez pas
-              dans votre boîte principale.
-            </p>
-          </div>
+      {paymentReturnRequested ? (
+        <section style={{ border: "1px solid #e1e6ed", borderRadius: "18px", padding: "22px", background: "#f8fafc" }}>
+          <h2 style={{ margin: 0 }}>Vérification de votre inscription</h2>
+          <p>La confirmation de votre paiement n’est pas encore disponible. Ne recommencez pas le paiement ; vous pouvez vérifier de nouveau cette page.</p>
+          {paymentReference && paymentReference.length <= 120 ? (
+            <a href={`/evenements/${encodeURIComponent(event.slug)}?paiement=success&reference=${encodeURIComponent(paymentReference)}`}>Vérifier de nouveau</a>
+          ) : null}
         </section>
       ) : null}
 

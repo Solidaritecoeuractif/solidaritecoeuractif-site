@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
-import { cookies } from "next/headers";
-import { QUALIM_COOKIE, qualimCheckoutOptions } from "@/lib/qualim-return";
+import { qualimCheckoutOptions } from "@/lib/qualim-return";
 import { storage } from "@/lib/storage";
 import { checkoutSchema } from "@/lib/validators";
 import { resolveCart, computeTotals } from "@/lib/cart";
@@ -113,13 +112,7 @@ export async function POST(request: Request) {
 
     await storage().saveOrder(order);
 
-    const partnerReturn = qualimCheckoutOptions(
-      baseUrl,
-      reference,
-      (await cookies()).get(QUALIM_COOKIE)?.value,
-      order.items.flatMap(item => item.productId ? [item.productId] : []),
-      process.env.QUALIM_RETURN_ENABLED === "true"
-    );
+    const partnerReturn = qualimCheckoutOptions(baseUrl);
 
     const session = await stripe().checkout.sessions.create({
       mode: "payment",
