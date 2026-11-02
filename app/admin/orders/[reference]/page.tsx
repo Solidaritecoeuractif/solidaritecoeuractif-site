@@ -18,8 +18,7 @@ export default async function AdminOrderDetailPage({
   params: Promise<{ reference: string }>;
 }) {
   const { reference } = await params;
-  const orders = await storage().getOrders();
-  const order = orders.find((entry) => entry.reference === reference);
+  const order = await storage().getOrderByReference(reference);
 
   if (!order) notFound();
 

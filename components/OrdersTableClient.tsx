@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { euros } from "@/lib/utils";
 import { getDestinationZone } from "@/lib/destinations";
 import LaPosteExportButton from "@/components/LaPosteExportButton";
@@ -34,6 +34,8 @@ type Order = {
   };
   items: OrderItem[];
 };
+
+const PAGE_SIZE = 50;
 
 type QuantityFilter = "all" | "single" | "multiple";
 
@@ -170,6 +172,8 @@ const compactBadgeStyle = {
 
 export default function OrdersTableClient({ orders }: { orders: Order[] }) {
   const [selected, setSelected] = useState<string[]>([]);
+  const [page, setPage] = useState(1);
+  const selectedSet = useMemo(() => new Set(selected), [selected]);
   const [logisticsFilter, setLogisticsFilter] = useState("all");
   const [exportFilter, setExportFilter] = useState("all");
   const [quantityFilter, setQuantityFilter] = useState<QuantityFilter>("all");
@@ -265,12 +269,35 @@ export default function OrdersTableClient({ orders }: { orders: Order[] }) {
     searchTerm,
   ]);
 
+  // All filters still cover the full dataset. Only the rendered rows are paged.
+  // Changing a filter clears an old selection so a hidden order cannot be exported.
+  useEffect(() => {
+    setPage(1);
+    setSelected([]);
+  }, [orders, logisticsFilter, exportFilter, quantityFilter, zoneFilter, dateFrom, dateTo, searchTerm]);
+
+  const pageCount = Math.max(1, Math.ceil(filteredOrders.length / PAGE_SIZE));
+  const currentPage = Math.min(page, pageCount);
+  const pageOrders = filteredOrders.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
+  const allPageSelected = pageOrders.length > 0 && pageOrders.every(order => selectedSet.has(order.reference));
+  function togglePage() {
+    const refs = new Set(pageOrders.map(order => order.reference));
+    setSelected(previous => allPageSelected
+      ? previous.filter(ref => !refs.has(ref))
+      : Array.from(new Set([...previous, ...refs])));
+  }
+  const pagination = <nav aria-label="Pagination des commandes" style={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: 12, margin: "16px 0" }}>
+    <button type="button" className="button secondary small" disabled={currentPage <= 1} onClick={() => setPage(currentPage - 1)}>Précédent</button>
+    <span role="status">Page {currentPage} / {pageCount} · {filteredOrders.length ? (currentPage - 1) * PAGE_SIZE + 1 : 0}–{Math.min(currentPage * PAGE_SIZE, filteredOrders.length)} sur {filteredOrders.length} commandes</span>
+    <button type="button" className="button secondary small" disabled={currentPage >= pageCount} onClick={() => setPage(currentPage + 1)}>Suivant</button>
+  </nav>;
+
   const allVisibleSelected = useMemo(() => {
     return (
       filteredOrders.length > 0 &&
-      filteredOrders.every((order) => selected.includes(order.reference))
+      filteredOrders.every((order) => selectedSet.has(order.reference))
     );
-  }, [filteredOrders, selected]);
+  }, [filteredOrders, selectedSet]);
 
   function toggleOne(reference: string) {
     setSelected((prev) =>
@@ -453,7 +480,7 @@ export default function OrdersTableClient({ orders }: { orders: Order[] }) {
 
   const customsEligibleSelectedCount = orders.filter(
     (order) =>
-      selected.includes(order.reference) &&
+      selectedSet.has(order.reference) &&
       isInternationalCustomsEligible(order.shippingAddress?.country)
   ).length;
 
@@ -617,12 +644,12 @@ export default function OrdersTableClient({ orders }: { orders: Order[] }) {
               </option>
               <option value="toggle_visible">
                 {allVisibleSelected
-                  ? "Désélectionner la liste affichée"
-                  : "Sélectionner la liste affichée"}
+                  ? "Désélectionner tous les résultats filtrés"
+                  : "Sélectionner tous les résultats filtrés"}
               </option>
-              <option value="select_visible">Sélectionner toute la liste affichée</option>
+              <option value="select_visible">Sélectionner tous les résultats filtrés (toutes les pages)</option>
               <option value="deselect_visible">
-                Désélectionner toute la liste affichée
+                Désélectionner tous les résultats filtrés (toutes les pages)
               </option>
               <option value="clear">Vider toute la sélection</option>
             </select>
@@ -708,6 +735,7 @@ export default function OrdersTableClient({ orders }: { orders: Order[] }) {
         </div>
       </div>
 
+      {pagination}
       <table
         className="table"
         style={{
@@ -735,9 +763,9 @@ export default function OrdersTableClient({ orders }: { orders: Order[] }) {
             <th style={{ ...headerCellStyle, textAlign: "center" }}>
               <input
                 type="checkbox"
-                checked={allVisibleSelected}
-                onChange={toggleAllVisible}
-                aria-label="Sélectionner toutes les commandes visibles"
+                checked={allPageSelected}
+                onChange={togglePage}
+                aria-label="Sélectionner les commandes de cette page"
               />
             </th>
             <th style={headerCellStyle}>Référence</th>
@@ -768,12 +796,12 @@ export default function OrdersTableClient({ orders }: { orders: Order[] }) {
               </td>
             </tr>
           ) : (
-            filteredOrders.map((order) => (
+            pageOrders.map((order) => (
               <tr key={order.reference}>
                 <td style={{ ...bodyCellStyle, textAlign: "center" }}>
                   <input
                     type="checkbox"
-                    checked={selected.includes(order.reference)}
+                    checked={selectedSet.has(order.reference)}
                     onChange={() => toggleOne(order.reference)}
                     aria-label={`Sélectionner la commande ${order.reference}`}
                   />
@@ -933,6 +961,7 @@ export default function OrdersTableClient({ orders }: { orders: Order[] }) {
           )}
         </tbody>
       </table>
+      {pagination}
     </section>
   );
 }

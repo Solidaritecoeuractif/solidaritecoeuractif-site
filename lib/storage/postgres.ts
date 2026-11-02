@@ -3,13 +3,25 @@ import type { StorageAdapter } from "./base";
 import type { Order, Product } from "@/lib/types";
 import type { CustomerMessages } from "@/lib/customer-messages";
 
+let sharedPool: Pool | undefined;
+
 function pool() {
+  if (sharedPool) return sharedPool;
   const url = process.env.DATABASE_URL;
   if (!url) {
     throw new Error("DATABASE_URL manquant pour le driver postgres.");
   }
 
-  return new Pool({ connectionString: url });
+  sharedPool = new Pool({
+    connectionString: url,
+    max: 10,
+    idleTimeoutMillis: 10000,
+    connectionTimeoutMillis: 10000,
+  });
+  // An idle connection can be closed by the database; pg removes it and the
+  // next request reconnects. Never log connection strings or customer data.
+  sharedPool.on("error", () => console.error("Connexion Postgres inactive interrompue."));
+  return sharedPool;
 }
 
 function rowToProduct(row: any): Product {
@@ -97,25 +109,17 @@ function rowToOrder(row: any, items: any[]): Order {
 export class PostgresStorageAdapter implements StorageAdapter {
   async getCustomerMessages(): Promise<CustomerMessages | undefined> {
     const db = pool();
-    try {
-      const result = await db.query("select value from app_settings where key = $1", ["customer_messages"]);
-      return result.rows[0]?.value;
-    } finally {
-      await db.end();
-    }
+    const result = await db.query("select value from app_settings where key = $1", ["customer_messages"]);
+    return result.rows[0]?.value;
   }
 
   async saveCustomerMessages(messages: CustomerMessages) {
     const db = pool();
-    try {
-      await db.query(
-        `insert into app_settings (key, value) values ($1, $2::jsonb)
-         on conflict (key) do update set value = excluded.value, updated_at = now()`,
-        ["customer_messages", JSON.stringify(messages)]
-      );
-    } finally {
-      await db.end();
-    }
+    await db.query(
+      `insert into app_settings (key, value) values ($1, $2::jsonb)
+       on conflict (key) do update set value = excluded.value, updated_at = now()`,
+      ["customer_messages", JSON.stringify(messages)]
+    );
   }
 
   async seedIfNeeded() {
@@ -325,11 +329,15 @@ export class PostgresStorageAdapter implements StorageAdapter {
         "select * from order_items order by created_at desc"
       );
 
+      // Index once instead of scanning every item for every order (O(n²)).
+      const itemsByOrder = new Map<string, any[]>();
+      for (const item of itemsRes.rows) {
+        const items = itemsByOrder.get(item.order_id);
+        if (items) items.push(item);
+        else itemsByOrder.set(item.order_id, [item]);
+      }
       return ordersRes.rows.map((row) =>
-        rowToOrder(
-          row,
-          itemsRes.rows.filter((item) => item.order_id === row.id)
-        )
+        rowToOrder(row, itemsByOrder.get(row.id) || [])
       );
     } finally {
       client.release();
