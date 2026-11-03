@@ -35,6 +35,18 @@ async function isValidAdminSession(request: NextRequest) {
   const [value, signature] = parts;
   if (!value || !signature) return false;
 
+  // Un jeton valide d'organisateur ne doit jamais servir d'accès admin.
+  if (!/^admin:\d{13}$/.test(value)) return false;
+  const issuedAt = Number(value.slice(6));
+  const age = Date.now() - issuedAt;
+  if (age < -60_000 || age > 12 * 60 * 60 * 1000) return false;
+
+  // Une clé de démonstration ne peut pas sécuriser l'administration publique.
+  if (process.env.NODE_ENV === "production" &&
+      (!process.env.ADMIN_SESSION_SECRET ||
+       new TextEncoder().encode(process.env.ADMIN_SESSION_SECRET).byteLength < 32)) {
+    return false;
+  }
   const expected = await sign(value);
   return expected === signature;
 }
