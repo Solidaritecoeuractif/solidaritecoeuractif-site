@@ -270,11 +270,21 @@ export default function OrdersTableClient({ orders }: { orders: Order[] }) {
   ]);
 
   // All filters still cover the full dataset. Only the rendered rows are paged.
-  // Changing a filter clears an old selection so a hidden order cannot be exported.
+  // Filters and pagination change the view, not the selection being prepared.
   useEffect(() => {
     setPage(1);
-    setSelected([]);
   }, [orders, logisticsFilter, exportFilter, quantityFilter, zoneFilter, dateFrom, dateTo, searchTerm]);
+
+  // Reconcile only against authoritative data, never against search results.
+  useEffect(() => {
+    const available = new Set(orders.filter(order => order.paymentStatus === "paid").map(order => order.reference));
+    setSelected(previous => {
+      const remaining = previous.filter(reference => available.has(reference));
+      return remaining.length === previous.length ? previous : remaining;
+    });
+  }, [orders]);
+
+  const selectedOutsideFilters = selected.length - filteredOrders.filter(order => selectedSet.has(order.reference)).length;
 
   const pageCount = Math.max(1, Math.ceil(filteredOrders.length / PAGE_SIZE));
   const currentPage = Math.min(page, pageCount);
@@ -323,7 +333,7 @@ export default function OrdersTableClient({ orders }: { orders: Order[] }) {
   }
 
   function selectAllVisible() {
-    setSelected(filteredOrders.map((order) => order.reference));
+    setSelected(previous => Array.from(new Set([...previous, ...filteredOrders.map(order => order.reference)])));
   }
 
   function deselectVisible() {
@@ -370,17 +380,7 @@ export default function OrdersTableClient({ orders }: { orders: Order[] }) {
     params.set("references", uniqueSelectedRefs.join(","));
     params.set("selectionOnly", "true");
 
-    if (logisticsFilter !== "all") {
-      params.set("logisticsStatus", logisticsFilter);
-    }
-
-    if (dateFrom) {
-      params.set("dateFrom", new Date(dateFrom).toISOString());
-    }
-
-    if (dateTo) {
-      params.set("dateTo", new Date(dateTo).toISOString());
-    }
+    // Explicit selection is the export scope, including rows hidden by filters.
 
     const base =
       format === "customs-pdf"
@@ -497,8 +497,13 @@ export default function OrdersTableClient({ orders }: { orders: Order[] }) {
         }}
       >
         <h1 style={{ margin: 0 }}>Commandes</h1>
-        <div style={{ fontWeight: 600 }}>
+        <div style={{ fontWeight: 600 }} role="status" aria-live="polite" aria-atomic="true">
           {selected.length} commande(s) sélectionnée(s)
+          {selectedOutsideFilters > 0 && (
+            <div style={{ fontSize: "13px", fontWeight: 400, marginTop: "4px" }}>
+              Dont {selectedOutsideFilters} hors des filtres actuels — incluses dans l’export.
+            </div>
+          )}
         </div>
       </div>
 
